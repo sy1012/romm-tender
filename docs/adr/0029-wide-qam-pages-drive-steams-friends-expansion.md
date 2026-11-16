@@ -2,6 +2,9 @@
 
 ## Status
 
+**Amended by [ADR-0045](0045-a-wide-page-sets-steams-expanded-class-itself.md)**: the message alone no longer slides the
+menu open under Tender's tab, so a wide page also sets Steam's `Expanded` class itself.
+
 Accepted. Records the width decision behind [#1809](https://github.com/danielcopper/romm-tender/issues/1809) (the
 panel's target structure), the first step of [#1808](https://github.com/danielcopper/romm-tender/issues/1808) (the QAM
 restructure). The structure itself lives in [qam-panel.md](../architecture/qam-panel.md).

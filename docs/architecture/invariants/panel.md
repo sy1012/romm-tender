@@ -54,13 +54,15 @@ entry reads and binds, and the other areas: [the register's index](index.md).
   reads the view per event and retains nothing. The glyph binds nothing there: its update dot reads stores that are
   module state of the window the panel's code runs in, and subscribes to them from the tree through
   `useSyncExternalStore`. (`utils/styleInjector.ts` writes into `findSP()`'s document, which is the game page's and not
-  the menu's.) One added at module scope would work perfectly until the first Gaming-Mode-to-Desktop switch and then do
-  nothing, silently. Prompt-only: marker and key are `tender`, never `decky`; nothing writes
-  `window.__TABS_HOOK_INSTANCE` or calls its `add()`, and neither it nor a `decky`-marked entry is read as a sign Decky
-  is present — a `decky`-marked entry is read only to place Tender's entry; no tab array held, no unpatch added; on
-  every render pass the handler places the entry by the stored `qam_entry_position` (before the first `decky`-marked
-  entry under `"above_decky"`, the default; last under `"below_decky"` or with no such entry); nothing binds to the
-  Quick Access window at module scope. Detail: `docs/architecture/qam-panel.md` → The entry
+  the menu's; so does `utils/qamExpansion.ts`'s hold on Steam's QAM placeholder, whose class and `MutationObserver` are
+  taken inside the wide page's effect and released on each of its collapse paths.) One added at module scope would work
+  perfectly until the first Gaming-Mode-to-Desktop switch and then do nothing, silently. Prompt-only: marker and key are
+  `tender`, never `decky`; nothing writes `window.__TABS_HOOK_INSTANCE` or calls its `add()`, and neither it nor a
+  `decky`-marked entry is read as a sign Decky is present — a `decky`-marked entry is read only to place Tender's entry;
+  no tab array held, no unpatch added; on every render pass the handler places the entry by the stored
+  `qam_entry_position` (before the first `decky`-marked entry under `"above_decky"`, the default; last under
+  `"below_decky"` or with no such entry); nothing binds to the Quick Access window at module scope. Detail:
+  `docs/architecture/qam-panel.md` → The entry
 - **Tender's section reaches Steam's game page through the ROUTE component's `renderFunc`, and never through the page
   component's own `type`** — test + prompt-only — `frontend/src/bigpicture/patches/gamePageSeam.test.ts` pins the half
   that is decidable without Steam: the factory predicate in both directions, that two matching factories answer as no

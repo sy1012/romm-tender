@@ -1,5 +1,5 @@
 /**
- * qamExpansion tests — the two levers that widen the QAM panel, and the four
+ * qamExpansion tests — the levers that widen the QAM panel, and the four
  * paths that have to clear them again.
  *
  * The levers themselves are Steam internals that happy-dom cannot show: no
@@ -37,7 +37,14 @@ vi.mock("./quickAccessVisible", () => ({
 
 const ACTIVE_TAB_CLASS = "ActiveTab_hash";
 const TAB_PANEL_CLASS = "TabGroupPanel_hash";
-const PROBE_CLASSES = { ActiveTab: ACTIVE_TAB_CLASS, TabGroupPanel: TAB_PANEL_CLASS };
+const VIEW_PLACEHOLDER_CLASS = "ViewPlaceholder_hash";
+const EXPANDED_CLASS = "Expanded_hash";
+const PROBE_CLASSES = {
+  ActiveTab: ACTIVE_TAB_CLASS,
+  TabGroupPanel: TAB_PANEL_CLASS,
+  ViewPlaceholder: VIEW_PLACEHOLDER_CLASS,
+  Expanded: EXPANDED_CLASS,
+};
 
 type QamExpansion = typeof import("./qamExpansion");
 
@@ -46,9 +53,16 @@ type QamExpansion = typeof import("./qamExpansion");
  * `vi.doMock` rather than a hoisted `vi.mock`: the hoisted factory's result is
  * cached for the file, so both probe outcomes could not be exercised in one run.
  */
-async function loadQamExpansion(classes: Record<string, string> | undefined): Promise<QamExpansion> {
+async function loadQamExpansion(
+  classes: Record<string, string> | undefined,
+  sp: Window | null = window,
+): Promise<QamExpansion> {
   vi.resetModules();
-  vi.doMock("./deckyUiInternals", () => ({ quickAccessMenuClasses: classes, Tabs: undefined }));
+  vi.doMock("./deckyUiInternals", () => ({
+    quickAccessMenuClasses: classes,
+    Tabs: undefined,
+    findSP: () => sp ?? undefined,
+  }));
   return await import("./qamExpansion");
 }
 
@@ -90,6 +104,14 @@ function renderWidePage(mod: QamExpansion, host: HTMLElement) {
     return <div ref={rootRef} className={mod.WIDE_ROOT_CLASS} />;
   };
   return render(<Page />, { container: host });
+}
+
+/** Steam's QAM placeholder in its main window, which the main window's own render owns the classes of. */
+function mountPlaceholder(...classes: string[]): HTMLElement {
+  const placeholder = document.createElement("div");
+  placeholder.className = [VIEW_PLACEHOLDER_CLASS, ...classes].join(" ");
+  document.body.appendChild(placeholder);
+  return placeholder;
 }
 
 /** Every stylesheet in `doc` carrying the wide-page rule. */
@@ -326,5 +348,74 @@ describe("useWideQamPanel", () => {
     // Nothing names the active-tab class either, so the tab question cannot be
     // asked — the page still expands rather than staying permanently narrow.
     expect(lastMessage()).toBe("QamFriendsExpanded");
+  });
+
+  describe("Steam's own Expanded class on the QAM placeholder", () => {
+    it("slides the placeholder open while the page is mounted, and back on unmount", async () => {
+      const mod = await loadQamExpansion(PROBE_CLASSES);
+      const placeholder = mountPlaceholder();
+      const { host } = mountQamDom();
+
+      const { unmount } = renderWidePage(mod, host);
+      expect(placeholder.classList.contains(EXPANDED_CLASS)).toBe(true);
+
+      unmount();
+      expect(placeholder.classList.contains(EXPANDED_CLASS)).toBe(false);
+    });
+
+    it("puts the class back when Steam's render takes it away while the page holds it", async () => {
+      const mod = await loadQamExpansion(PROBE_CLASSES);
+      const placeholder = mountPlaceholder();
+      const { host } = mountQamDom();
+      renderWidePage(mod, host);
+
+      await act(async () => {
+        placeholder.className = VIEW_PLACEHOLDER_CLASS;
+      });
+
+      expect(placeholder.classList.contains(EXPANDED_CLASS)).toBe(true);
+    });
+
+    it("lets it go when the QAM tab stops being active, and stops putting it back", async () => {
+      const mod = await loadQamExpansion(PROBE_CLASSES);
+      const placeholder = mountPlaceholder();
+      const { host, panelParent } = mountQamDom();
+      renderWidePage(mod, host);
+
+      await act(async () => {
+        panelParent.classList.remove(ACTIVE_TAB_CLASS);
+      });
+      expect(placeholder.classList.contains(EXPANDED_CLASS)).toBe(false);
+
+      await act(async () => {
+        placeholder.className = VIEW_PLACEHOLDER_CLASS;
+      });
+      expect(placeholder.classList.contains(EXPANDED_CLASS)).toBe(false);
+    });
+
+    it("leaves a class Steam put there itself where it found it", async () => {
+      const mod = await loadQamExpansion(PROBE_CLASSES);
+      const placeholder = mountPlaceholder(EXPANDED_CLASS);
+      const { host } = mountQamDom();
+
+      const { unmount } = renderWidePage(mod, host);
+      unmount();
+
+      expect(placeholder.classList.contains(EXPANDED_CLASS)).toBe(true);
+    });
+
+    it.each([
+      ["the class map names neither class", { ActiveTab: ACTIVE_TAB_CLASS, TabGroupPanel: TAB_PANEL_CLASS }, window],
+      ["Steam's main window cannot be found", PROBE_CLASSES, null],
+    ])("still sends the message when %s", async (_case, classes, sp) => {
+      const mod = await loadQamExpansion(classes, sp);
+      const placeholder = mountPlaceholder();
+      const { host } = mountQamDom();
+
+      renderWidePage(mod, host);
+
+      expect(lastMessage()).toBe("QamFriendsExpanded");
+      expect(placeholder.classList.contains(EXPANDED_CLASS)).toBe(false);
+    });
   });
 });

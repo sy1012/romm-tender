@@ -217,14 +217,25 @@ How a page gets wide, measured on the device rather than read from documentation
 
 - Steam's main window holds the QAM in a sliding container: an absolutely positioned element as wide as the viewport and
   854 × 454 CSS px on the Deck — the 80 px above it is Steam's top bar — anchored right and pushed off-screen by
-  `transform: translateX(506px)`, so 348 px stay visible. Steam's `Expanded` class sets `translateX(0)`. Its class names
-  are hashed and there is no `ViewPlaceholder` to match on any more, so the container is found by geometry: absolutely
-  positioned, a transform set, at least 800 × 400. The class follows one MobX observable on the FriendsUI store, which
-  listens for `message` events on the SharedJSContext window — the window the panel's code runs in. A wide page posts
-  `{ message: "QamFriendsExpanded" }` to `window` on mount and `{ message: "QamFriendsHidden" }` when it lets go. The
-  target origin is always `window.origin`, which addresses the message to that window and always matches it. A
-  well-formed target origin that does not match is checked at delivery and the message is discarded in silence, so a
-  literal one would leave the panel simply never widening.
+  `transform: translateX(506px)`, so 348 px stay visible. Steam's `Expanded` class sets `translateX(0)`, and the Quick
+  Access browser view follows the element. The container carries the `ViewPlaceholder` class of the same class map that
+  names `TabGroupPanel` and `ActiveTab` (`quickAccessMenuClasses`), and `Expanded` is in that map too, though
+  `@decky/ui`'s type for it omits the key. Steam computes `Expanded` from one MobX observable on the FriendsUI store,
+  `qamFriendsExpanded`, which listens for `message` events on the SharedJSContext window — the window the panel's code
+  runs in — **and only while its Friends tab is the active Quick Access tab**
+  (`qamFriendsExpanded && activeTab ==
+  Friends` in `steamui/sp.js`; Chrome 126 client, read live). On that client the
+  message alone never moves the container under Tender's tab: the cap below is lifted, the container stays at 506 px,
+  and a wide page is cut off at the right. So a wide page also puts `Expanded` on the placeholder itself
+  (`holdPlaceholderExpanded` in `utils/qamExpansion.ts`), through `findSP()`, and puts it back while held, because
+  Steam's render rewrites the element's classes whenever what it computes changes. It takes the class off on every path
+  below that lets the width go, and never takes off a class Steam put there itself. With either class key or the
+  placeholder missing, only the message goes out — a cut-off page on such a client, never a wrong one. Adding the class
+  by hand was measured on the device to slide the menu full width and keep it there across navigation inside and outside
+  the panel. A wide page posts `{ message: "QamFriendsExpanded" }` to `window` on mount and
+  `{ message: "QamFriendsHidden" }` when it lets go. The target origin is always `window.origin`, which addresses the
+  message to that window and always matches it. A well-formed target origin that does not match is checked at delivery
+  and the message is discarded in silence, so a literal one would leave the panel simply never widening.
 - Every tab's content panel carries `max-width: 300px`; only Steam's Friends panel lifts it. A wide page injects one
   stylesheet whose `:has()` rule lifts the cap for a marker class on the panel's own subtree. Class names come from
   `quickAccessMenuClasses`, which can be `undefined`; `[id^="quickaccess_content_"]` is the fallback selector. Steam

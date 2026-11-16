@@ -1,11 +1,12 @@
 /**
- * The two levers that widen Tender's Quick Access Menu panel from 348 px to
+ * The levers that widen Tender's Quick Access Menu panel from 348 px to
  * 854 px, and the paths that clear them again.
  *
  * Steam ships no API for either. Both are internals with no compatibility
  * promise, measured on the device rather than read from documentation; the
  * decision to use them, and what it rests on, is
- * `docs/adr/0029-wide-qam-pages-drive-steams-friends-expansion.md`.
+ * `docs/adr/0029-wide-qam-pages-drive-steams-friends-expansion.md`, amended by
+ * `docs/adr/0045-a-wide-page-sets-steams-expanded-class-itself.md`.
  *
  * The flag the first lever sets is Steam's own and global, so whoever sets it
  * clears it: a wide page that leaks it leaves Steam's QAM expanded until the
@@ -21,7 +22,7 @@
  */
 
 import { useEffect, type RefObject } from "react";
-import { quickAccessMenuClasses } from "./deckyUiInternals";
+import { findSP, quickAccessMenuClasses } from "./deckyUiInternals";
 import { setOwningQamTabActive } from "./owningQamTab";
 import { useQuickAccessVisible } from "./quickAccessVisible";
 
@@ -115,10 +116,52 @@ ${TAB_PANEL_SELECTOR}:has(.${WIDE_ROOT_CLASS}) > * { max-width: none; }
 // page still on screen has no path back to wide short of a QAM tab switch.
 let injectedStyle: HTMLStyleElement | null = null;
 
+// Undoes the Expanded class Tender put on Steam's QAM placeholder; null while
+// Tender holds none. Module state for the same one-wide-page reason as above.
+let releasePlaceholder: (() => void) | null = null;
+
+/**
+ * Put Steam's own `Expanded` class on the QAM's `ViewPlaceholder` in Steam's
+ * main window, which slides the Quick Access view to full width: the one thing
+ * the message no longer does on its own, because Steam now honours the flag
+ * only while its Friends tab is the active one (`steamui/sp.js`,
+ * `qamFriendsExpanded&&…==Friends`; docs/architecture/qam-panel.md, "Two
+ * widths").
+ *
+ * Steam's render owns that element's classes and rewrites them whenever what
+ * it computes changes, so the class is put back while held. A class Steam put
+ * there itself is not Tender's to hold or to take away.
+ */
+function holdPlaceholderExpanded(): (() => void) | null {
+  // `@decky/ui` types the map as a closed record that has no `Expanded`, but
+  // Steam's module carries it beside `ViewPlaceholder`, `TabGroupPanel` and
+  // `ActiveTab` (read live from Steam's webpack registry).
+  const classes = quickAccessMenuClasses as Partial<Record<string, string>> | undefined;
+  const placeholderClass = classes?.ViewPlaceholder;
+  const expandedClass = classes?.Expanded;
+  if (!placeholderClass || !expandedClass) return null;
+  const placeholder = findSP()?.document.querySelector(`.${placeholderClass}`);
+  const view = placeholder?.ownerDocument.defaultView;
+  if (!placeholder || !view || placeholder.classList.contains(expandedClass)) return null;
+
+  placeholder.classList.add(expandedClass);
+  const observer = new view.MutationObserver(() => {
+    if (!placeholder.classList.contains(expandedClass)) placeholder.classList.add(expandedClass);
+  });
+  observer.observe(placeholder, { attributes: true, attributeFilter: ["class"] });
+  return () => {
+    observer.disconnect();
+    placeholder.classList.remove(expandedClass);
+  };
+}
+
 /**
  * Drive Steam's Friends-tab expansion. The FriendsUI store listens for `message`
- * events on the window the panel's code runs in and flips one MobX observable, which
- * carries the `Expanded` class that un-shifts the QAM's placeholder.
+ * events on the window the panel's code runs in and flips one MobX observable.
+ * Steam turns that observable into the placeholder's `Expanded` class only while
+ * its Friends tab is the active one, which is why {@link holdPlaceholderExpanded}
+ * sets the class as well; the message is still what keeps Steam's own reading of
+ * the flag in step with the panel's width.
  *
  * The target origin is `window.origin`: it addresses the message to the one
  * window meant to receive it, and always matches, so the message is always
@@ -140,12 +183,15 @@ function collapseWidePanel(): void {
   if (!style) return;
   injectedStyle = null;
   style.remove();
+  releasePlaceholder?.();
+  releasePlaceholder = null;
   setQamExpanded(false);
 }
 
 function expandWidePanel(root: HTMLElement): void {
   if (injectedStyle) return;
   setQamExpanded(true);
+  releasePlaceholder = holdPlaceholderExpanded();
   const doc = root.ownerDocument;
   const style = doc.createElement("style");
   style.id = WIDE_PANEL_STYLE_ID;
