@@ -335,12 +335,15 @@ versions, and a version with no region/language detail simply omits the rows. Th
 
 ## Downloading ROMs
 
-Games appear as shortcuts in your library even before the ROM file is downloaded. Before downloading, the panel shows a
-**Space Required** cell next to the Play button so you know how much disk space the ROM needs. A download brings the
-files RomM files as the game's own — the files directly in the game's folder on RomM unless RomM recognises one as an
-update or DLC (it does for Switch games), and those in no category folder, such as a Wii U dump's — and leaves
-everything RomM files under another category on the server: manuals, walkthroughs, soundtracks, screenshots, cheats,
-patches, translations, hacks, mods, demos, prototypes, updates and DLC. To download:
+Games appear as shortcuts in your library even before the ROM file is downloaded. Steam counts only the downloaded ones
+as installed: its **Installed** filters, and a [TabMaster](https://github.com/Tormak9970/TabMaster) tab with an
+**Installed** filter, show a game once any version of it is on your device and drop it again when its files are deleted
+or go missing. Before downloading, the panel shows a **Space Required** cell next to the Play button so you know how
+much disk space the ROM needs. A download brings the files RomM files as the game's own — the files directly in the
+game's folder on RomM unless RomM recognises one as an update or DLC (it does for Switch games), and those in no
+category folder, such as a Wii U dump's — and leaves everything RomM files under another category on the server:
+manuals, walkthroughs, soundtracks, screenshots, cheats, patches, translations, hacks, mods, demos, prototypes, updates
+and DLC. To download:
 
 1. Open the game's detail page in the Steam Library
 2. In the Tender panel, tap **Download**
@@ -836,9 +839,9 @@ file on RomM"_ and is greyed out, and so is **Download again** in the menu. **Fi
 are about your device. **Forget this download** still works and clears the record of the download; the game then shows
 the greyed-out _"No file on RomM"_ button of a game that is not downloaded.
 
-While the file is missing, the **RomM Actions** menu behind the gamepad icon at the right of the play row offers no
-**Uninstall** — there is nothing to delete — and neither the disc picker nor the **CPU button** (the emulator picker) is
-shown.
+While the file is missing, Steam counts the game as not installed, and the **RomM Actions** menu behind the gamepad icon
+at the right of the play row offers no **Uninstall** — there is nothing to delete — and neither the disc picker nor the
+**CPU button** (the emulator picker) is shown.
 
 ## Removing a Platform from Steam
 

@@ -898,6 +898,10 @@ class Endpoints:
         return self._services.metadata_service.get_app_id_rom_id_map()
 
     @route
+    def get_installed_app_ids(self):
+        return self._services.game_detail_service.installed_app_ids()
+
+    @route
     async def get_bound_launch_options(self):
         """Return the lease-bearing items for every bound shortcut whose launch options are not its appId.
 

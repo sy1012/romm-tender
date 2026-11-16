@@ -23,7 +23,7 @@ from __future__ import annotations
 from domain.sync_run_kind import SyncRunKind
 from lib.errors import RommConnectionError
 
-from ._seed import seed_group_member, seed_platform_stamp, seed_rom, seed_sync_run
+from ._seed import seed_group_member, seed_install, seed_platform_stamp, seed_rom, seed_sync_run
 
 # ── get_sync_status ──────────────────────────────────────────────────────
 
@@ -721,3 +721,19 @@ async def test_get_session_budget_status_shape_rss_present(harness):
         "run_done_items": None,
         "run_total_items": None,
     }
+
+
+async def test_get_installed_app_ids_names_only_shortcuts_whose_file_is_on_disk(harness):
+    """A plain ascending list of appIds: an install record counts only while its file exists."""
+    import os
+
+    assert harness.endpoints.get_installed_app_ids() == []
+
+    present = seed_install(harness, 11, file_name="present.gba")
+    seed_install(harness, 12, file_name="gone.gba")
+    seed_rom(harness, 13)
+    os.makedirs(os.path.dirname(present), exist_ok=True)
+    with open(present, "wb") as f:
+        f.write(b"rom")
+
+    assert harness.endpoints.get_installed_app_ids() == [11]

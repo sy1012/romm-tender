@@ -18,6 +18,7 @@ from typing import TYPE_CHECKING, Any, cast
 from domain.achievements import AchievementSummary
 from domain.bios_status import BIOS_LABEL_UNKNOWN, BIOS_LEVEL_UNKNOWN
 from domain.emulator_sources import RETRODECK
+from domain.install_state import installed_shortcut_app_ids
 from domain.platform_names import PLATFORM_NAMES_KEY, platform_display_name
 from domain.retrodeck_folders import FolderRefused
 from domain.save_status import compute_save_sync_display
@@ -338,6 +339,18 @@ class GameDetailService:
             "adoption_candidate_present": candidate_present,
             "file_missing_at": file_missing_at,
         }
+
+    def installed_app_ids(self) -> list[int]:
+        """The shortcut appIds Steam is told are installed, ascending.
+
+        An install record counts only while its file or folder exists, the same
+        test the page's missing-file notice makes.
+        """
+        with self._uow_factory() as uow:
+            roms = list(uow.roms.iter_all())
+            installs = list(uow.rom_installs.iter_all())
+        present = {install.rom_id for install in installs if self._missing_install_path(install) is None}
+        return installed_shortcut_app_ids(roms, present)
 
     def _missing_install_path(self, install: RomInstall | None) -> str | None:
         """The path an install record names when neither its file nor its folder exists, else ``None``.

@@ -75,7 +75,17 @@ interface SteamAppOverview {
   minutes_playtime_last_two_weeks?: number;
   rt_last_time_played?: number;
   m_setStoreCategories?: Set<number>;
+  // One entry per Steam client that knows the app; `clientid` "0" is this
+  // machine. Steam's `installed` getter on the overview reads this entry.
+  per_client_data?: SteamPerClientData[];
   GetGameID?(): string;
+}
+
+interface SteamPerClientData {
+  clientid: string;
+  display_status: number;
+  status_percentage?: number;
+  installed?: boolean;
 }
 
 interface SteamDragDropCollection {

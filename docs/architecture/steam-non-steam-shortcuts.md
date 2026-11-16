@@ -480,6 +480,29 @@ See: `frontend/src/utils/metadataPatches.ts` (which appId gets which value, and 
 `frontend/src/utils/steamOverview.ts` (`writeMetadataFields`, where all three assignments onto the overview are made),
 `frontend/src/utils/metadataCache.ts` (paged fetch), `onSyncComplete` in `frontend/src/index.tsx`
 
+### Install state
+
+Steam marks every non-Steam shortcut installed, so without help its Installed filters — and TabMaster's, which read the
+same `appOverview.installed` getter — count every synced game as installed. Steam's getter reads this machine's entry
+(`clientid` `"0"`) in the overview's `per_client_data`, and on the reference Deck a real Steam game carries
+`installed: true`, `display_status: 11` and `status_percentage: 100` there when installed, and neither of the first and
+last with `display_status: 9` when not. `writeInstallState` (`frontend/src/utils/steamOverview.ts`) gives each Tender
+shortcut's entry one of those two shapes and leaves other clients' entries alone; `applyInstallState`
+(`frontend/src/utils/installState.ts`) decides which, from `get_installed_app_ids`.
+
+A shortcut counts as installed when its own ROM, or any version in its sibling group, has an install record whose file
+or folder still exists — the shortcut can start something (`domain/install_state.py`, read by
+`GameDetailService.installed_app_ids` with the same existence test as the game page's missing-file notice). A record
+whose file is gone counts as not installed.
+
+Like the metadata fields, the write is in memory and lost on every mount, so it runs at panel load (with the same
+readiness ladder), after every sync in the library-view pass, and whenever what is on disk changes: `download_complete`,
+`romm_rom_uninstalled`, and `romm_data_changed` of type `rom_adopted`. Measured on the device with one shortcut marked
+not installed: Steam's Installed filter and TabMaster's both left it out, its game page still showed Tender's section
+and buttons, nothing offered Steam's own Install button, and Steam did not put the entry back while the library was
+used. Whether some later overview update from Steam rewrites the entry is not established; a game that has just been
+played is installed anyway, and the next load or sync writes every entry again.
+
 ## VDF Format Notes
 
 Shortcut creation and every field update go through the frontend `SteamClient.Apps.AddShortcut()` / `Set*` API —
