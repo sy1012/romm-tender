@@ -132,6 +132,11 @@ vi.mock("./settings/LibrarySection", async (importOriginal) => {
 });
 
 // The Preferred-region change modal — mocked so tests control confirm/cancel.
+const applyLibraryHiding = vi.fn().mockResolvedValue(true);
+vi.mock("../utils/libraryHiding", () => ({
+  applyLibraryHiding: (...args: unknown[]) => applyLibraryHiding(...args),
+}));
+
 vi.mock("./settings/PreferredRegionModal", () => ({
   showPreferredRegionModal: vi.fn(() => Promise.resolve(true)),
 }));
@@ -2176,6 +2181,41 @@ describe("SettingsPage", () => {
       });
       // CATCH-REJECTION assert: rolled back to false.
       expect(capturedLibrary[capturedLibrary.length - 1]?.platformGroups).toBe(false);
+    });
+
+    it("hydrates hideSynced from getSettings", async () => {
+      vi.mocked(backend.getSettings).mockResolvedValue({ ...defaultSettings(), steam_library_hidden: true });
+      renderPage();
+      await flushAsync();
+      expect(capturedLibrary[capturedLibrary.length - 1]?.hideSynced).toBe(true);
+    });
+
+    it("onHideSyncedChange applies the switch to Steam at once and flips the value", async () => {
+      applyLibraryHiding.mockResolvedValue(true);
+      renderPage();
+      await flushAsync();
+      await act(async () => {
+        capturedLibrary[capturedLibrary.length - 1]?.onHideSyncedChange(true);
+        await Promise.resolve();
+      });
+      expect(applyLibraryHiding).toHaveBeenCalledWith({ enabled: true });
+      expect(capturedLibrary[capturedLibrary.length - 1]?.hideSynced).toBe(true);
+    });
+
+    it.each([
+      ["answers that nothing could be changed", () => applyLibraryHiding.mockResolvedValue(false)],
+      ["rejects", () => applyLibraryHiding.mockRejectedValue(new Error("boom"))],
+    ])("reverts hideSynced when applying it %s", async (_case, arrange) => {
+      arrange();
+      renderPage();
+      await flushAsync();
+      await act(async () => {
+        capturedLibrary[capturedLibrary.length - 1]?.onHideSyncedChange(true);
+        await Promise.resolve();
+        await Promise.resolve();
+        await Promise.resolve();
+      });
+      expect(capturedLibrary[capturedLibrary.length - 1]?.hideSynced).toBe(false);
     });
 
     it("hydrates namingMode from getSettings", async () => {

@@ -392,6 +392,8 @@ class TestGetSettings:
                 "qam_entry_position": "below_decky",
                 "preferred_region": "USA",
                 "skip_preview": True,
+                "steam_library_hidden": True,
+                "steam_hidden_by_tender": [101, 102],
             }
         )
         result = service.get_settings()
@@ -407,6 +409,8 @@ class TestGetSettings:
         assert result["qam_entry_position"] == "below_decky"
         assert result["preferred_region"] == "USA"
         assert result["skip_preview"] is True
+        assert result["steam_library_hidden"] is True
+        assert result["steam_hidden_by_tender"] == [101, 102]
 
     def test_never_returns_credentials_or_token(self, service, settings):
         settings["romm_api_token"] = "rmm_secret"
@@ -459,6 +463,8 @@ class TestGetSettings:
         assert result["preferred_region"] == "auto"
         assert result["skip_preview"] is False
         assert result["romm_custom_header_names"] == []
+        assert result["steam_library_hidden"] is False
+        assert result["steam_hidden_by_tender"] == []
 
     def test_reports_custom_header_names_and_never_a_value(self, service, settings):
         """Same rule as the token and the SteamGridDB key: a stored value can be replaced, not read back."""
@@ -1154,6 +1160,45 @@ class TestSetCollectionNamingMode:
             service.set_collection_naming_mode(None)  # type: ignore[arg-type]
         assert refused.value.reason == "invalid_mode"
         assert "collection_naming_mode" not in settings
+        settings_persister.save_settings.assert_not_called()
+
+
+class TestSaveSteamLibraryHiding:
+    def test_the_switch_and_tenders_hides_persist_together(self, service, settings, settings_persister):
+        result = service.save_steam_library_hiding(True, [101, 102])
+        assert result == {"success": True}
+        assert settings["steam_library_hidden"] is True
+        assert settings["steam_hidden_by_tender"] == [101, 102]
+        settings_persister.save_settings.assert_called_once_with()
+
+    def test_switching_off_with_nothing_left_hidden_persists(self, service, settings, settings_persister):
+        settings.update({"steam_library_hidden": True, "steam_hidden_by_tender": [101]})
+        service.save_steam_library_hiding(False, [])
+        assert settings["steam_library_hidden"] is False
+        assert settings["steam_hidden_by_tender"] == []
+
+    @pytest.mark.parametrize(
+        ("enabled", "hidden_by_tender"),
+        [
+            ("yes", []),
+            (None, []),
+            (True, None),
+            (True, "101"),
+            (True, [101, "102"]),
+            (True, [True]),
+            (True, [0]),
+            (True, [-5]),
+            (True, [1.5]),
+        ],
+    )
+    def test_anything_else_is_refused_without_writing(
+        self, service, settings, settings_persister, enabled, hidden_by_tender
+    ):
+        with pytest.raises(Refused) as refused:
+            service.save_steam_library_hiding(enabled, hidden_by_tender)
+        assert refused.value.reason == "invalid_value"
+        assert "steam_library_hidden" not in settings
+        assert "steam_hidden_by_tender" not in settings
         settings_persister.save_settings.assert_not_called()
 
 

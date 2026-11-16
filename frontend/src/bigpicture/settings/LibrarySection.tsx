@@ -2,7 +2,8 @@
  * Set-and-forget preferences about what the library looks like once it is IN
  * Steam: the preferred-region dropdown (ADR-0021 §3, which region wins when a
  * game has several dumps and Tender must pick one to bind + name the
- * shortcut after), the collection platform-groups toggle and the naming mode.
+ * shortcut after), the collection platform-groups toggle, the naming mode and
+ * whether synced games are hidden from Steam's library.
  * Pure renderer: parent owns every value and the save/confirm flow.
  *
  * It is titled **Steam Library** rather than Library: the Library page is the
@@ -30,6 +31,8 @@ interface LibrarySectionProps {
   // docs/architecture/steam-non-steam-shortcuts.md § Collection naming mode.
   namingMode: CollectionNamingMode;
   onNamingModeChange: (mode: CollectionNamingMode) => void;
+  hideSynced: boolean;
+  onHideSyncedChange: (enabled: boolean) => void;
 }
 
 // The internal sentinel for "no preference — use the fixed build-time order".
@@ -77,6 +80,8 @@ export const LibrarySection: FC<LibrarySectionProps> = ({
   onPlatformGroupsChange,
   namingMode,
   onNamingModeChange,
+  hideSynced,
+  onHideSyncedChange,
 }) => {
   return (
     <PanelSection title="Steam Library">
@@ -103,6 +108,14 @@ export const LibrarySection: FC<LibrarySectionProps> = ({
           description="Keeps collections that share a name apart in Steam instead of merging them: hand-picked collections keep their plain name, and the other kinds get their type added, such as (Smart) or (Franchise). Applies on the next sync."
           checked={namingMode === "by_label"}
           onChange={(v) => onNamingModeChange(v ? "by_label" : "merge")}
+        />
+      </PanelSectionRow>
+      <PanelSectionRow>
+        <ToggleField
+          label="Hide synced games from Steam's library"
+          description="Keeps RomM games out of All Games and your other library views. They stay in the RomM collection, so a library tab built on it still shows them. Turning this off unhides only the games Tender hid."
+          checked={hideSynced}
+          onChange={onHideSyncedChange}
         />
       </PanelSectionRow>
     </PanelSection>

@@ -20,7 +20,7 @@ import {
 import { STEAM_ASSET_TYPES } from "./artwork";
 import { writeSlotArtwork } from "./artworkSlotsStore";
 import { slotThumbnailUrls } from "./artworkThumbs";
-import { foldCollectionName } from "./collectionName";
+import { isTenderCollection } from "./collections";
 import { detach } from "./detach";
 import { pacedForEach } from "./pacedOps";
 
@@ -60,9 +60,7 @@ async function carryOverCollections({ app_id, kept_app_id }: ConvergedRemoval): 
   if (!kept) return;
   const collections = collectionStore.userCollections.filter(
     (collection) =>
-      collection.apps.has(app_id) &&
-      !collection.apps.has(kept_app_id) &&
-      !foldCollectionName(collection.displayName).startsWith("romm: "),
+      collection.apps.has(app_id) && !collection.apps.has(kept_app_id) && !isTenderCollection(collection.displayName),
   );
   await pacedForEach(collections, async (collection) => {
     // One collection that cannot take the app — a dynamic one may have no

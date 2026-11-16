@@ -116,12 +116,13 @@ describe("carryOverShortcutState (#2645)", () => {
 
   it("leaves Tender's own collections and one already holding the kept shortcut alone", async () => {
     const platform = collection("uc-3", "RomM: GBA (steamdeck)", [6031]);
+    const synced = collection("uc-5", "RomM (steamdeck)", [6031]);
     const both = collection("uc-4", "Golf games", [6031, 6030]);
-    collections = [platform, both];
+    collections = [platform, synced, both];
 
     await carryOverShortcutState(REMOVAL);
 
-    expect([platform.added, both.added]).toEqual([[], []]);
+    expect([platform.added, synced.added, both.added]).toEqual([[], [], []]);
   });
 
   it("carries the other collections when one cannot take the app", async () => {

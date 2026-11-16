@@ -561,6 +561,30 @@ apply, Steam's own calls for each new shortcut — its creation, its registratio
 per game together. Grouping the saves every 5 s cut the cost of Tender's own collection writes to about 25 ms per game
 but left Steam's slowdown as it was; a sync over games already filed cost nothing extra.
 
+### Hiding synced games
+
+Two things keep synced games out of Steam's main library views while leaving them one tab away:
+
+- **The synced-games collection.** `RomM (<hostname>)` holds every shortcut the `roms` table binds
+  (`get_app_id_rom_id_map`), not just the run's `platform_app_ids`: with platform groups off, a game a collection
+  brought in is in no platform's collection. It is written after every sync by `saveSyncedGamesCollection`
+  (`frontend/src/utils/collections.ts`), in the same group of passes as playtime and metadata, so it waits for the run's
+  removal to report. Its name never changes and no sync deletes it, unlike the platform and RomM collections, which a
+  naming-mode change or a platform switched off deletes and recreates. A library tab built on it — TabMaster's
+  Collection filter, which has an option to include hidden games — keeps working. It is swept with the others by Remove
+  all (`clearAllRomMCollections`), and never receives a carried-over shortcut (`isTenderCollection`).
+- **Steam's Hidden flag**, behind the **Hide synced games from Steam's library** setting (off by default).
+  `applyLibraryHiding` (`frontend/src/utils/libraryHiding.ts`) runs when the setting changes and after every sync. On,
+  it hides every Tender shortcut not hidden yet; off, it unhides **only the appIds Tender hid**, so a game the user hid
+  themselves stays hidden. Those appIds are kept in `settings.json` (`steam_hidden_by_tender`, beside the switch
+  `steam_library_hidden`), written by `save_steam_library_hiding` **before** Steam is changed: a hide Tender made but
+  never recorded is one it could never undo, while a recorded hide that never happened is skipped on the way back,
+  because only a shortcut still hidden is unhidden. An appId whose shortcut is no longer Tender's is dropped from the
+  list. A shortcut the sync converges onto inherits Hidden from the one it replaces (`carryOverHidden`) without being
+  recorded, so it stays hidden when the setting is switched off.
+
+Whether `SetAppsAsHidden` and `BIsHidden` behave on a device as their names say has not been measured.
+
 ### Collection naming mode — `merge` vs `by_label` (#1539)
 
 The `romm_collection_app_ids` wire payload is `name → appIds` **only** — kind/virtual_type are collapsed away before the

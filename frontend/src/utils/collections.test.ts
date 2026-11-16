@@ -4,6 +4,8 @@ import {
   createOrUpdateCollections,
   clearPlatformCollection,
   clearAllRomMCollections,
+  isTenderCollection,
+  saveSyncedGamesCollection,
 } from "./collections";
 
 // Steam's collection identity is case-insensitive, so a collection whose
@@ -168,5 +170,70 @@ describe("clearAllRomMCollections — case-insensitive identity (#1569)", () => 
     expect(shouted.Delete).toHaveBeenCalledTimes(1);
     expect(theirs.Delete).not.toHaveBeenCalled();
     expect(mine.Delete).not.toHaveBeenCalled();
+  });
+});
+
+describe("the synced-games collection", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("is created as RomM (host) holding every synced game", async () => {
+    const created = fakeCollection("RomM (test)");
+    const NewUnsavedCollection = vi.fn(() => created);
+    vi.stubGlobal("collectionStore", { userCollections: [], NewUnsavedCollection });
+
+    await saveSyncedGamesCollection([1001, 1002]);
+
+    expect(NewUnsavedCollection).toHaveBeenCalledWith("RomM (test)", undefined, []);
+    expect(created.dnd.AddApps).toHaveBeenCalledWith([
+      expect.objectContaining({ appid: 1001 }),
+      expect.objectContaining({ appid: 1002 }),
+    ]);
+    expect(created.Save).toHaveBeenCalledTimes(1);
+  });
+
+  it("updates the one that is there instead of making a second", async () => {
+    const existing = fakeCollection("ROMM (TEST)");
+    const NewUnsavedCollection = vi.fn();
+    vi.stubGlobal("collectionStore", { userCollections: [existing], NewUnsavedCollection });
+
+    await saveSyncedGamesCollection([1001]);
+
+    expect(NewUnsavedCollection).not.toHaveBeenCalled();
+    expect(existing.Save).toHaveBeenCalledTimes(1);
+  });
+
+  it("is not written with no synced games", async () => {
+    const NewUnsavedCollection = vi.fn();
+    vi.stubGlobal("collectionStore", { userCollections: [], NewUnsavedCollection });
+
+    await saveSyncedGamesCollection([]);
+
+    expect(NewUnsavedCollection).not.toHaveBeenCalled();
+  });
+
+  it("is swept by the clear-all with this host's other collections, and another host's is spared", async () => {
+    const mine = fakeCollection("RomM (test)");
+    const theirs = fakeCollection("RomM (othermachine)");
+    vi.stubGlobal("collectionStore", { userCollections: [mine, theirs] });
+
+    await clearAllRomMCollections();
+
+    expect(mine.Delete).toHaveBeenCalledTimes(1);
+    expect(theirs.Delete).not.toHaveBeenCalled();
+  });
+});
+
+describe("isTenderCollection", () => {
+  it.each([
+    ["RomM: SNES (deck)", true],
+    ["RomM: [Faves] (deck)", true],
+    ["RomM (deck)", true],
+    ["romm (Other Host)", true],
+    ["RomM games I like", false],
+    ["My Games (deck)", false],
+  ])("%s → %s", (name, expected) => {
+    expect(isTenderCollection(name)).toBe(expected);
   });
 });

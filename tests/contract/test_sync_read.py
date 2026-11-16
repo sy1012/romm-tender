@@ -468,6 +468,25 @@ async def test_set_qam_entry_position_persists(harness):
     assert harness.endpoints.get_settings()["qam_entry_position"] == "above_decky"
 
 
+async def test_save_steam_library_hiding_persists(harness):
+    """save_steam_library_hiding stores both values and get_settings reports them back."""
+    assert harness.endpoints.get_settings()["steam_library_hidden"] is False
+
+    result = harness.endpoints.save_steam_library_hiding(True, [101, 102])
+    assert result == {"success": True}
+    settings = harness.endpoints.get_settings()
+    assert settings["steam_library_hidden"] is True
+    assert settings["steam_hidden_by_tender"] == [101, 102]
+
+
+async def test_save_steam_library_hiding_rejects_invalid(harness):
+    """A list that is not appIds is answered with the failure shape and changes nothing."""
+    result = harness.endpoints.save_steam_library_hiding(True, ["101"])
+    assert result["success"] is False
+    assert result["reason"] == "invalid_value"
+    assert harness.endpoints.get_settings()["steam_hidden_by_tender"] == []
+
+
 async def test_set_qam_entry_position_rejects_invalid(harness):
     """An unknown position is answered with the failure shape and changes nothing."""
     result = harness.endpoints.set_qam_entry_position("first")

@@ -155,7 +155,13 @@ vi.mock("./utils/syncManager", () => ({
 const createOrUpdateCollections = vi.fn().mockResolvedValue(undefined);
 const createOrUpdateRomMCollections = vi.fn().mockResolvedValue(undefined);
 const clearPlatformCollection = vi.fn().mockResolvedValue(undefined);
+const saveSyncedGamesCollection = vi.fn().mockResolvedValue(undefined);
+const applyLibraryHiding = vi.fn().mockResolvedValue(true);
+vi.mock("./utils/libraryHiding", () => ({
+  applyLibraryHiding: (...args: unknown[]) => applyLibraryHiding(...args),
+}));
 vi.mock("./utils/collections", () => ({
+  saveSyncedGamesCollection: (...args: unknown[]) => saveSyncedGamesCollection(...args),
   createOrUpdateCollections: (...args: unknown[]) => createOrUpdateCollections(...args),
   createOrUpdateRomMCollections: (...args: unknown[]) => createOrUpdateRomMCollections(...args),
   clearPlatformCollection: (...args: unknown[]) => clearPlatformCollection(...args),
@@ -1564,6 +1570,21 @@ describe("index.tsx — sync_complete launch-options reconcile (#1151)", () => {
 
     expect(readBeforeTheReport).toEqual([0, 0, 0]);
     expect(getAppIdRomIdMap).toHaveBeenCalled();
+  });
+
+  it("files every synced game in the synced-games collection, then applies the hiding switch to them", async () => {
+    panelFactory();
+    await flush();
+    saveSyncedGamesCollection.mockClear();
+    applyLibraryHiding.mockClear();
+    vi.mocked(getAppIdRomIdMap).mockResolvedValue({ "100": 1, "200": 2 });
+
+    act(() => {
+      emitHostEvent<SyncCompletePayload>("sync_complete", { platform_app_ids: { SNES: [100] }, total_games: 2 });
+    });
+
+    await vi.waitFor(() => expect(applyLibraryHiding).toHaveBeenCalledWith({ tenderAppIds: [100, 200] }));
+    expect(saveSyncedGamesCollection).toHaveBeenCalledWith([100, 200], expect.any(AbortSignal));
   });
 
   it("runs the after-sync passes when the removal's report fails (#2653 D3)", async () => {

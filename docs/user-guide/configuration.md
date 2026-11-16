@@ -13,7 +13,7 @@ right. Move onto a section in the list and the right-hand side changes at once �
 | **Connections**      | the services Tender talks to: **RomM** (server URL, account, Sign out, Allow Insecure SSL) and **SteamGridDB** (the API key)                                               |
 | **Save Sync**        | the save-sync switch and its settings (device, before launch, after exit, default slot, history limit, Sync All Saves Now) and the list of registered devices              |
 | **Controller**       | Steam Input Mode and Apply to All Shortcuts                                                                                                                                |
-| **Steam Library**    | preferred region, collection games in platform groups, collection types in Steam names                                                                                     |
+| **Steam Library**    | preferred region, collection games in platform groups, collection types in Steam names, hiding synced games                                                                |
 | **Emulator sources** | every emulator setup Tender found — RetroDECK, EmuDeck, a RetroArch of its own — as a numbered card with its health, **Use this source**, and arrows to move it up or down |
 | **Tender folder**    | where Tender keeps its own files: the current place, the internal storage, each writable drive with its free space, and **Another folder…**                                |
 | **Updates**          | the version you have and the release the last successful check found, an update that was rolled back or refused, the daily update check, and **Check now**                 |
