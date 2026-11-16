@@ -355,6 +355,9 @@ _MIGRATION_RULE_WHITELIST: set[str] = {
     "get_rom_metadata",
     "get_metadata_cache_page",
     "get_app_id_rom_id_map",
+    # Which shortcuts are installed — a pure read of rom_installs and a stat per
+    # record, never gated.
+    "get_installed_app_ids",
     # Read-only startup launch-options reconcile pull (#1043) — heals drifted
     # shortcut launch commands; pure read, never gated.
     "get_bound_launch_options",

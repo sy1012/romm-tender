@@ -1300,6 +1300,9 @@ export const getMetadataCachePage = endpoint<[number, number], { items: Record<s
   "get_metadata_cache_page",
 );
 export const getAppIdRomIdMap = endpoint<[], Record<string, number>>("get_app_id_rom_id_map");
+// The shortcut appIds whose game, or any version of it, is downloaded and still
+// on disk — what utils/installState.ts tells Steam is installed.
+export const getInstalledAppIds = endpoint<[], number[]>("get_installed_app_ids");
 /**
  * Every bound shortcut whose launch options in Steam's shortcut file are not its
  * appId, with the value it must carry, under an `installed_reconcile` lease when

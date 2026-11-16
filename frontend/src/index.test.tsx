@@ -157,6 +157,10 @@ const createOrUpdateRomMCollections = vi.fn().mockResolvedValue(undefined);
 const clearPlatformCollection = vi.fn().mockResolvedValue(undefined);
 const saveSyncedGamesCollection = vi.fn().mockResolvedValue(undefined);
 const applyLibraryHiding = vi.fn().mockResolvedValue(true);
+const applyInstallState = vi.fn().mockResolvedValue(undefined);
+vi.mock("./utils/installState", () => ({
+  applyInstallState: (...args: unknown[]) => applyInstallState(...args),
+}));
 vi.mock("./utils/libraryHiding", () => ({
   applyLibraryHiding: (...args: unknown[]) => applyLibraryHiding(...args),
 }));
@@ -953,6 +957,63 @@ describe("index.tsx — download_complete leaves the shortcut alone", () => {
   });
 });
 
+describe("index.tsx — install state follows downloads and deletions", () => {
+  beforeEach(() => {
+    vi.mocked(getAllPlaytime).mockResolvedValue({ playtime: {} });
+    vi.mocked(getMetadataCachePage).mockResolvedValue({ items: {}, total: 0 });
+    vi.mocked(getAppIdRomIdMap).mockResolvedValue({ "100": 1 });
+  });
+
+  it("tells Steam at start-up, about every synced shortcut", async () => {
+    applyInstallState.mockClear();
+
+    panelFactory();
+
+    await vi.waitFor(() => expect(applyInstallState).toHaveBeenCalledWith({ tenderAppIds: [100] }));
+  });
+
+  it("tells Steam again once a download completes", async () => {
+    panelFactory();
+    await flush();
+    applyInstallState.mockClear();
+
+    act(() => {
+      emitHostEvent<DownloadCompleteEvent>("download_complete", {
+        rom_id: 42,
+        rom_name: "Test ROM",
+        platform_name: "PSX",
+        file_path: "/games/test.bin",
+      });
+    });
+
+    await vi.waitFor(() => expect(applyInstallState).toHaveBeenCalled());
+  });
+
+  it("tells Steam again once a game's files are deleted", async () => {
+    panelFactory();
+    await flush();
+    applyInstallState.mockClear();
+
+    act(() => {
+      globalThis.dispatchEvent(new CustomEvent("romm_rom_uninstalled", { detail: { rom_id: 42 } }));
+    });
+
+    await vi.waitFor(() => expect(applyInstallState).toHaveBeenCalled());
+  });
+
+  it("tells Steam again once files already on the device are adopted", async () => {
+    panelFactory();
+    await flush();
+    applyInstallState.mockClear();
+
+    act(() => {
+      globalThis.dispatchEvent(new CustomEvent("romm_data_changed", { detail: { type: "rom_adopted", rom_id: 42 } }));
+    });
+
+    await vi.waitFor(() => expect(applyInstallState).toHaveBeenCalled());
+  });
+});
+
 describe("index.tsx — download_progress cancelled eviction (#149 downloads-round)", () => {
   it("drops the entry from the store when a cancelled frame arrives", async () => {
     panelFactory();
@@ -1585,6 +1646,19 @@ describe("index.tsx — sync_complete launch-options reconcile (#1151)", () => {
 
     await vi.waitFor(() => expect(applyLibraryHiding).toHaveBeenCalledWith({ tenderAppIds: [100, 200] }));
     expect(saveSyncedGamesCollection).toHaveBeenCalledWith([100, 200], expect.any(AbortSignal));
+  });
+
+  it("tells Steam which synced games are installed after a sync", async () => {
+    panelFactory();
+    await flush();
+    applyInstallState.mockClear();
+    vi.mocked(getAppIdRomIdMap).mockResolvedValue({ "100": 1, "200": 2 });
+
+    act(() => {
+      emitHostEvent<SyncCompletePayload>("sync_complete", { platform_app_ids: { SNES: [100] }, total_games: 2 });
+    });
+
+    await vi.waitFor(() => expect(applyInstallState).toHaveBeenCalledWith({ tenderAppIds: [100, 200] }));
   });
 
   it("runs the after-sync passes when the removal's report fails (#2653 D3)", async () => {

@@ -1408,3 +1408,21 @@ class TestTheGamePageNamesThePlatformByItsFolder:
         result = await game_detail.service.get_cached_game_detail(50000)
 
         assert result["platform_name"] == "Super Nintendo (snes-hacks)"
+
+
+class TestInstalledAppIds:
+    """``installed_app_ids``: the shortcuts Steam is told are installed."""
+
+    def test_a_present_install_marks_its_shortcut(self, game_detail, path_probe, tmp_path):
+        _seed_rom(game_detail, 42, app_id=4200)
+        _seed_rom(game_detail, 43, app_id=4300)
+        _install_rom(game_detail, tmp_path, rom_id=42)
+        path_probe.paths.add(str(tmp_path / "retrodeck" / "roms" / "gba" / "pokemon.gba"))
+
+        assert game_detail.service.installed_app_ids() == [4200]
+
+    def test_an_install_whose_file_is_gone_does_not(self, game_detail, tmp_path):
+        _seed_rom(game_detail, 42, app_id=4200)
+        _install_rom(game_detail, tmp_path, rom_id=42)
+
+        assert game_detail.service.installed_app_ids() == []

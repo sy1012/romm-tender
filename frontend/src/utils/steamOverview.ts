@@ -54,6 +54,37 @@ export function writeMetadataFields(overview: SteamAppOverview, metadata: RomMet
   });
 }
 
+// The `display_status` Steam gives "This machine" for an installed app and for
+// one that is not, read off real Steam games on the reference Deck: an
+// installed one also carries `installed: true` and `status_percentage: 100`,
+// an uninstalled one neither.
+const DISPLAY_STATUS_INSTALLED = 11;
+const DISPLAY_STATUS_NOT_INSTALLED = 9;
+const THIS_MACHINE = "0";
+
+/**
+ * Give this machine's entry in the overview's `per_client_data` the shape Steam
+ * gives an installed app, or an uninstalled one — which is what Steam's own
+ * Installed filters and `appOverview.installed` read. Other clients' entries
+ * are left alone, and an overview with no entry for this machine is not
+ * written. Idempotent.
+ */
+export function writeInstallState(overview: SteamAppOverview, installed: boolean): void {
+  const local = overview.per_client_data?.find((entry) => entry.clientid === THIS_MACHINE);
+  if (!local) return;
+  stateTransaction(() => {
+    if (installed) {
+      local.installed = true;
+      local.status_percentage = 100;
+      local.display_status = DISPLAY_STATUS_INSTALLED;
+    } else {
+      delete local.installed;
+      delete local.status_percentage;
+      local.display_status = DISPLAY_STATUS_NOT_INSTALLED;
+    }
+  });
+}
+
 /** What the overview held before {@link writePlaytimeFields} changed it. */
 export interface PreviousPlaytime {
   minutes: number | undefined;

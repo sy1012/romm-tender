@@ -69,6 +69,7 @@ import {
 } from "./utils/collections";
 import { foldCollectionName } from "./utils/collectionName";
 import { applyLibraryHiding } from "./utils/libraryHiding";
+import { applyInstallState } from "./utils/installState";
 import { setMigrationStatus } from "./utils/migrationStore";
 import { fetchSettingsResetState } from "./utils/settingsResetStore";
 import { fetchQamEntryPositionState } from "./utils/qamEntryPositionStore";
@@ -565,6 +566,7 @@ const tender = definePanel(() => {
     // overviews yet, so a single pass silently no-ops on a cold boot (#1203).
     // Detached so the retry's backoff doesn't delay init completion.
     detach(applyAllMetadata());
+    detach(applyInstallState({ tenderAppIds: Object.keys(appIdMap).map(Number) }));
 
     try {
       const { playtime } = await withTimeout(getAllPlaytime(), ENDPOINT_TIMEOUT);
@@ -909,8 +911,10 @@ const tender = definePanel(() => {
         await saveSyncedGamesCollection(tenderAppIds, signal);
         if (isPruneLeaseCancelled(signal)) return;
         await applyLibraryHiding({ tenderAppIds });
+        if (isPruneLeaseCancelled(signal)) return;
+        await applyInstallState({ tenderAppIds });
       } catch (e) {
-        logError(`Failed to file or hide synced games after sync: ${e}`);
+        logError(`Failed to file, hide or mark synced games after sync: ${e}`);
       }
     };
 
@@ -1165,6 +1169,14 @@ const tender = definePanel(() => {
       resumable: data.resumable ?? prev?.resumable ?? false,
     });
     showToast(`Downloaded ${data.rom_name}`);
+    detach(applyInstallState());
+  });
+
+  // What is on disk also changes when a game's files are deleted or files
+  // already on the device are adopted; both are announced on this window.
+  globalThis.addEventListener("romm_rom_uninstalled", () => detach(applyInstallState()));
+  globalThis.addEventListener("romm_data_changed", (event) => {
+    if (event.detail.type === "rom_adopted") detach(applyInstallState());
   });
 
   addEventListener<DownloadFailedEvent>("download_failed", (data: DownloadFailedEvent) =>
