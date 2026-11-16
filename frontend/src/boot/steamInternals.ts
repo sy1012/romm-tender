@@ -27,7 +27,7 @@ export const STEAM_FEATURES = {
   library: "game details in Steam's library",
   collections: "Steam collections",
   cleanup: "the cleanup of removed games",
-  hidden: "keeping a game hidden when the sync merges its shortcuts",
+  hidden: "hiding synced games, and keeping a game hidden when the sync merges its shortcuts",
   deviceName: "the device name in collection names",
   running: "telling whether a game is running",
   resume: "Resume for a running game",

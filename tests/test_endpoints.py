@@ -104,6 +104,9 @@ _MIGRATION_RULE_WHITELIST: set[str] = {
     # Quick Access entry position — a settings.json-only write, never touches
     # RetroDECK state; the panel reads it on the next render pass of the menu.
     "set_qam_entry_position",
+    # Hiding synced games — a settings.json-only write; the Steam side is the
+    # panel's, applied before the call.
+    "save_steam_library_hiding",
     # Preferred sibling-group region — a settings.json-only write (ADR-0021 §3),
     # never touches RetroDECK state; takes effect on the next sync. Its companion
     # read (distinct regions in the local library) is a pure local DB read.

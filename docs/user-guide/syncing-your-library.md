@@ -439,6 +439,21 @@ their platform's Steam collection, which carries the platform's name in RomM eve
 lives on the **Settings** page under **Steam Library**, alongside the preferred-region preference. It applies to every
 sync, so it sits with the other set-and-forget preferences rather than on this tab.
 
+#### Keeping synced games out of your library
+
+Tender also keeps one collection holding every game it synced, named `RomM (<device>)`. Unlike the platform and RomM
+collections it is never renamed or removed by a sync, so it is the one to build a library tab on.
+
+To keep RomM games out of **All Games** and your other library views, switch on **Hide synced games from Steam's
+library** on the **Settings** page under **Steam Library**. It applies at once, and every sync hides newly synced games
+too. Hidden games still launch, and they still show in Steam's **Hidden** collection.
+
+To browse them, give them a tab of their own with the [TabMaster](https://github.com/Tormak9970/TabMaster) plugin for
+Decky Loader, which Tender runs alongside: add a tab with a **Collection** filter on `RomM (<device>)` and turn on its
+option to include hidden games.
+
+Switching the setting off unhides only the games Tender hid. A game you hid yourself stays hidden.
+
 #### Other users' collections
 
 On a **shared RomM server** the collection list includes every other user's _public_ collections alongside your own. The

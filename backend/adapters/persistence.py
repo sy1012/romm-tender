@@ -78,6 +78,11 @@ DEFAULT_SETTINGS: dict[str, Any] = {
     # (default) or ``"below_decky"``, as docs/architecture/qam-panel.md § The
     # entry describes. Read by the panel; no backend path consults it.
     "qam_entry_position": "above_decky",
+    # Whether synced games are hidden from Steam's library, and the appIds Tender
+    # itself hid, so switching it off unhides those and never one the user hid.
+    # docs/architecture/steam-non-steam-shortcuts.md § Hiding synced games.
+    "steam_library_hidden": False,
+    "steam_hidden_by_tender": [],
     "preferred_region": "auto",
     # User intent for the sync button: apply without being asked first. Stored
     # for a reader to choose between a preview and a run; no backend sync path

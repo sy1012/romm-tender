@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, ClassVar, assert_never
+from typing import TYPE_CHECKING, Any, ClassVar, TypeGuard, assert_never
 
 from domain.custom_headers import (
     HeaderProblem,
@@ -96,6 +96,10 @@ _HEADER_REFUSAL_MESSAGES: dict[HeaderProblem, str] = {
     HeaderProblem.UNEXPECTED_VALUE: "'{name}' asked to keep its stored value but sent one as well.",
     HeaderProblem.NO_STORED_VALUE: "'{name}' has no stored value to keep — enter one.",
 }
+
+
+def _is_app_id_list(value: object) -> TypeGuard[list[int]]:
+    return isinstance(value, list) and all(type(item) is int and item > 0 for item in value)
 
 
 def _header_refusal_message(refusal: HeaderRefusal) -> str:
@@ -257,6 +261,8 @@ class SettingsService:
             "qam_entry_position": self._settings.get("qam_entry_position", "above_decky"),
             "preferred_region": self._settings.get("preferred_region", AUTO_REGION),
             "skip_preview": self._settings.get("skip_preview", False),
+            "steam_library_hidden": self._settings.get("steam_library_hidden", False),
+            "steam_hidden_by_tender": list(self._settings.get("steam_hidden_by_tender", [])),
             "romm_custom_header_names": [
                 h.name for h in stored_custom_headers(self._settings.get("romm_custom_headers"))
             ],
@@ -440,6 +446,23 @@ class SettingsService:
         if mode not in ("merge", "by_label"):
             raise Refused("invalid_mode", f"Invalid naming mode: {mode}")
         self._settings["collection_naming_mode"] = mode
+        self._settings_persister.save_settings()
+        return {"success": True}
+
+    # ── Hiding synced games ─────────────────────────────────────────────
+
+    def save_steam_library_hiding(self, enabled: object, hidden_by_tender: object) -> dict[str, Any]:
+        """Persist whether synced games are hidden in Steam, with the appIds Tender hid.
+
+        Both are written together, before the panel changes Steam: the list is
+        every appId Tender may unhide later. A value that is
+        not a bool, or a list that is not positive integers, is refused with
+        ``invalid_value`` and nothing is written.
+        """
+        if not isinstance(enabled, bool) or not _is_app_id_list(hidden_by_tender):
+            raise Refused("invalid_value", "Invalid library hiding state")
+        self._settings["steam_library_hidden"] = enabled
+        self._settings["steam_hidden_by_tender"] = list(hidden_by_tender)
         self._settings_persister.save_settings()
         return {"success": True}
 

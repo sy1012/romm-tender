@@ -57,6 +57,7 @@ import type {
 } from "../types";
 import { SETTINGS_SECTIONS } from "../utils/settingsSections";
 import { detach } from "../utils/detach";
+import { applyLibraryHiding } from "../utils/libraryHiding";
 import { setQamEntryPositionState } from "../utils/qamEntryPositionStore";
 import {
   runUpdateCheckNow,
@@ -196,6 +197,7 @@ export const SettingsPage: FC<SettingsPageProps> = ({ onBack, section }) => {
   const [platformGroups, setPlatformGroups] = useState(false);
   // Steam-collection naming mode (#1539): "merge" (default) or "by_label".
   const [namingMode, setNamingMode] = useState<CollectionNamingMode>("merge");
+  const [hideSynced, setHideSynced] = useState(false);
 
   // Interface state
   const [qamPosition, setQamPosition] = useState<QamEntryPosition>("above_decky");
@@ -230,6 +232,7 @@ export const SettingsPage: FC<SettingsPageProps> = ({ onBack, section }) => {
         setPreferredRegion(s.preferred_region ?? AUTO_REGION);
         setPlatformGroups(!!s.collection_create_platform_groups);
         setNamingMode(s.collection_naming_mode ?? "merge");
+        setHideSynced(s.steam_library_hidden ?? false);
         setQamPosition(s.qam_entry_position ?? "above_decky");
       })
       .catch((e) => {
@@ -621,6 +624,19 @@ export const SettingsPage: FC<SettingsPageProps> = ({ onBack, section }) => {
     );
   };
 
+  const handleHideSyncedChange = (value: boolean) => {
+    setHideSynced(value);
+    detach(
+      (async () => {
+        try {
+          if (!(await applyLibraryHiding({ enabled: value }))) setHideSynced(!value);
+        } catch {
+          setHideSynced(!value);
+        }
+      })(),
+    );
+  };
+
   // --- Interface handler ---
   // The store the Quick Access render handler reads is written only once the
   // backend has taken the value, so a change the backend refused or never
@@ -758,6 +774,8 @@ export const SettingsPage: FC<SettingsPageProps> = ({ onBack, section }) => {
             onPlatformGroupsChange={handlePlatformGroupsChange}
             namingMode={namingMode}
             onNamingModeChange={handleNamingModeChange}
+            hideSynced={hideSynced}
+            onHideSyncedChange={handleHideSyncedChange}
           />
         );
       case "emulator-sources":

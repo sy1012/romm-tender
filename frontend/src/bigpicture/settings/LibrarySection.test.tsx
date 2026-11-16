@@ -104,6 +104,8 @@ describe("LibrarySection", () => {
         onPlatformGroupsChange={vi.fn()}
         namingMode="merge"
         onNamingModeChange={vi.fn()}
+        hideSynced={false}
+        onHideSyncedChange={vi.fn()}
       />,
     );
     expect(container.querySelector("section")?.getAttribute("data-title")).toBe("Steam Library");
@@ -119,6 +121,8 @@ describe("LibrarySection", () => {
         onPlatformGroupsChange={vi.fn()}
         namingMode="merge"
         onNamingModeChange={vi.fn()}
+        hideSynced={false}
+        onHideSyncedChange={vi.fn()}
       />,
     );
     expect(captured.items).toHaveLength(1);
@@ -137,6 +141,8 @@ describe("LibrarySection", () => {
         onPlatformGroupsChange={vi.fn()}
         namingMode="merge"
         onNamingModeChange={vi.fn()}
+        hideSynced={false}
+        onHideSyncedChange={vi.fn()}
       />,
     );
     expect(captured.items[0]?.selectedOption).toBe("Japan");
@@ -153,6 +159,8 @@ describe("LibrarySection", () => {
         onPlatformGroupsChange={vi.fn()}
         namingMode="merge"
         onNamingModeChange={vi.fn()}
+        hideSynced={false}
+        onHideSyncedChange={vi.fn()}
       />,
     );
     captured.items[0]?.onChange?.({ data: "Japan", label: "Japan" });
@@ -171,6 +179,8 @@ describe("LibrarySection", () => {
         onPlatformGroupsChange={vi.fn()}
         namingMode="merge"
         onNamingModeChange={vi.fn()}
+        hideSynced={false}
+        onHideSyncedChange={vi.fn()}
       />,
     );
     captured.items[0]?.onChange?.({ data: AUTO_REGION, label: DEFAULT_REGION_LABEL });
@@ -187,6 +197,8 @@ describe("LibrarySection", () => {
         onPlatformGroupsChange={vi.fn()}
         namingMode="merge"
         onNamingModeChange={vi.fn()}
+        hideSynced={false}
+        onHideSyncedChange={vi.fn()}
       />,
     );
     const toggle = container.querySelector<HTMLInputElement>(
@@ -207,6 +219,8 @@ describe("LibrarySection", () => {
         onPlatformGroupsChange={onChange}
         namingMode="merge"
         onNamingModeChange={vi.fn()}
+        hideSynced={false}
+        onHideSyncedChange={vi.fn()}
       />,
     );
     const toggle = container.querySelector<HTMLInputElement>(
@@ -227,6 +241,8 @@ describe("LibrarySection", () => {
         onPlatformGroupsChange={vi.fn()}
         namingMode="by_label"
         onNamingModeChange={vi.fn()}
+        hideSynced={false}
+        onHideSyncedChange={vi.fn()}
       />,
     );
     const toggle = container.querySelector<HTMLInputElement>(
@@ -246,6 +262,8 @@ describe("LibrarySection", () => {
         onPlatformGroupsChange={vi.fn()}
         namingMode="merge"
         onNamingModeChange={vi.fn()}
+        hideSynced={false}
+        onHideSyncedChange={vi.fn()}
       />,
     );
     const toggle = container.querySelector<HTMLInputElement>(
@@ -265,6 +283,8 @@ describe("LibrarySection", () => {
         onPlatformGroupsChange={vi.fn()}
         namingMode="merge"
         onNamingModeChange={onChange}
+        hideSynced={false}
+        onHideSyncedChange={vi.fn()}
       />,
     );
     const toggle = container.querySelector<HTMLInputElement>(
@@ -286,6 +306,8 @@ describe("LibrarySection", () => {
         onPlatformGroupsChange={vi.fn()}
         namingMode="by_label"
         onNamingModeChange={onChange}
+        hideSynced={false}
+        onHideSyncedChange={vi.fn()}
       />,
     );
     const toggle = container.querySelector<HTMLInputElement>(
@@ -294,5 +316,46 @@ describe("LibrarySection", () => {
     fireEvent.click(toggle);
     expect(onChange).toHaveBeenCalledTimes(1);
     expect(onChange).toHaveBeenCalledWith("merge");
+  });
+
+  it("renders the hide toggle reflecting the current value", () => {
+    const { container } = render(
+      <LibrarySection
+        preferredRegion={AUTO_REGION}
+        libraryRegions={[]}
+        onPreferredRegionChange={vi.fn()}
+        platformGroups={false}
+        onPlatformGroupsChange={vi.fn()}
+        namingMode="merge"
+        onNamingModeChange={vi.fn()}
+        hideSynced={true}
+        onHideSyncedChange={vi.fn()}
+      />,
+    );
+    const toggle = container.querySelector<HTMLInputElement>(
+      '[data-label="Hide synced games from Steam\'s library"] input',
+    );
+    expect(toggle?.checked).toBe(true);
+  });
+
+  it("dispatches onHideSyncedChange when the hide toggle fires", () => {
+    const onChange = vi.fn();
+    const { container } = render(
+      <LibrarySection
+        preferredRegion={AUTO_REGION}
+        libraryRegions={[]}
+        onPreferredRegionChange={vi.fn()}
+        platformGroups={false}
+        onPlatformGroupsChange={vi.fn()}
+        namingMode="merge"
+        onNamingModeChange={vi.fn()}
+        hideSynced={false}
+        onHideSyncedChange={onChange}
+      />,
+    );
+    fireEvent.click(
+      container.querySelector<HTMLInputElement>('[data-label="Hide synced games from Steam\'s library"] input')!,
+    );
+    expect(onChange).toHaveBeenCalledWith(true);
   });
 });

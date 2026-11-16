@@ -3,7 +3,8 @@
  * Uses Steam's internal collectionStore API.
  *
  * Collection names are machine-scoped to prevent cross-device conflicts
- * when Steam Cloud syncs collections: "RomM: Platform (hostname)"
+ * when Steam Cloud syncs collections: "RomM: Platform (hostname)", and
+ * "RomM (hostname)" for the one holding every synced game.
  */
 
 import { logInfo, logWarn, logError } from "../api/backend";
@@ -126,6 +127,44 @@ async function saveCollectionFamily(
   }
 }
 
+const SYNCED_GAMES_COLLECTION = /^romm \([^)]+\)$/;
+
+/** Whether *displayName* names a collection Tender writes, on this host or another. */
+export function isTenderCollection(displayName: string): boolean {
+  const folded = foldCollectionName(displayName);
+  return folded.startsWith("romm: ") || SYNCED_GAMES_COLLECTION.test(folded);
+}
+
+function syncedGamesCollectionName(hostname: string): string {
+  return `RomM (${hostname})`;
+}
+
+/**
+ * Point "RomM (hostname)" at every synced game. It is never renamed or deleted by a
+ * sync, so a library tab built on it keeps working
+ * (docs/architecture/steam-non-steam-shortcuts.md § Hiding synced games).
+ */
+export async function saveSyncedGamesCollection(appIds: readonly number[], signal?: AbortSignal): Promise<void> {
+  try {
+    if (typeof collectionStore === "undefined") {
+      logWarn("collectionStore not available, skipping the synced-games collection");
+      return;
+    }
+    if (appIds.length === 0) return;
+    const hostname = await getHostname();
+    if (signal?.aborted) return;
+    await saveCollection(
+      syncedGamesCollectionName(hostname),
+      "collection",
+      getOverviews([...appIds]),
+      appIds.length,
+      signal,
+    );
+  } catch (e) {
+    logError(`Failed to update the synced-games collection: ${e}`);
+  }
+}
+
 export async function createOrUpdateCollections(
   platformAppIds: Record<string, number[]>,
   onProgress?: (current: number, total: number, name: string) => void,
@@ -232,6 +271,7 @@ export async function clearAllRomMCollections(signal?: AbortSignal): Promise<voi
     if (signal?.aborted) return;
     const suffix = ` (${hostname})`;
     const foldedSuffix = foldCollectionName(suffix);
+    const syncedGames = foldCollectionName(syncedGamesCollectionName(hostname));
 
     // Match collections belonging to this machine OR legacy ones without any hostname suffix.
     // Covers both platform collections ("RomM: PlatformName (hostname)") and
@@ -242,6 +282,7 @@ export async function clearAllRomMCollections(signal?: AbortSignal): Promise<voi
     // is the same Steam collection and must still be swept (#1569).
     const rommCollections = collectionStore.userCollections.filter((c) => {
       const folded = foldCollectionName(c.displayName);
+      if (folded === syncedGames) return true;
       if (!folded.startsWith("romm: ")) return false;
       // This machine's scoped collections (both platform and RomM collection style)
       if (folded.endsWith(foldedSuffix)) return true;

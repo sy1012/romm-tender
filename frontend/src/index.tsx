@@ -64,9 +64,11 @@ import {
   createOrUpdateCollections,
   createOrUpdateRomMCollections,
   clearPlatformCollection,
+  saveSyncedGamesCollection,
   getHostname,
 } from "./utils/collections";
 import { foldCollectionName } from "./utils/collectionName";
+import { applyLibraryHiding } from "./utils/libraryHiding";
 import { setMigrationStatus } from "./utils/migrationStore";
 import { fetchSettingsResetState } from "./utils/settingsResetStore";
 import { fetchQamEntryPositionState } from "./utils/qamEntryPositionStore";
@@ -900,6 +902,18 @@ const tender = definePanel(() => {
       }
     };
 
+    const reconcileLibraryView = async (signal: AbortSignal): Promise<void> => {
+      try {
+        const tenderAppIds = Object.keys(await getAppIdRomIdMap()).map(Number);
+        if (isPruneLeaseCancelled(signal)) return;
+        await saveSyncedGamesCollection(tenderAppIds, signal);
+        if (isPruneLeaseCancelled(signal)) return;
+        await applyLibraryHiding({ tenderAppIds });
+      } catch (e) {
+        logError(`Failed to file or hide synced games after sync: ${e}`);
+      }
+    };
+
     const continuationController = syncContinuationController;
     const staleRemovals = staleRemovalTail;
     detach(
@@ -920,6 +934,7 @@ const tender = definePanel(() => {
               reconcileLaunchOptions(signal),
               reconcilePlaytime(signal),
               reconcileMetadata(signal),
+              reconcileLibraryView(signal),
             ]);
           };
           await Promise.allSettled([reconcileCollections(signal), afterTheRemoval()]);

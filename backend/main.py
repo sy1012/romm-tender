@@ -433,6 +433,10 @@ class Endpoints:
         return self._services.settings_service.set_collection_naming_mode(mode)
 
     @route
+    def save_steam_library_hiding(self, enabled, hidden_by_tender):
+        return self._services.settings_service.save_steam_library_hiding(enabled, hidden_by_tender)
+
+    @route
     def set_qam_entry_position(self, position):
         return self._services.settings_service.set_qam_entry_position(position)
 
