@@ -99,14 +99,14 @@ The two per-platform loops — `count_platform_saves` and `delete_platform_saves
 platform, so their cost grows with the platform's installed games. Nothing is cached: the correctness rule is that every
 sync path asks live, and the count exists so the number the button offers equals the number the delete removes.
 
-## The seven save states
+## The eight save states
 
-The answer classifies every ROM into **exactly one** of seven states. Only the first is a save Tender can carry; the
-other six are refusals, and each says something different about why. A refusal syncs nothing: no path is probed, no sync
-state is written, and the sync refuses with the benign skip (`reason: "save_shape_unsupported"`) rather than a failure —
-as the `savefiles_in_content_dir` skip does — except for a missing saves root, which is a failure of its own (below). A
-refusing answer that names a directory outside the content's own is still recorded and followed when that directory
-moves, because the files are on the disk either way
+The answer classifies every ROM into **exactly one** of eight states. Only the first and the last are saves Tender can
+carry; the other six are refusals, and each says something different about why. A refusal syncs nothing: no path is
+probed, no sync state is written, and the sync refuses with the benign skip (`reason: "save_shape_unsupported"`) rather
+than a failure — as the `savefiles_in_content_dir` skip does — except for a missing saves root, which is a failure of
+its own (below). A refusing answer that names a directory outside the content's own is still recorded and followed when
+that directory moves, because the files are on the disk either way
 ([Following a moved save directory](save-file-sync-architecture.md#following-a-moved-save-directory)) — except a place
 not read from the emulator's settings, which the follow carries nothing into, and a directory with a hole still in it,
 which names no folder.
@@ -120,6 +120,7 @@ which names no folder.
 | **not established**    | Nobody established what this emulator writes, or the names in a known folder.                                        | MAME, PSP, ScummVM, unaudited cores |
 | **saves root missing** | The source read its saves folder from its settings, and it is missing.                                               | saves on an SD card that is out     |
 | **place not read**     | The emulator's own settings did not name the place, so its defaults stand in for them.                               | a standalone emulator never started |
+| **per-game unit**      | The answer says a folder, or a named set of files in a shared folder, is the game's own. Synced as one staged zip.   | none yet: no answer says so today   |
 
 **The sixth is about the emulator source, not the emulator.** While the answering source reports `saves-root-missing`
 for a saves root it read from its settings (its roots answer states that root `read`), the resolver still places a save
@@ -155,12 +156,19 @@ sentence Main's notice shows for that finding, or, for an emulator's own setting
 read** where it exists). The answer keeps the directory the resolver named, so the rename on adoption still carries the
 game's saves there.
 
+**The eighth is a save of several files the answer says are the game's own** — a folder per game (a Wii title's `data/`
+folder) or a game's files in a shared folder (GameCube `.gci` files). It syncs as one zip Tender stages for it
+([Save units](save-file-sync-architecture.md#save-units)). Only an explicit statement makes one: a `per-game-directory`
+granularity alone does not, because RPCS3 answers it with the parent of every title's folder, so no answer the vendored
+resolver gives today is a unit, and such an answer stays **not established**.
+
 **Where several apply, the first in this order is named:** a shape Tender never syncs (shared, inside the content), then
 a missing saves root, then a place not read, then what cannot be established yet (a hole, not established).
 
 **The hole is not always in a file name.** Flycast's Dreamcast cards need the game's `save_id` in the filename;
-Dolphin's GameCube memory cards need the game's `region` in the DIRECTORY. Either way Tender cannot complete the path,
-which is what the state is about.
+Dolphin's GameCube cards need the game's `region` in the DIRECTORY, which the resolver now reads from the disc image —
+where it cannot (no content path, an unreadable image), the hole stays. Either way an unfilled hole is what the state is
+about.
 
 **Nor is it always the game's.** A RetroArch save folder set as a relative path lies below the folder the game is
 started from, and the resolver answers it as `<cwd>/…` with the `cwd` hole. Tender names the resolver no starting

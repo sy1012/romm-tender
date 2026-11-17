@@ -1503,6 +1503,70 @@ class SizeFact:
             )
 
 
+# What a :class:`SaveUnitStatement` says a group's directory is to one game:
+# the whole folder its save, or a named few of the files a shared folder holds.
+SaveUnitKind = Literal["own-folder", "own-files"]
+SAVE_UNIT_FOLDER: SaveUnitKind = "own-folder"
+"""The group's directory is this game's own save, whole: everything below it is the game's, and
+nothing of another game's lies there — a client moves the directory as one unit.
+"""
+SAVE_UNIT_MEMBERS: SaveUnitKind = "own-files"
+"""The group's directory is shared, and the files ``members`` names in it, directly in it, are this
+game's own save — every other file there is another game's, and the list may be empty where the
+game has not saved yet.
+"""
+SAVE_UNIT_KINDS = (SAVE_UNIT_FOLDER, SAVE_UNIT_MEMBERS)
+
+
+@dataclass(frozen=True, slots=True)
+class SaveUnitStatement:
+    """The explicit statement that a group's folder, or named files in it, are one game's own save.
+
+    A granularity says how an emulator groups saves, and that is not this:
+    RPCS3's ``per-game-directory`` answer names the parent of every title's
+    folder, so reading "this directory is the game's" off the granularity
+    would hand a client every game's saves. This is stated only by a reading
+    that established it for the game the question named — today Dolphin's,
+    its PrimeHack fork's and the libretro Dolphin core's, where the content
+    path's disc names the Wii title or the GameCube game code — and is
+    ``None`` on every other group.
+
+    ``kind`` is :data:`SAVE_UNIT_FOLDER` or :data:`SAVE_UNIT_MEMBERS`;
+    ``members`` the basenames the second names, and ``None`` with the first;
+    ``archive_folder`` the one folder name a client packing this unit into an
+    archive puts its entries under, and ``None`` where the entries sit at the
+    archive's top level.
+    """
+
+    kind: SaveUnitKind
+    """What the statement covers — one of :data:`SAVE_UNIT_KINDS`: the group's directory whole,
+    or the files ``members`` names in it.
+    """
+    members: tuple[str, ...] | None
+    """The basenames lying directly in the group's directory that are this game's save, in name
+    order — possibly none — where ``kind`` is ``members``, and ``None`` where it is ``folder``.
+    """
+    archive_folder: str | None
+    """The single folder an archive of this unit keeps its entries under — a Wii title's low word,
+    so a save packs as ``<archive_folder>/data/…`` — and ``None`` where the entries are the
+    archive's top level.
+    """
+
+    def __post_init__(self) -> None:
+        if self.kind not in SAVE_UNIT_KINDS:
+            raise ValueError(f"SaveUnitStatement: kind must be one of {SAVE_UNIT_KINDS}, got {self.kind!r}")
+        if (self.members is None) != (self.kind == SAVE_UNIT_FOLDER):
+            raise ValueError("SaveUnitStatement: members are stated exactly when kind is 'own-files'")
+        for name in (*(self.members or ()), *((self.archive_folder,) if self.archive_folder is not None else ())):
+            if name in _NOT_AN_ENTRY or "/" in name or "\0" in name:
+                raise ValueError(
+                    f"SaveUnitStatement: {name!r} is no entry name — one path segment, not empty, "
+                    "'.' or '..', without '/' or a NUL"
+                )
+        if self.members is not None and len(set(self.members)) != len(self.members):
+            raise ValueError("SaveUnitStatement: a member is named once")
+
+
 @dataclass(frozen=True, slots=True)
 class FileGroup:
     """One directory's worth of a save, with what it is and whom it belongs to.
@@ -1572,6 +1636,11 @@ class FileGroup:
     (PUAE's ``_save.adf.gz``), and every file RetroArch writes while
     ``save-files-compressed`` says it compresses them. ``null`` where it
     was not established — never a claim that the size varies.
+    """
+    unit: SaveUnitStatement | None = None
+    """The statement that this directory, or named files in it, are the asked game's own save —
+    set only by a reading that established it, and ``None`` everywhere else, whatever the
+    granularity says.
     """
 
     def __post_init__(self) -> None:

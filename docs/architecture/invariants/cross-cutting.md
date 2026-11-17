@@ -17,31 +17,32 @@ backup-or-confirm rule, whose statement stands in `CLAUDE.md`. How the code is l
   — it used to carry two, and that is how a question about a plugin loader's own layout came to sit beside a question
   about the user's data as two plain `str` fields on structs the composition root passes around. **Counting rule** (an
   AST walk for an attribute in `{config_dir, data_dir, cache_dir, state_dir, runtime_dir, code_dir, bin_dir}` whose base
-  ends in `directories`): **19 reads over three modules**, `main.py`, `bootstrap/adapters.py` and
-  `bootstrap/services.py` — `code_dir` 5, `cache_dir` 4, `data_dir` 4, `state_dir` 3, and one each for `config_dir`,
+  ends in `directories`): **24 reads over three modules**, `main.py`, `bootstrap/adapters.py` and
+  `bootstrap/services.py` — `data_dir` 7, `code_dir` 5, `cache_dir` 5, `state_dir` 4, and one each for `config_dir`,
   `runtime_dir` and `bin_dir`. The eighth field, `handover_dir` (`None` where `XDG_RUNTIME_DIR` is unset), is read once,
   in `bootstrap/adapters.py`, for the start hand-over. Re-derive it rather than trusting the number. **One field is read
   in `main.py` alone** and nowhere else: `runtime_dir`, which the port file lives in. `state_dir` is read there twice,
-  by the logging setup that opens it and by the injection whose crash record lives under it, and once in
-  `bootstrap/adapters.py`, for the record of a rolled-back update. `config_dir` has exactly one reader,
-  `PersistenceAdapter`, and `bin_dir` exactly one, the launcher install in `bootstrap/adapters.py`. The pairing that
-  matters is `cache_dir` against `data_dir`: re-derivable data goes under the first and data that is not re-derivable
-  under the second — covers, artwork and the SGDB artwork cache on the first because they are re-derivable from the
-  server and the database on the second because it is not; a system that clears caches must be able to clear one and not
-  the other. The launcher's home is the read whose mix-up a user would see rather than the next start only, since
-  `launcher_in_bin_dir(directories.bin_dir)` is carried on as `ShortcutLauncher.path` and written into every shortcut's
-  `exe`. `bin_dir` is one of the two fields not named after this program (the other is `code_dir`, wherever the program
-  was installed; GLOSSARY.md's "The program's directories" is the home of that split) — it is the directory every
-  program a user installs for themselves puts a binary in, which is why nothing under it may be treated as ours to
-  remove. Nothing mechanical tells the eight apart: they are seven `str` fields and one `str | None` on one frozen
-  struct, so a read of the wrong one is a rename away and fails silently in whichever direction it happened to point.
-  **One reader sits outside the backend**: `bin/tender-rom-launcher` starts without it, so it spells the hand-over
-  folder from `XDG_RUNTIME_DIR` itself, the same path `AppDirectories.handover_dir` holds. **One raw read of
-  `TENDER_CODE_DIR` is deliberate and is not a directory read**: `domain/update_release.py::resolve_update_source`,
-  called once by `main.run()` beside `resolve_directories`, asks whether the variable was SET and whether it names the
-  directory this process's code sits in — which decides whether this is the installed program an update may replace.
-  `AppDirectories.code_dir` cannot answer that, because the ladder has already folded "set" and "fell back to where the
-  code sits" into one value; the function derives no directory
+  by the logging setup that opens it and by the injection whose crash record lives under it, and twice in
+  `bootstrap/adapters.py`, for the records of a rolled-back update and of an update attempt. `config_dir` has exactly
+  one reader, `PersistenceAdapter`, and `bin_dir` exactly one, the launcher install in `bootstrap/adapters.py`. The
+  pairing that matters is `cache_dir` against `data_dir`: re-derivable data goes under the first and data that is not
+  re-derivable under the second — covers, artwork and the SGDB artwork cache on the first because they are re-derivable
+  from the server and the database on the second because it is not, as is the save units' staging folder
+  (`save-units/`), whose `.romm-backup/` is the only copy of what a download replaced in a unit; a system that clears
+  caches must be able to clear one and not the other. The launcher's home is the read whose mix-up a user would see
+  rather than the next start only, since `launcher_in_bin_dir(directories.bin_dir)` is carried on as
+  `ShortcutLauncher.path` and written into every shortcut's `exe`. `bin_dir` is one of the two fields not named after
+  this program (the other is `code_dir`, wherever the program was installed; GLOSSARY.md's "The program's directories"
+  is the home of that split) — it is the directory every program a user installs for themselves puts a binary in, which
+  is why nothing under it may be treated as ours to remove. Nothing mechanical tells the eight apart: they are seven
+  `str` fields and one `str | None` on one frozen struct, so a read of the wrong one is a rename away and fails silently
+  in whichever direction it happened to point. **One reader sits outside the backend**: `bin/tender-rom-launcher` starts
+  without it, so it spells the hand-over folder from `XDG_RUNTIME_DIR` itself, the same path
+  `AppDirectories.handover_dir` holds. **One raw read of `TENDER_CODE_DIR` is deliberate and is not a directory read**:
+  `domain/update_release.py::resolve_update_source`, called once by `main.run()` beside `resolve_directories`, asks
+  whether the variable was SET and whether it names the directory this process's code sits in — which decides whether
+  this is the installed program an update may replace. `AppDirectories.code_dir` cannot answer that, because the ladder
+  has already folded "set" and "fell back to where the code sits" into one value; the function derives no directory
 - **The identifier's four homes are never derived from one another — in particular `APP_DIR_NAME`
   (`domain/user_data_location.py`) is never read from `PACKAGE_NAME` (`domain/identity.py`), and the database's file
   name `DB_FILENAME` (`bootstrap/adapters.py`) from neither** — test + prompt-only — the four homes and the question
@@ -171,10 +172,14 @@ prompt-only:
 
 save-file removals route through the `.romm-backup` funnel, the save backup (`SaveBackup.back_up_save_file`; the
 removed-game cleanup's claimed variant is `SaveBackup.back_up_claimed_save_file`, reached through
-`PruneSaveSupport.back_up_prune_saves`); every other delete path carries the rule unmechanized. Removed-game cleanup
-takes the **confirm** leg for one case deliberately: installed ROM content the user did not select for the recovery
-bundle is deleted with its row. The ROM is re-downloadable from RomM where a save is not, the per-candidate opt-in and
-its consequence are stated in the confirmation dialog and the user guide, and the row cannot be removed at all without a
+`PruneSaveSupport.back_up_prune_saves`); every other delete path carries the rule unmechanized. Deleting a game's or a
+platform's local saves (`delete_local_saves`, `delete_platform_saves`) takes the **confirm** leg: the panel asks first
+and says unsynced changes are lost. A save unit's own files are removed with its staged zip under that same
+confirmation, and a slot switch removes them only once its backup moved that zip — packed from them a moment before —
+into `.romm-backup` ([Save units](../save-file-sync-architecture.md#save-units)). Removed-game cleanup takes the
+**confirm** leg for one case deliberately: installed ROM content the user did not select for the recovery bundle is
+deleted with its row. The ROM is re-downloadable from RomM where a save is not, the per-candidate opt-in and its
+consequence are stated in the confirmation dialog and the user guide, and the row cannot be removed at all without a
 fresh 404 — so this is a disclosed choice, not an exception that drifted in. The adopt dialog's **replace** exit is the
 second such case, and it does **not** rest on that justification: the premise is that the content is the user's own — a
 different rip, a patch, a romhack — which is exactly what the server cannot hand back. What carries it instead is that

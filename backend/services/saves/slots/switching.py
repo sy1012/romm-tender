@@ -8,6 +8,7 @@ own sub-modules. Persistence is each operation's own narrow Unit of Work
 
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
@@ -39,6 +40,7 @@ if TYPE_CHECKING:
     from services.saves.rom_info import RomInfoService
     from services.saves.save_backup import SaveBackup
     from services.saves.save_transfer import SaveTransfer
+    from services.saves.save_units import SaveUnits
     from services.saves.status import StatusService
     from services.saves.sync_engine import SyncEngine
 
@@ -127,6 +129,7 @@ class SlotSwitcher:
         log_debug: DebugLogger,
         save_backup: SaveBackup,
         save_transfer: SaveTransfer,
+        save_units: SaveUnits,
     ) -> None:
         self._settings = settings
         self._uow_factory = uow_factory
@@ -141,6 +144,7 @@ class SlotSwitcher:
         self._log_debug = log_debug
         self._save_backup = save_backup
         self._save_transfer = save_transfer
+        self._save_units = save_units
 
     def _pending_local_changes(self, rom_id: int, save_answer: SaveAnswer, save_state: RomSaveSyncState) -> list[str]:
         """The local saves changed since the last sync to the current slot; empty when there are none.
@@ -320,7 +324,11 @@ class SlotSwitcher:
         backups; where there is nothing to move, the folder is neither checked
         nor created. The first backup that fails stops the loop, and only the
         files moved before it are untracked; when every backup went through,
-        every tracked name is untracked too. Mutates *save_state* in memory;
+        every tracked name is untracked too. A save unit's files are removed
+        once its zip, packed from them a moment before, is in ``.romm-backup``
+        — never where the zip was not moved — so the new slot starts from
+        nothing, as a single file's would; a removal that fails stops the
+        loop as a failed backup does. Mutates *save_state* in memory;
         the caller owns the write Unit of Work. Runs synchronously — call via
         ``run_in_executor``.
         """
@@ -346,6 +354,10 @@ class SlotSwitcher:
             if was_moved:
                 save_state.delete_file_tracking(filename)
                 moved.append(filename)
+                try:
+                    self._save_units.clear_placed(os.path.join(saves_dir, filename))
+                except (OSError, ValueError) as e:
+                    return _SetAside(moved=moved, failed=filename, error=e)
 
         save_state.clear_baselines()
         return _SetAside(moved=moved)

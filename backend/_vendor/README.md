@@ -51,9 +51,15 @@ what differs is what the digests prove.
 The [emu-atlas](https://github.com/danielcopper/emu-atlas) resolver — the config-aware emulator-knowledge library
 extracted from this plugin.
 
-- **Upstream:** <https://github.com/danielcopper/emu-atlas>
-- **Version:** 0.34.0 — tag `v0.34.0`, from the release's `emu_atlas-0.34.0-py3-none-any.whl`
-  (`sha256:39af2b5be2ba11ceffbc01154123e488c38d4546fbf7ad00d7f368ebc28c9405`)
+- **Upstream:** <https://github.com/danielcopper/emu-atlas>, through the fork <https://github.com/sy1012/emu-atlas>
+- **Version:** 0.34.0+tender.1 — the fork's branch `tender` at commit `793638b337050c2bc0cd553951fa4ab7bd419569`, which
+  is upstream's release `v0.34.0` (commit `d73f9f9`) plus the Dolphin disc reading and the save-unit statement
+  (`FileGroup.unit`). The fork publishes no release, so the wheel `emu_atlas-0.34.0+tender.1-py3-none-any.whl` and the
+  vectors tarball are built here from that commit (`uv build
+  --wheel`; the tarball sorted, owner and mtime zeroed) and
+  `atlas.SHA256SUMS` is the release-shaped manifest written over them — the same lines upstream's release manifest
+  carries, so the gate reads it the same way. What it proves is that nobody has edited the copy since it was built from
+  that commit, not that a third party published it.
 - **License:** MIT — see [`atlas.LICENSE`](atlas.LICENSE)
 - **Local patches:** none. Upstream made the package relocatable in
   [emu-atlas#327](https://github.com/danielcopper/emu-atlas/issues/327) — no absolute self-imports, no `files("atlas")`
@@ -72,6 +78,19 @@ adapters that put each kind of question to it, and by `adapters/atlas_zstd.py`, 
 proven to resolve and not merely to hash correctly even if every adapter ever stops importing it.
 
 ### How to update atlas
+
+**From the fork (today's source).** Commit and push the change on the fork's `tender` branch, bumping its version to the
+next local label (`0.34.0+tender.<n>` in `pyproject.toml` and `atlas/__init__.py`), then build from that commit:
+
+1. Check the commit out into a scratch worktree and build the wheel there: `uv build --wheel -o <dist>`.
+2. Pack the commit's `vectors/` folder as `emu-atlas-vectors-v<version>.tar.gz`, entries sorted, owner, group and mtime
+   zeroed and the gzip header's mtime 0, so the same commit always gives the same digest.
+3. Unpack the wheel into `<dist>/u`, and write `<dist>/SHA256SUMS` as `sha256sum` lines for the tarball, the wheel and
+   every file under `u/` (`LC_ALL=C` sorted) — the same lines an upstream release manifest carries.
+4. Then steps 3–6 below, with `<dist>` for `/tmp/atlas`, the **Version** bullet naming the new commit, and the vectors
+   README naming the new tarball and its digest.
+
+**From an upstream release**, should the fork's changes land upstream:
 
 1. Download the wheel and the manifest from the newer tagged release:
 

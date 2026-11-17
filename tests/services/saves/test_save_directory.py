@@ -22,7 +22,7 @@ from adapters.emulator_sources import EmulatorSourcesAdapter
 from domain.answered_save_directory import AnsweredSaveDirectory
 from domain.emulator_sources import SourceFinding
 from domain.rom_save_sync_state import RomSaveSyncState
-from domain.save_answer import SaveAnswer, SaveComponent, unestablished_answer
+from domain.save_answer import SaveAnswer, SaveComponent, SaveUnit, stage_unit, unestablished_answer, unit_answer
 from lib.errors import Refused
 from services.saves._refusals import SaveShapeUnsupported
 from services.saves.slots.switching import PendingUploads
@@ -103,6 +103,36 @@ def dirs(tmp_path):
     old = tmp_path / "saves" / "gba"
     new = tmp_path / "saves" / "gba" / "mGBA"
     return old, new
+
+
+class TestASaveUnitIsNotFollowed:
+    """A save unit's own files are left where they are, and so is its staged zip."""
+
+    def test_a_unit_answer_moves_nothing_and_records_nothing(self, tmp_path, dirs):
+        old, _new = dirs
+        svc, _ = make_service(tmp_path)
+        _install_rom(svc, tmp_path)
+        _record(svc, str(old))
+        save = old / "pokemon.zip"
+        save.parent.mkdir(parents=True)
+        save.write_bytes(b"zip")
+        staging = str(tmp_path / "data" / "save-units" / "42")
+        answer = stage_unit(
+            unit_answer(
+                unit=SaveUnit(root=str(tmp_path / "nand" / "data")),
+                emulator="Dolphin",
+                emulator_identity="DOLPHIN",
+                content_installed=True,
+            ),
+            staging_directory=staging,
+            rom_stem="pokemon",
+        )
+
+        _follow(svc, answer)
+
+        assert _recorded(svc) == str(old)
+        assert save.exists()
+        assert not os.path.exists(staging)
 
 
 class TestTheComparison:

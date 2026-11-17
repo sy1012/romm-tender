@@ -57,6 +57,7 @@ from adapters.romm.http import RommHttpAdapter
 from adapters.romm.romm_api import RommApiAdapter
 from adapters.running_steam import RunningSteamAdapter
 from adapters.save_file import SaveFileAdapter
+from adapters.save_unit import SaveUnitAdapter
 from adapters.sgdb_artwork_cache import SgdbArtworkCacheAdapter
 from adapters.sqlite_migrations import MIGRATIONS_DIR, apply_migrations
 from adapters.start_handover import StartHandoverAdapter
@@ -125,6 +126,7 @@ if TYPE_CHECKING:
         RunningSteamReader,
         SaveFileStore,
         SaveLocationReader,
+        SaveUnitStore,
         SettingsPersister,
         SgdbArtworkCache,
         Sleeper,
@@ -183,6 +185,7 @@ class AdapterBundle:
     migration_file_store: MigrationFileStore
     rom_file_store: RomFileStore
     save_file_store: SaveFileStore
+    save_unit_store: SaveUnitStore
     path_probe: PathExistsReader
     resolve_path: ResolvedPathFn
     core_info_provider: CoreInfoProvider
@@ -467,6 +470,7 @@ def bootstrap(
     migration_file_store = MigrationFileAdapter()
     rom_file_store = RomFileAdapter()
     save_file_store = SaveFileAdapter(logger=logger)
+    save_unit_store = SaveUnitAdapter(logger=logger)
     path_probe = PathProbeAdapter()
     resolve_path = ResolvedPathAdapter()
     renderer_rss = RendererRssAdapter()
@@ -525,6 +529,7 @@ def bootstrap(
         migration_file_store=migration_file_store,
         rom_file_store=rom_file_store,
         save_file_store=save_file_store,
+        save_unit_store=save_unit_store,
         path_probe=path_probe,
         resolve_path=resolve_path,
         core_info_provider=emulator_catalogue,

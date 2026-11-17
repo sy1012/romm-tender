@@ -253,6 +253,7 @@ class SaveCopyService:
                 server_save=None,
                 default_slot=default_slot,
                 overwrite=False,
+                emulator_identity=info["save_answer"].emulator_identity,
             )
         except Exception as e:
             self._logger.error(

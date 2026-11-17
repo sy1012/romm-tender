@@ -38,7 +38,7 @@ different things:
   would copy other games' progress onto this one's record, so Tender leaves it alone.
 - **The save is written inside the game file itself.** There is no separate file to carry.
 - **The emulator files saves under the game's own identity**, which Tender cannot read yet — in the file name, for
-  Dreamcast and GameCube alike. Dreamcast, GameCube, Nintendo 3DS and Wii U are here.
+  Dreamcast. Dreamcast, Nintendo 3DS and Wii U are here.
 - **Where the emulator saves depends on the folder the game is started from.** RetroArch does this when its save folder
   is set as a relative path. Tender cannot tell which folder that is, so it leaves such a game alone.
 - **What the emulator writes could not be established** — either nobody has audited that core yet, or the folder is
@@ -80,6 +80,15 @@ than working it out itself. That has not yet been observed on a device.
     to RomM.** This version looks where Opera writes them, which has not yet been observed on a device — check that
     your 3DO saves reach RomM before relying on it.
 
+**GameCube and Wii sync on Dolphin (Standalone).** Tender reads the game's ID from the disc image — ISO, GCM, NKit,
+CISO, GCZ, WBFS, WIA or RVZ — and from it finds the game's own save: on Wii, the title's folder in Dolphin's NAND
+(`Wii/title/00010000/<id>/`); on GameCube, this game's `.gci` files in the disc region's `Card A` folder, which needs
+Dolphin's slot A set to **GCI Folder** (RetroDECK's default) — a single shared memory card (`.raw`) holds every game's
+saves and is left alone. Either way the save is carried to RomM as one `<game>.zip`, laid out the way Argosy, RomM's
+Android app, lays it out, so the two can share it. Restoring replaces only that game's folder or files: other games'
+saves in the same folder are never touched, and the save it replaces is kept in `.romm-backup` first. This has not yet
+been observed on a device.
+
 The systems whose default core has been **watched writing a save on a stock RetroDECK install** are Game Boy / Color /
 Advance, N64, Saturn, Neo Geo Pocket (Color) and Pokémon Mini. The rest of the ✅ rows follow the same standard `.srm`
 convention and are expected to behave identically, but haven't been observed one by one.
@@ -101,16 +110,15 @@ outside the per-game save folder, or haven't been pinned down yet. A shared card
 other games' saves, so it doesn't fit per-game sync today. We're looking at safe ways to handle these in a future
 release.
 
-| System         | Why it doesn't sync today                                                                                                                                                                                                                         |
-| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Dreamcast      | Flycast ships with **Per-Game VMUs off**, so every game shares `vmu_save_A1.bin` and its siblings in RetroDECK's system folder. The core _can_ write per-game VMUs; the names it uses then aren't pinned down yet.                                |
-| PlayStation 2  | The LRPS2 core ships with **shared memory cards on** (`Mcd001.ps2` / `Mcd002.ps2`). With that option off it writes one `<game>.ps2` card per game — which would fit per-game sync. The PCEE2 core always writes shared cards, in the same folder. |
-| GameCube / Wii | RetroDECK runs both on Dolphin (Standalone). Wii: the save folder is known, not which title folder is the game's. GameCube: the card path holds a region placeholder, and the GCI files are not named after the game.                             |
-| Neo Geo CD     | Ships writing one shared save. The core has a per-content mode; which one wins when loading isn't confirmed.                                                                                                                                      |
-| Nintendo 3DS   | The Azahar core appears to use its own save subtree. Not confirmed on-device yet.                                                                                                                                                                 |
-| PSP            | Where the PPSSPP core keeps its saves, and whether they are per game, hasn't been established.                                                                                                                                                    |
-| Arcade (MAME)  | NVRAM is stored separately by the emulator, not as a file named after your ROM.                                                                                                                                                                   |
-| Amiga          | PUAE keeps an `.adf` floppy's save inside the disk image itself, so there is no separate file to carry. A `.lha` names a `WHDSaves` folder whose contents the core does not list, and an `.hdf` is not answered at all.                           |
+| System        | Why it doesn't sync today                                                                                                                                                                                                                         |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Dreamcast     | Flycast ships with **Per-Game VMUs off**, so every game shares `vmu_save_A1.bin` and its siblings in RetroDECK's system folder. The core _can_ write per-game VMUs; the names it uses then aren't pinned down yet.                                |
+| PlayStation 2 | The LRPS2 core ships with **shared memory cards on** (`Mcd001.ps2` / `Mcd002.ps2`). With that option off it writes one `<game>.ps2` card per game — which would fit per-game sync. The PCEE2 core always writes shared cards, in the same folder. |
+| Neo Geo CD    | Ships writing one shared save. The core has a per-content mode; which one wins when loading isn't confirmed.                                                                                                                                      |
+| Nintendo 3DS  | The Azahar core appears to use its own save subtree. Not confirmed on-device yet.                                                                                                                                                                 |
+| PSP           | Where the PPSSPP core keeps its saves, and whether they are per game, hasn't been established.                                                                                                                                                    |
+| Arcade (MAME) | NVRAM is stored separately by the emulator, not as a file named after your ROM.                                                                                                                                                                   |
+| Amiga         | PUAE keeps an `.adf` floppy's save inside the disk image itself, so there is no separate file to carry. A `.lha` names a `WHDSaves` folder whose contents the core does not list, and an `.hdf` is not answered at all.                           |
 
 ## No save data ⚪
 
@@ -147,7 +155,7 @@ states still work locally). See the full table for specifics.
     | `gamate` | ❌ | Saves are stored separately by the emulator (MAME) |
     | `gameandwatch` | ❌ | Saves are stored separately by the emulator (MAME) |
     | `gamecom` | ❌ | Saves are stored separately by the emulator (MAME) |
-    | `gc` | ❌ | Dolphin (Standalone): the card path holds a region placeholder, and the GCI files are not named after the game |
+    | `gc` | ✅ | Dolphin (Standalone) with slot A set to GCI Folder: the game's `.gci` files, as one zip — not yet observed on a device |
     | `gmaster` | ❌ | Saves are stored separately by the emulator (MAME) |
     | `gx4000` | ❌ | Not synced |
     | `laserdisc` | ❌ | Saves are stored separately by the emulator (MAME) |
@@ -168,7 +176,7 @@ states still work locally). See the full table for specifics.
     | `scv` | ❌ | Saves are stored separately by the emulator (MAME) |
     | `supracan` | ❌ | Saves are stored separately by the emulator (MAME) |
     | `vsmile` | ❌ | Saves are stored separately by the emulator (MAME) |
-    | `wii` | ❌ | Dolphin (Standalone): the save folder is known, not which title folder in it is the game's |
+    | `wii` | ✅ | Dolphin (Standalone): the game's title folder in the NAND, as one zip — not yet observed on a device |
     | `x68000` | ❌ | Not synced |
     | `amiga1200` | 🔜 | Planned |
     | `amiga600` | 🔜 | Planned |

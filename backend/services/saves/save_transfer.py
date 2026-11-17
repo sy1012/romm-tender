@@ -39,6 +39,7 @@ if TYPE_CHECKING:
     from services.protocols import Clock, DebugLogger, RetryStrategy, RommSaveApi, SaveFileStore
     from services.saves._sync_stop import SyncStop
     from services.saves.save_backup import SaveBackup
+    from services.saves.save_units import SaveUnits
 
 
 @dataclass(frozen=True)
@@ -48,6 +49,7 @@ class SaveTransferConfig:
     Holds the Protocol-typed RomM adapter and the retry strategy its requests
     run under, the save-file store, the clock baselines are stamped by, the
     :class:`SaveBackup` a download backs the local file up through, the
+    :class:`SaveUnits` a placed save unit's zip is unpacked through, the
     standard-library logger and the ``DebugLogger`` seam.
     """
 
@@ -56,6 +58,7 @@ class SaveTransferConfig:
     save_file_store: SaveFileStore
     clock: Clock
     backup: SaveBackup
+    save_units: SaveUnits
     logger: logging.Logger
     log_debug: DebugLogger
 
@@ -74,6 +77,7 @@ class SaveTransfer:
         self._save_file_store = config.save_file_store
         self._clock = config.clock
         self._backup = config.backup
+        self._save_units = config.save_units
         self._logger = config.logger
         self._log_debug = config.log_debug
 
@@ -146,9 +150,10 @@ class SaveTransfer:
 
         The content lands in ``<filename>.tmp`` and replaces the local file only
         once complete, after :class:`SaveBackup` has moved the old one aside;
-        any failure up to that replacement tries to remove the ``.tmp`` (a
-        removal that fails is not reported) and raises the download's own
-        failure. Then records the sync boundary and *filename*'s baseline on
+        a save unit's zip is then unpacked into the unit
+        (:meth:`SaveUnits.unpack_placed`). Any failure up to there tries to
+        remove the ``.tmp`` (a removal that fails is not reported) and raises
+        its own failure, with nothing recorded. Then records the sync boundary and *filename*'s baseline on
         *save_state*, in memory; the caller owns the write Unit of Work.
 
         The download streams without RomM's optimistic sync mark, which would
@@ -179,6 +184,7 @@ class SaveTransfer:
                 raise SyncStopped
             self._backup.back_up_save_file(saves_dir, filename, keep=BACKUP_RETENTION)
             self._save_file_store.rename(tmp_path, local_path)
+            self._save_units.unpack_placed(local_path)
         except Exception:
             with contextlib.suppress(OSError):
                 self._save_file_store.remove_file(tmp_path)
@@ -203,14 +209,17 @@ class SaveTransfer:
         autocleanup_limit: int | None = None,
         overwrite: bool = False,
         planned_group: list[dict[str, Any]] | None = None,
+        emulator_identity: str | None = None,
     ) -> dict[str, Any]:
         """Upload *file_path* to RomM and record it as *filename*'s baseline.
 
         Mutates *save_state* in memory (per-file baseline, own-upload
         attribution, local→server slot promotion); the caller owns the write
-        Unit of Work. *core_so* is the active core the caller resolved, for the
-        emulator tag. *server_save* names the save to PUT; ``None`` POSTs a new
-        one. *autocleanup_limit* caps server-retained versions — the adapter
+        Unit of Work. *core_so* is the active core the caller resolved and
+        *emulator_identity* the save answer's identity of the emulator, which
+        together make the emulator tag (:func:`build_emulator_tag`).
+        *server_save* names the save to PUT; ``None`` POSTs a new one.
+        *autocleanup_limit* caps server-retained versions — the adapter
         honors it on the POST (create) path only, so PUT callers leave it None.
         *overwrite* forces RomM's ``add_save`` to skip its write-time currency
         (409) gate — used only when the caller has already decided our content
@@ -230,7 +239,7 @@ class SaveTransfer:
         POST or PUT and that acknowledgement carry *file_path*'s content hash.
         """
         save_id = server_save.get("id") if server_save else None
-        emulator = build_emulator_tag(core_so)
+        emulator = build_emulator_tag(core_so, emulator_identity)
         slot = save_state.upload_slot(default_slot)
         content_hash = self._save_file_store.content_hash(file_path)
 

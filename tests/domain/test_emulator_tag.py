@@ -32,6 +32,16 @@ class TestBuildEmulatorTag:
     def test_uppercase_core_is_lowercased(self):
         assert build_emulator_tag("MGBA_libretro") == "retroarch-mgba"
 
+    def test_a_standalone_emulator_is_tagged_by_its_identity_lowercased(self):
+        assert build_emulator_tag(None, "DOLPHIN") == "dolphin"
+
+    def test_a_libretro_core_outranks_the_identity(self):
+        assert build_emulator_tag("dolphin_libretro", "DOLPHIN") == "retroarch-dolphin"
+
+    def test_no_core_and_no_identity_falls_back(self):
+        assert build_emulator_tag(None, None) == "retroarch"
+        assert build_emulator_tag(None, "") == "retroarch"
+
 
 # ---------------------------------------------------------------------------
 # TestDetectCoreChange

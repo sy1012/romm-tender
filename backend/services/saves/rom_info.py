@@ -29,6 +29,7 @@ if TYPE_CHECKING:
         SaveLocationReader,
         UnitOfWorkFactory,
     )
+    from services.saves.save_units import SaveUnits
 
 
 @dataclass(frozen=True)
@@ -43,7 +44,8 @@ class RomInfoServiceConfig:
     would land in and ``roms.fs_name``, builds the path a ROM the library knows
     but has not installed WOULD occupy — a save
     answer turns on the content file's extension, so omitting the path asks a
-    different question), and the standard-library logger.
+    different question), the :class:`SaveUnits` that stages a save unit's zip
+    and packs it before it is read, and the standard-library logger.
     """
 
     uow_factory: UnitOfWorkFactory
@@ -52,6 +54,7 @@ class RomInfoServiceConfig:
     active_core: ActiveCoreReader
     save_locations: SaveLocationReader
     platform_systems: PlatformSystems
+    save_units: SaveUnits
     logger: logging.Logger
 
 
@@ -66,6 +69,7 @@ class RomInfoService:
         self._active_core = config.active_core
         self._save_locations = config.save_locations
         self._platform_systems = config.platform_systems
+        self._save_units = config.save_units
         self._logger = config.logger
 
     def get_rom_save_info(self, rom_id: int, *, save_answer: SaveAnswer | None = None) -> dict[str, Any] | None:
@@ -81,12 +85,17 @@ class RomInfoService:
 
         *save_answer* is this ROM's reading where the caller already took one
         in the same operation; absent it, one is taken here.
+
+        Every reader of a game's local saves reaches them through here, so a
+        save unit's zip is packed from the unit here, before anything looks at
+        it (:meth:`SaveUnits.pack`).
         """
         installed = self._install_row(rom_id)
         if installed is None:
             return None
         system, file_path, platform_slug = installed
         answer = save_answer if save_answer is not None else self._installed_answer(rom_id, system, file_path)
+        self._save_units.pack(answer)
         return {
             "system": system,
             "rom_name": os.path.splitext(os.path.basename(file_path))[0],
@@ -195,15 +204,17 @@ class RomInfoService:
 
         *installed* says whether *content_path* is a file on disk or the path
         the ROM would occupy, and rides onto the answer so a surface never
-        renders a prediction as an observation.
+        renders a prediction as an observation. A save unit's answer comes back
+        staged in this ROM's staging folder.
         """
         emulator = self._active_core.active_emulator_for_rom(int(rom_id))
-        return self._save_locations.resolve_save_answer(
+        answer = self._save_locations.resolve_save_answer(
             system=system,
             content_path=content_path,
             emulator_label=emulator.label if emulator is not None else None,
             content_installed=installed,
         )
+        return self._save_units.stage(rom_id, answer, os.path.splitext(os.path.basename(content_path))[0])
 
     def synced_save_names(self, rom_id: int, *, save_answer: SaveAnswer | None = None) -> tuple[list[str], str | None]:
         """The basenames a sync may carry for this ROM, and the directory they sit in.

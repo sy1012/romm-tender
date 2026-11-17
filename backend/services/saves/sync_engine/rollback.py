@@ -202,6 +202,7 @@ class RollbackOrchestrator:
                     system,
                     info["rom_name"],
                     save_names,
+                    info["save_answer"].emulator_identity,
                 )
             await loop.run_in_executor(None, write_save_state, self._uow_factory, rom_id, save_state)
             self._logger.info(
@@ -293,6 +294,7 @@ class RollbackOrchestrator:
         system: str,
         rom_name: str,
         save_names: tuple[str, ...],
+        emulator_identity: str | None = None,
     ) -> None:
         """Push the local file to *server* (POST overwrite=true). Adopt-without-upload
         when the local content already matches the server's content hash.
@@ -387,5 +389,15 @@ class RollbackOrchestrator:
         # loop (ADR-0017). The freshness of the server head was already validated
         # by the stale-conflict check in ``resolve`` before we got here.
         self._transfer.upload_save_file(
-            rom_id, local_path, target, save_state, device_id, system, core_so, None, default_slot, overwrite=True
+            rom_id,
+            local_path,
+            target,
+            save_state,
+            device_id,
+            system,
+            core_so,
+            None,
+            default_slot,
+            overwrite=True,
+            emulator_identity=emulator_identity,
         )

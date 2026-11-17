@@ -1,18 +1,19 @@
 """What a game's save consists of, where it lives, and whether Tender may sync it.
 
 The vocabulary the resolver's savefile answer is translated into, and the rule
-that turns one such answer into exactly one of seven states. Adapters read the
+that turns one such answer into exactly one of eight states. Adapters read the
 machine; this module decides what the reading MEANS, so the decision is pure and
 testable without a machine, and so ``services/`` never sees a resolver type.
 
-The seven states are the whole point. Save sync copies a per-game file to a
+The eight states are the whole point. Save sync copies a per-game file to a
 per-ROM record on the server, and that model is simply wrong for most of what
 emulators actually write — a card many games share, a directory whose contents
 nobody enumerated, a path or a name half of which is the game's own identity.
-Only
-:data:`SAVE_STATE_PER_GAME_FILES` is a save Tender can carry; the other six
-are refusals, and each says something different about why. Two of them are about
-the reading rather than the emulator's shape: the source's saves root does not
+Only :data:`SAVE_STATE_PER_GAME_FILES` and :data:`SAVE_STATE_PER_GAME_UNIT` are
+saves Tender can carry — the second a :class:`SaveUnit`, several files carried
+as one zip Tender stages for them; the other six are refusals, and each says
+something different about why. Two of them are about the reading rather than
+the emulator's shape: the source's saves root does not
 exist, and a sync would create it — on internal storage while an SD card is out;
 or the place the answer names was not read from the emulator's own settings, so
 it is a default the emulator may not use. Every one of them is an honest "we are
@@ -32,7 +33,7 @@ rather than silently classifying everything as a refusal.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import TYPE_CHECKING, Literal
 
 from domain.emulator_sources import EMUDECK, RETRODECK, SourceFinding
@@ -40,8 +41,9 @@ from domain.emulator_sources import EMUDECK, RETRODECK, SourceFinding
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-# The seven states. Exactly one holds for any ROM.
+# The eight states. Exactly one holds for any ROM.
 SAVE_STATE_PER_GAME_FILES = "per_game_files"
+SAVE_STATE_PER_GAME_UNIT = "per_game_unit"
 SAVE_STATE_SHARED = "shared"
 SAVE_STATE_INSIDE_CONTENT = "inside_content"
 SAVE_STATE_HOLE = "hole"
@@ -51,6 +53,7 @@ SAVE_STATE_PLACE_NOT_READ = "place_not_read"
 
 SaveState = Literal[
     "per_game_files",
+    "per_game_unit",
     "shared",
     "inside_content",
     "hole",
@@ -109,7 +112,7 @@ PLACE_NOT_READ_CODES = frozenset(
 )
 
 # A source's marker findings, and the kinds whose marker refuses no save: why is
-# ``docs/architecture/save-sync-coverage.md``'s, "The seven save states".
+# ``docs/architecture/save-sync-coverage.md``'s, "The eight save states".
 _MARKER_CODES = frozenset({"marker-missing", "marker-unreadable", "marker-invalid"})
 _MARKER_NAMES_NO_SAVE_PLACE = frozenset({RETRODECK, EMUDECK})
 
@@ -149,6 +152,14 @@ SORTED_DIR_MISSING = "sorted-dir-missing"
 # INSIDE the file (``inside_content``) is anchored there too.
 ROOT_CONTENT_DIRECTORY = "content_directory"
 
+# The staged zip a save unit is carried as is ``<rom stem>`` plus this.
+STAGED_UNIT_EXTENSION = ".zip"
+
+# The role of the staged zip: the player's progress, whatever its members are.
+STAGED_UNIT_ROLE = "progress"
+
+_SYNCABLE_STATES = frozenset({SAVE_STATE_PER_GAME_FILES, SAVE_STATE_PER_GAME_UNIT})
+
 # Canonical ``reason`` slugs for the two benign-skip outcomes a save answer
 # produces. Both live here, beside the answer that causes them, so every service
 # routes on the SAME value without a service-to-service import. The refusal
@@ -183,6 +194,25 @@ BENIGN_SYNC_SKIP_REASONS: frozenset[str] = frozenset(
         SAVE_SHAPE_UNSUPPORTED_REASON,
     }
 )
+
+
+@dataclass(frozen=True, slots=True)
+class SaveUnit:
+    """Which files under one folder are one game's save, moved together as one.
+
+    ``members`` is ``None`` for a folder that is the game's own: every regular
+    file below ``root``, at any depth. A tuple names the game's files directly
+    in ``root``, a folder other games' files share. ``archive_folder`` is the
+    name every entry sits under inside the zip, ``None`` for entries at its
+    top: other RomM clients lay a unit out under the folder's own name, and a
+    zip only meets theirs laid out the same way
+    (docs/architecture/save-file-sync-architecture.md, "Save units"). All three
+    are the emulator's answer; this type holds no rule for any of them.
+    """
+
+    root: str
+    members: tuple[str, ...] | None = None
+    archive_folder: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -269,6 +299,13 @@ class SaveAnswer:
     files there; every sync and write refuses it, and the directory follow
     moves nothing into it.
 
+    ``unit`` is set on :data:`SAVE_STATE_PER_GAME_UNIT` alone: the files the
+    save consists of. Such an answer's ``directory`` is the staging folder and
+    its one component the zip staged there (:func:`stage_unit`); before it is
+    staged it names no directory and syncs nothing. ``emulator_identity`` is
+    the resolver's identity of the emulator, where the answer carries one —
+    ``emulator`` is the label it was asked under.
+
     ``content_installed`` says whether this ROM's content is on disk. It is
     ``False`` for a ROM the library holds but has not installed — the question
     was then about the path the ROM WOULD occupy, so every name in the answer is
@@ -295,11 +332,13 @@ class SaveAnswer:
     missing_saves_root: str | None = None
     finding: SourceFinding | None = None
     source: str | None = None
+    unit: SaveUnit | None = None
+    emulator_identity: str | None = None
 
     @property
     def syncable(self) -> bool:
-        """Whether this emulator's save is a per-game file set Tender can carry."""
-        return self.state == SAVE_STATE_PER_GAME_FILES
+        """Whether this emulator's save is a per-game file set, or a save unit, Tender can carry."""
+        return self.state in _SYNCABLE_STATES
 
     @property
     def in_content_directory(self) -> bool:
@@ -439,7 +478,7 @@ def place_not_read_finding(findings: Sequence[SourceFinding], source: str | None
     *findings* are the answer's own, never the source's health. A marker
     finding is skipped where *source* is RetroDECK or EmuDeck and counts for
     every other kind. Why both rules hold is
-    ``docs/architecture/save-sync-coverage.md``'s, "The seven save states".
+    ``docs/architecture/save-sync-coverage.md``'s, "The eight save states".
     """
     return next(
         (
@@ -584,6 +623,54 @@ def saves_root_missing_answer(
     )
 
 
+def unit_answer(
+    *,
+    unit: SaveUnit,
+    emulator: str | None,
+    emulator_identity: str | None,
+    content_installed: bool,
+    granularity: str | None = None,
+) -> SaveAnswer:
+    """The answer for a save that is *unit*, before a staging folder is named for it.
+
+    It names no directory and no file, so it syncs nothing until
+    :func:`stage_unit` places its zip.
+    """
+    return SaveAnswer(
+        state=SAVE_STATE_PER_GAME_UNIT,
+        unestablished=None,
+        emulator=emulator,
+        directory=None,
+        backing_directory=None,
+        granularity=granularity,
+        needs=(),
+        components=(),
+        caveats=(),
+        content_installed=content_installed,
+        unit=unit,
+        emulator_identity=emulator_identity,
+    )
+
+
+def stage_unit(answer: SaveAnswer, *, staging_directory: str, rom_stem: str) -> SaveAnswer:
+    """*answer* with its unit carried as ``<rom_stem>.zip`` in *staging_directory*.
+
+    The zip is the one component and *staging_directory* the directory every
+    sync path reads and writes. Its size claim is ``False``: the zip's size
+    follows its members. An answer with no unit is returned as it is.
+    """
+    if answer.unit is None or answer.state != SAVE_STATE_PER_GAME_UNIT:
+        return answer
+    staged_zip = SaveComponent(
+        name=f"{rom_stem}{STAGED_UNIT_EXTENSION}",
+        directory=staging_directory,
+        role=STAGED_UNIT_ROLE,
+        granularity=answer.granularity,
+        size_fixed=False,
+    )
+    return replace(answer, directory=staging_directory, components=(staged_zip,))
+
+
 def build_save_answer(
     *,
     emulator: str | None,
@@ -692,7 +779,8 @@ def _classify(
     5. A stated directory whose names are not established is the second shape of
        "not established", and it outranks the bare form because it says more.
 
-    Everything left names files with no hole, which is the one syncable state.
+    Everything left names files with no hole, which is the one syncable state a
+    classified answer reaches; a save unit is never classified here.
     """
     if not _INSIDE_CONTENT_CAVEATS.isdisjoint(caveats):
         return (SAVE_STATE_INSIDE_CONTENT, None)

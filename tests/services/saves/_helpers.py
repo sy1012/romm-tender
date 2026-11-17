@@ -21,6 +21,7 @@ from fakes.system_time import FakeClock
 
 from adapters.gavel_native import GavelNativeAdapter
 from adapters.save_file import SaveFileAdapter
+from adapters.save_unit import SaveUnitAdapter
 from domain.live_device_id import LiveDeviceId
 from domain.rom import Rom
 from domain.rom_install import RomInstall
@@ -82,6 +83,8 @@ def make_service(tmp_path, fake_api=None, *, emit=None, **overrides) -> tuple["S
         "conflict_rules": _make_conflict_rules(),
         "running_rom_ids": FakeRunningRomIds(),
         "uow_factory": FakeUnitOfWorkFactory(),
+        "save_unit_store": SaveUnitAdapter(logger=logging.getLogger("test")),
+        "save_units_dir": str(tmp_path / "data" / "save-units"),
     }
     config_kwargs.update(overrides)
     svc = SaveService(config=SaveServiceConfig(**config_kwargs))

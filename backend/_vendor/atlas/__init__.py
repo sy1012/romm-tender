@@ -65,7 +65,7 @@ from __future__ import annotations
 # tests/test_version.py holds it equal to pyproject — CI's package job holds
 # dist-info to pyproject in a clean venv — so drift is a red test, not a
 # silent fork.
-__version__ = "0.34.0"  # x-release-please-version
+__version__ = "0.34.0+tender.1"  # x-release-please-version
 
 # --- The two entry points, and the aggregate over them -----------------------
 from .detect import detect
@@ -268,6 +268,7 @@ from .esde import esde_extension
 from .placement import (
     Caveat,
     FileGroup,
+    SaveUnitStatement,
     FileSet,
     Granularity,
     ModeAlternative,
@@ -767,6 +768,9 @@ from .placement import (
     FILE_MEMBERSHIP_LIMITS,
     MEMBERSHIP_LIMIT_MAKER_CODE_NOT_COMPARED,
     MEMBERSHIP_LIMIT_OTHER_GAMES_LOADED,
+    SAVE_UNIT_FOLDER,
+    SAVE_UNIT_KINDS,
+    SAVE_UNIT_MEMBERS,
     REASON_ACTIVE_USER_UNRECORDED,
     REASON_ARCHIVE_CONTENT_AMBIGUOUS,
     REASON_ARCHIVE_CONTENT_MIXED,
@@ -911,6 +915,7 @@ __all__ = [
     "Unresolved",
     "FileSet",
     "FileGroup",
+    "SaveUnitStatement",
     "Granularity",
     "ModeAlternative",
     "OptionReading",
@@ -1269,6 +1274,10 @@ __all__ = [
     "FILE_MEMBERSHIP_LIMITS",
     "MEMBERSHIP_LIMIT_MAKER_CODE_NOT_COMPARED",
     "MEMBERSHIP_LIMIT_OTHER_GAMES_LOADED",
+    # What a group's save-unit statement covers: the folder whole, or named members.
+    "SAVE_UNIT_FOLDER",
+    "SAVE_UNIT_KINDS",
+    "SAVE_UNIT_MEMBERS",
     "REASON_ACTIVE_USER_UNRECORDED",
     "REASON_ARCHIVE_CONTENT_AMBIGUOUS",
     "REASON_ARCHIVE_CONTENT_MIXED",

@@ -739,6 +739,7 @@ class TestWireServices:
                 migration_file_store=deps["migration_file_store"],
                 rom_file_store=deps["rom_file_store"],
                 save_file_store=deps["save_file_store"],
+                save_unit_store=MagicMock(),
                 path_probe=deps["path_probe"],
                 resolve_path=deps["resolve_path"],
                 core_info_provider=deps["core_info_provider"],

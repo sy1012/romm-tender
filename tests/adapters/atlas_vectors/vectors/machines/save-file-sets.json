@@ -68,7 +68,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "battery",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -157,7 +158,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "battery",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/retrodeck/saves",
@@ -166,7 +168,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "battery",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -253,7 +256,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "battery",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -343,7 +347,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "battery",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/retrodeck/saves",
@@ -352,7 +357,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "battery",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -556,7 +562,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "battery",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -649,7 +656,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "unknown",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               }
             ]
           },
@@ -802,7 +810,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "battery",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -956,7 +965,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "battery",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -1066,7 +1076,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "battery",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -1159,7 +1170,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "battery",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/retrodeck/saves",
@@ -1168,7 +1180,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "battery",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -1323,7 +1336,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "battery",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -1421,7 +1435,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "battery",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/retrodeck/saves/mame/cfg",
@@ -1430,7 +1445,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "settings",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/retrodeck/saves/mame/cfg",
@@ -1439,14 +1455,16 @@
                 ],
                 "granularity": "shared-file",
                 "role": "settings",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/retrodeck/saves/mame/diff",
                 "files": null,
                 "granularity": "per-game-files",
                 "role": "disk-diff",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               }
             ]
           },
@@ -1559,7 +1577,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "battery",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/retrodeck/saves/fbneo",
@@ -1568,7 +1587,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "battery",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/retrodeck/saves/fbneo",
@@ -1577,7 +1597,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "high-score",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               }
             ]
           },
@@ -1689,7 +1710,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "battery",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               }
             ]
           },
@@ -1801,7 +1823,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "high-score",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               }
             ]
           },
@@ -1915,7 +1938,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "battery",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/retrodeck/saves",
@@ -1924,7 +1948,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "battery",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -2007,7 +2032,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "battery",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               }
             ]
           },
@@ -2111,7 +2137,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "battery",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/retrodeck/saves",
@@ -2120,7 +2147,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "battery",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -2223,7 +2251,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "battery",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/retrodeck/saves",
@@ -2232,7 +2261,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "battery",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -2334,7 +2364,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "battery",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -2441,7 +2472,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "battery",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               }
             ]
           },
@@ -2617,7 +2649,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "battery",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/retrodeck/saves/mame2000/hi",
@@ -2626,7 +2659,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "high-score",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/retrodeck/saves/mame2000/cfg",
@@ -2635,7 +2669,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "settings",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               }
             ]
           },
@@ -2737,7 +2772,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "battery",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               }
             ]
           },
@@ -2854,7 +2890,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "battery",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/retrodeck/saves/mame2010/hi",
@@ -2863,7 +2900,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "high-score",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/retrodeck/saves/mame2010/cfg",
@@ -2872,7 +2910,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "settings",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/retrodeck/saves/mame2010/cfg",
@@ -2881,21 +2920,24 @@
                 ],
                 "granularity": "shared-file",
                 "role": "settings",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/retrodeck/saves/mame2010/memcard",
                 "files": null,
                 "granularity": "shared-card",
                 "role": "memory-card",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/retrodeck/saves/mame2010/diff",
                 "files": null,
                 "granularity": "per-game-files",
                 "role": "disk-diff",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/retrodeck/saves/mame2010/comment",
@@ -2904,7 +2946,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "notes",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/retrodeck/saves/mame2010/ini",
@@ -2913,14 +2956,16 @@
                 ],
                 "granularity": "shared-file",
                 "role": "settings",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/retrodeck/saves/mame2010/ctrlr",
                 "files": null,
                 "granularity": "shared-file",
                 "role": "settings",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               }
             ]
           },
@@ -3048,7 +3093,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "battery",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/retrodeck/saves/mame2003/hi",
@@ -3057,7 +3103,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "high-score",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/retrodeck/saves/mame2003/cfg",
@@ -3066,21 +3113,24 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "settings",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/retrodeck/saves/mame2003/memcard",
                 "files": null,
                 "granularity": "shared-card",
                 "role": "memory-card",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/retrodeck/saves/mame2003/diff",
                 "files": null,
                 "granularity": "per-game-files",
                 "role": "disk-diff",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               }
             ]
           },
@@ -3219,7 +3269,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "battery",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/retrodeck/saves/hi",
@@ -3228,7 +3279,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "high-score",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/retrodeck/saves/cfg",
@@ -3237,21 +3289,24 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "settings",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/retrodeck/saves/memcard",
                 "files": null,
                 "granularity": "shared-card",
                 "role": "memory-card",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/retrodeck/saves/diff",
                 "files": null,
                 "granularity": "per-game-files",
                 "role": "disk-diff",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               }
             ]
           },
@@ -3400,7 +3455,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "battery",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/retrodeck/saves",
@@ -3409,7 +3465,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "high-score",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               }
             ]
           },
@@ -3537,7 +3594,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "battery",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               }
             ]
           },
@@ -3638,7 +3696,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "battery",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               }
             ]
           },
@@ -3727,7 +3786,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "battery",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               }
             ]
           },
@@ -3812,7 +3872,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "battery",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               }
             ]
           },
@@ -3888,7 +3949,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "battery",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               }
             ]
           },
@@ -3966,7 +4028,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "battery",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/retrodeck/saves",
@@ -3975,7 +4038,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "battery",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/retrodeck/saves",
@@ -3984,7 +4048,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "memory-card",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/retrodeck/saves",
@@ -3993,7 +4058,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "battery",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               }
             ]
           },
@@ -4094,7 +4160,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "battery",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               }
             ]
           },
@@ -4182,7 +4249,8 @@
                 ],
                 "granularity": "shared-file",
                 "role": "high-score",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               }
             ]
           },
@@ -4281,7 +4349,8 @@
                 ],
                 "granularity": "per-game-files",
                 "role": "battery",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/retrodeck/saves/Doom (USA)",
@@ -4290,7 +4359,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "settings",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               }
             ]
           },
@@ -4394,14 +4464,16 @@
                 ],
                 "granularity": "shared-file",
                 "role": "settings",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/retrodeck/saves/baseq2/save",
                 "files": null,
                 "granularity": "per-game-files",
                 "role": "battery",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               }
             ]
           },
@@ -4494,14 +4566,16 @@
                 ],
                 "granularity": "shared-file",
                 "role": "settings",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/retrodeck/roms/doom3/base/savegames",
                 "files": null,
                 "granularity": "per-game-files",
                 "role": "battery",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               }
             ]
           },
@@ -4598,7 +4672,8 @@
                 ],
                 "granularity": "per-game-files",
                 "role": "battery",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               }
             ]
           },
@@ -4691,7 +4766,8 @@
                 ],
                 "granularity": "per-game-files",
                 "role": "battery",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               }
             ]
           },
@@ -4779,7 +4855,8 @@
                 ],
                 "granularity": "per-game-files",
                 "role": "battery",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               }
             ]
           },
@@ -4874,7 +4951,8 @@
                 ],
                 "granularity": "per-game-files",
                 "role": "battery",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               }
             ]
           },
@@ -4967,7 +5045,8 @@
                 ],
                 "granularity": "per-game-files",
                 "role": "battery",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               }
             ]
           },
@@ -5065,7 +5144,8 @@
                 ],
                 "granularity": "per-game-files",
                 "role": "battery",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               }
             ]
           },
@@ -5158,7 +5238,8 @@
                 ],
                 "granularity": "per-game-files",
                 "role": "battery",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               }
             ]
           },
@@ -5272,7 +5353,8 @@
                     ],
                     "granularity": "per-game-files",
                     "role": "battery",
-                    "size_fixed": null
+                    "size_fixed": null,
+                    "unit": null
                   }
                 ]
               },
@@ -5391,7 +5473,8 @@
                 ],
                 "granularity": "shared-file",
                 "role": "battery",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/retrodeck/saves",
@@ -5400,7 +5483,8 @@
                 ],
                 "granularity": "shared-file",
                 "role": "battery",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -5606,7 +5690,8 @@
                 ],
                 "granularity": "per-game-files",
                 "role": "battery",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/retrodeck/saves/id1",
@@ -5615,7 +5700,8 @@
                 ],
                 "granularity": "shared-file",
                 "role": "settings",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               }
             ]
           },
@@ -5829,7 +5915,8 @@
                 ],
                 "granularity": "per-game-files",
                 "role": "disk-diff",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               }
             ]
           },
@@ -6439,7 +6526,8 @@
                 "files": null,
                 "granularity": "per-game-files",
                 "role": "battery",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               }
             ]
           },
@@ -6546,7 +6634,8 @@
                 ],
                 "granularity": "per-game-files",
                 "role": "battery",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               }
             ]
           },
@@ -6683,7 +6772,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/retrodeck/saves",
@@ -6692,7 +6782,8 @@
                 ],
                 "granularity": "shared-file",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -8304,7 +8395,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "battery",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -9473,7 +9565,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "disk-diff",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/retrodeck/saves",
@@ -9482,7 +9575,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "disk-diff",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -9678,7 +9772,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "battery",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               }
             ]
           },
@@ -9854,7 +9949,8 @@
                 ],
                 "granularity": "shared-file",
                 "role": "battery",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               }
             ]
           },
@@ -10739,7 +10835,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "battery",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               }
             ]
           },
@@ -10908,7 +11005,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "battery",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               }
             ]
           },
@@ -11247,7 +11345,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "disk-diff",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/retrodeck/saves",
@@ -11256,7 +11355,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "disk-diff",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -11781,7 +11881,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "battery",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               }
             ]
           },
@@ -12140,7 +12241,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "battery",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               }
             ]
           },
@@ -12325,7 +12427,8 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -12533,7 +12636,8 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -12754,7 +12858,8 @@
                 ],
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -12963,7 +13068,8 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -13167,7 +13273,8 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -13364,7 +13471,8 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -13578,7 +13686,8 @@
                 ],
                 "granularity": "shared-card",
                 "role": "battery",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               }
             ]
           },
@@ -14308,7 +14417,8 @@
                 ],
                 "granularity": "per-game-files",
                 "role": "disk-diff",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/retrodeck/saves",
@@ -14318,7 +14428,8 @@
                 ],
                 "granularity": "per-game-files",
                 "role": "disk-diff",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -14683,7 +14794,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "battery",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               }
             ]
           },
@@ -14860,7 +14972,8 @@
                 ],
                 "granularity": "shared-file",
                 "role": "battery",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               }
             ]
           },
@@ -15040,7 +15153,8 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -15533,7 +15647,8 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -16462,7 +16577,8 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -16671,7 +16787,8 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -16879,7 +16996,8 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -17088,7 +17206,8 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -17297,7 +17416,8 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -17501,7 +17621,8 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -17704,7 +17825,8 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -18054,7 +18176,8 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -18257,7 +18380,8 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -19183,7 +19307,8 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -19697,7 +19822,8 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -19904,7 +20030,8 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -20707,7 +20834,8 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -21848,7 +21976,8 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -22052,7 +22181,8 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -22347,7 +22477,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/retrodeck/saves",
@@ -22356,7 +22487,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -22453,7 +22585,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/retrodeck/saves",
@@ -22462,7 +22595,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -22558,7 +22692,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "battery",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/retrodeck/saves",
@@ -22567,7 +22702,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "battery",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -22678,7 +22814,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "battery",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -22798,7 +22935,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -22906,7 +23044,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "battery",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/retrodeck/saves/mame/cfg",
@@ -22915,14 +23054,16 @@
                 ],
                 "granularity": "shared-file",
                 "role": "settings",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/retrodeck/saves/mame/diff",
                 "files": null,
                 "granularity": "per-game-files",
                 "role": "disk-diff",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               }
             ]
           },
@@ -23079,7 +23220,8 @@
                 ],
                 "granularity": "shared-file",
                 "role": "battery",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -23312,7 +23454,8 @@
                 ],
                 "granularity": "shared-file",
                 "role": "battery",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -23545,7 +23688,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "battery",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/retrodeck/saves",
@@ -23554,7 +23698,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "battery",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -23738,7 +23883,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "battery",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/retrodeck/saves",
@@ -23747,7 +23893,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "battery",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },

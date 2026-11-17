@@ -32,6 +32,7 @@ if TYPE_CHECKING:
         RunningRomIdsFn,
         SaveFileStore,
         SaveLocationReader,
+        SaveUnitStore,
         SettingsPersister,
         UnitOfWorkFactory,
         UpdateInProgressFn,
@@ -117,6 +118,12 @@ class SaveServiceConfig:
         ``DebugLogger`` Protocol seam — routes through the user's QAM
         log-level filter. Injected directly into each sub-service that
         needs it; not reached through the ``_save_service`` back-ref.
+    save_unit_store:
+        Protocol-typed filesystem adapter that packs a save unit into its
+        staged zip and unpacks a zip into the unit.
+    save_units_dir:
+        The folder under the data root the per-ROM staging folders of save
+        units' zips are made in (``<data root>/save-units``).
     uow_factory:
         ``UnitOfWorkFactory`` Protocol seam — opens a fresh transactional
         Unit of Work over the SQLite repositories. The saves vertical
@@ -148,3 +155,5 @@ class SaveServiceConfig:
     conflict_rules: ConflictRules
     running_rom_ids: RunningRomIdsFn
     uow_factory: UnitOfWorkFactory
+    save_unit_store: SaveUnitStore
+    save_units_dir: str

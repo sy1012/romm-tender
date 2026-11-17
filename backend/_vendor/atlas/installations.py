@@ -22,6 +22,7 @@ syntactically correct path handed out as if it were usable.
 from __future__ import annotations
 
 import functools
+import hashlib
 import json
 import os
 import re
@@ -195,8 +196,10 @@ from .firmware import firmware_for_core as _resolve_for_core
 from .firmware import firmware_for_system as _resolve_for_system
 from .firmware import firmware_inventory as _resolve_inventory
 from .firmware import identify_firmware as _resolve_identification
+from . import dolphin_disc
 from .machine import (
     APPIMAGE_CAPABILITY_MISSING,
+    DOLPHIN_DISC_OK,
     ARCHIVE_MISSING,
     claimed_extensions,
     FileStamp,
@@ -365,6 +368,8 @@ from .placement import (
     TEMPLATE_ROM_STEM,
     TEMPLATE_SAVE_ID,
     SAVE_ID_SPELLING_GAME_CODE,
+    SAVE_UNIT_FOLDER,
+    SAVE_UNIT_MEMBERS,
     SAVE_ID_SPELLING_PATH_SEGMENT,
     MEMBERSHIP_LIMIT_MAKER_CODE_NOT_COMPARED,
     MEMBERSHIP_LIMIT_OTHER_GAMES_LOADED,
@@ -410,6 +415,7 @@ from .placement import (
     Caveat,
     DataValue,
     FileGroup,
+    SaveUnitStatement,
     FileSet,
     FileSetState,
     SizeFact,
@@ -8377,6 +8383,7 @@ _DOLPHIN_CITATION_SLOTS = frozenset(
         "session_overrides",  # the GCIFolder*PathOverride keys a session sets
         "gci_names",  # how a .gci file inside a folder card is named
         "gci_members",  # which .gci files of a folder a running game is given: by the header's game code
+        "disc_region",  # the region a GameCube disc's card folder is chosen by: its region code at 0x458
         "nand_tree",  # the Wii NAND's title/<hi>/<lo>/data shape
         "title_id",  # where a disc's title id comes from: its game partition's ticket
         "title_created",  # the disc boot that creates title/<hi>/<lo>/data
@@ -9480,13 +9487,16 @@ def _dolphin_gc_answer(
     tree: _DolphinTree,
     alternatives: tuple[ModeAlternative, ...],
     extra_caveats: tuple[Caveat, ...],
+    disc: _DolphinGameCubeDisc | None = None,
 ) -> SavefilePlacement:
     """The GameCube answer assembled from both slots' contributions.
 
     *alternatives* arrives resolved rather than being built here, because
     naming the other mode's groupings takes a second resolution of slot A and
     so the configuration this answer was read from — which the caller holds and
-    this assembly does not.
+    this assembly does not. *disc* is the content path's disc where it narrowed
+    the slots' folders to its region (:func:`_dolphin_disc_slots`): a folder
+    whose members it listed carries no ``save_id`` hole.
     """
     cite = tree.cite
     # Both slots can name one file — a raw card and a cartridge save on one
@@ -9501,16 +9511,16 @@ def _dolphin_gc_answer(
     if groups:
         value = groups[0].granularity
         directory = template or groups[0].dir
-        folders = [g for g in groups if g.files is None]
-        # A GCI folder's files are one game's by the game code in their header,
-        # so the answer holding one holds that code as a hole beside the region.
-        needs = (*((HOLE_REGION,) if template else ()), *((HOLE_SAVE_ID,) if folders else ()))
-        named_first = groups[0].files is not None
-        files = tuple(
-            name for g in groups if g.dir == groups[0].dir and g.files for name in g.files
-        ) if named_first else ()
+        needs, files = _dolphin_grouped_holes(groups, template)
         state = FILE_SET_DECLARED
-        caveats.extend(_dolphin_folder_caveats(folders, token=tree.token, cite=cite))
+        caveats.extend(
+            _dolphin_folder_caveats(
+                [g for g in groups if g.files is None],
+                token=tree.token,
+                cite=cite,
+                game_code=disc.game_code if disc else None,
+            )
+        )
     else:
         # No slot carries a group: either no slot holds a card or a save, and
         # no save data lands anywhere until the configuration changes, or a
@@ -9550,7 +9560,10 @@ def _dolphin_gc_answer(
             complete=False,
             groups=groups,
         ),
-        sources=_labelled_sources(tree.label, tree.provenance, _dolphin_size_evidence(slots, cite)),
+        sources=(
+            *_labelled_sources(tree.label, tree.provenance, _dolphin_size_evidence(slots, cite)),
+            *((disc.basis,) if disc else ()),
+        ),
         caveats=tuple(caveats),
         physical_dir=physical,
         granularity=Granularity(
@@ -9566,8 +9579,26 @@ def _dolphin_gc_answer(
     )
 
 
+def _dolphin_grouped_holes(
+    groups: Sequence[FileGroup], template: str | None
+) -> tuple[tuple[str, ...], tuple[str, ...]]:
+    """The holes and the flat file list of a GameCube answer that carries groups.
+
+    A GCI folder's files are one game's by the game code in their header, so
+    the answer holding one holds that code as a hole beside the region —
+    unless the disc named it and the folder's members were listed, which the
+    group's unit then states. ``files`` are the names in the first group's
+    directory where that group names its files, and none where it is a folder.
+    """
+    unlisted = [g for g in groups if g.files is None and g.unit is None]
+    needs = (*((HOLE_REGION,) if template else ()), *((HOLE_SAVE_ID,) if unlisted else ()))
+    if groups[0].files is None:
+        return needs, ()
+    return needs, tuple(name for g in groups if g.dir == groups[0].dir and g.files for name in g.files)
+
+
 def _dolphin_folder_caveats(
-    folders: Sequence[FileGroup], *, token: str, cite: _Cite
+    folders: Sequence[FileGroup], *, token: str, cite: _Cite, game_code: str | None = None
 ) -> list[Caveat]:
     """What a GCI folder's unnamed groups say about their files: no names, and a member rule.
 
@@ -9582,6 +9613,10 @@ def _dolphin_folder_caveats(
     not the maker code beside it, and outside netplay it loads the other
     games' files from the folder too, so the hole covers the disc's own code
     and no other (#615 D2).
+
+    A folder whose members the disc's *game_code* listed (its group carries a
+    :class:`~atlas.placement.SaveUnitStatement`) states the same rule with the
+    code it compared, under ``game_code``, instead of the ``save_id`` hole.
     """
     names = [
         Caveat(
@@ -9600,7 +9635,9 @@ def _dolphin_folder_caveats(
         for g in folders
     ]
     members = [
-        Caveat(
+        _dolphin_listed_members(g, token=token, cite=cite, game_code=game_code)
+        if g.unit is not None and game_code is not None
+        else Caveat(
             CAVEAT_FILE_MEMBERSHIP_BY_HEADER,
             "Dolphin gives a running game the .gci files here whose header begins with its "
             "disc's game code, whatever their names: list *.gci (not recursively, the extension "
@@ -9630,6 +9667,140 @@ def _dolphin_folder_caveats(
         for g in folders
     ]
     return [*names, *members]
+
+
+def _dolphin_listed_members(group: FileGroup, *, token: str, cite: _Cite, game_code: str) -> Caveat:
+    """``file-membership-by-header`` for a folder whose members the disc's game code was compared against."""
+    return Caveat(
+        CAVEAT_FILE_MEMBERSHIP_BY_HEADER,
+        "Dolphin gives a running game the .gci files here whose header begins with its disc's "
+        f"game code, whatever their names: the files whose first four bytes are {game_code!r} "
+        "were listed (*.gci, not recursively, the extension in any case, each holding a whole "
+        "directory entry) and the group's unit names them. Two limits ride in limits: Dolphin "
+        "compares the game code alone, not the maker code, and outside netplay it loads the other "
+        "games' files from this folder as well, so the folder is not one game's alone",
+        {
+            "token": token,
+            "dir": group.dir,
+            "pattern": "*.gci",
+            "offset": "0",
+            "length": "4",
+            "game_code": game_code,
+            "limits": (
+                MEMBERSHIP_LIMIT_OTHER_GAMES_LOADED,
+                MEMBERSHIP_LIMIT_MAKER_CODE_NOT_COMPARED,
+            ),
+            "citation": f"{cite('gci_members')} at {cite('build')}",
+        },
+    )
+
+
+# Which of a slot's region groups a GameCube disc's region selects: both the
+# default folders (_DOLPHIN_REGIONS) and every build's configured ones
+# (folder_regions) list USA, EUR, then the Japanese spelling.
+_DOLPHIN_REGION_GROUP = MappingProxyType(
+    {dolphin_disc.REGION_NTSC_U: 0, dolphin_disc.REGION_PAL: 1, dolphin_disc.REGION_NTSC_J: 2}
+)
+# What a GCI folder's file must hold before Dolphin compares its game code:
+# a whole directory entry, which GCIFile::LoadHeader reads in one piece and
+# skips the file without (DENTRY_SIZE, GCMemcard.h:104; GCIFile.cpp:13-30,
+# with GCMemcardDirectory.cpp:202-209 at dolphin 2609).
+_GCI_HEADER_SIZE = 0x40
+_GCI_GAME_CODE_LENGTH = 4
+
+
+@dataclass(frozen=True, slots=True)
+class _DolphinGameCubeDisc:
+    """The content path's GameCube disc as the card slots read it: its game code, and how its region was named."""
+
+    game_code: str
+    basis: str
+
+
+def _dolphin_disc_slots(
+    machine: Machine,
+    slots: tuple[_DolphinSlot, _DolphinSlot],
+    disc: dolphin_disc.DolphinDiscFacts | None,
+    tree: _DolphinTree,
+) -> tuple[tuple[_DolphinSlot, _DolphinSlot], _DolphinGameCubeDisc | None]:
+    """Both slots with each GCI folder narrowed to the disc's region, and the disc — or the slots as they were.
+
+    The emulator files a disc's card under the region the disc states
+    (``disc_region``), so a folder slot's three region groups become the one
+    the disc selects, and the region hole goes. The folder's members are then
+    listed by the disc's game code (:func:`_dolphin_gci_members`); where they
+    could be, the group carries the statement that they are this game's save.
+    A raw card keeps its three region files, and a disc that is not a
+    GameCube disc, or whose region nothing read establishes, narrows nothing.
+    """
+    if disc is None or disc.platform != dolphin_disc.PLATFORM_GC:
+        return slots, None
+    region = dolphin_disc.gamecube_region(disc)
+    if region is None or not any(slot.mode == "folder" and slot.groups for slot in slots):
+        return slots, None
+    index = _DOLPHIN_REGION_GROUP[region.region]
+    a, b = (_dolphin_region_slot(machine, slot, index, disc.game_code, tree) for slot in slots)
+    cite = tree.cite
+    if region.basis == dolphin_disc.REGION_BASIS_REGION_CODE:
+        basis = (
+            f"the {disc.container} image's region code at 0x458 files {disc.dolphin_game_id}'s card "
+            f"under its region ({cite('disc_region')} at {cite('build')})"
+        )
+    else:
+        basis = (
+            f"the {disc.container} image exposes its disc header alone, so {disc.dolphin_game_id}'s "
+            f"region is derived from its country code {disc.game_id[3]!r} the way Dolphin's verifier "
+            "holds a disc's region against it (Enums.cpp:213-280, VolumeVerifier.cpp:915-920 at "
+            f"dolphin 2609) — the emulator itself reads the region code ({cite('disc_region')} at "
+            f"{cite('build')})"
+        )
+    return (a, b), _DolphinGameCubeDisc(disc.game_code, basis)
+
+
+def _dolphin_region_slot(
+    machine: Machine, slot: _DolphinSlot, index: int, game_code: str, tree: _DolphinTree
+) -> _DolphinSlot:
+    """One slot narrowed to a region's GCI folder — a slot holding anything else as it is."""
+    if slot.mode != "folder" or not slot.groups:
+        return slot
+    group = slot.groups[index]
+    members = _dolphin_gci_members(machine, group.dir, game_code) if tree.readable else None
+    unit = None if members is None else SaveUnitStatement(SAVE_UNIT_MEMBERS, members, None)
+    return cast(
+        _DolphinSlot,
+        _dc_replace(slot, groups=(_dc_replace(group, unit=unit),), template_dir=None),
+    )
+
+
+def _dolphin_gci_members(machine: Machine, directory: str, game_code: str) -> tuple[str, ...] | None:
+    """The ``.gci`` files in *directory* Dolphin gives the game of *game_code* — ``None`` where that is not established.
+
+    The emulator's own selection (``gci_members``): the folder's files whose
+    name ends ``.gci`` in any case, directly in it, each holding a whole
+    directory entry, whose first four bytes equal the game code. The four
+    bytes are compared through the machine's prefix digest. An absent folder
+    holds none — a fresh card. A folder that could not be listed in full, or
+    a candidate whose bytes could not be read, establishes nothing.
+    """
+    wanted = hashlib.md5(game_code.encode("latin-1")).hexdigest()
+    found: list[str] = []
+    for pattern in ("*", ".*"):
+        listing = machine.glob(os.path.join(_glob_escape(directory), pattern))
+        if listing.unreadable:
+            return None
+        found.extend(listing.matches)
+    members: list[str] = []
+    for path in found:
+        name = os.path.basename(path)
+        size = machine.file_size(path) if name.lower().endswith(".gci") else None
+        if size is None or size < _GCI_HEADER_SIZE:
+            continue
+        digest = machine.file_digest(path, DIGEST_MD5, first_bytes=_GCI_GAME_CODE_LENGTH)
+        if digest is None:
+            return None
+        if digest == wanted:
+            members.append(name)
+    return tuple(sorted(dict.fromkeys(members)))
 
 
 def _dolphin_size_evidence(
@@ -9817,17 +9988,23 @@ def _labelled_per_title_placement(
     provenance: str,
     extra_groups: tuple[FileGroup, ...] = (),
     root_kind: RootKind = ROOT_EMULATOR_DIRECTORY,
+    needs: tuple[str, ...] = (HOLE_SAVE_ID,),
+    unit: SaveUnitStatement | None = None,
+    extra_sources: tuple[str, ...] = (),
 ) -> SavefilePlacement:
     """:func:`_per_title_placement` declared by *label*, with *source* as its evidence.
 
     The Wii answer is the libretro Dolphin core's too, which is declared by
     its rule card and hangs off the frontend's save directory rather than an
-    emulator directory of its own.
+    emulator directory of its own. Where the Wii answer names the title from
+    the disc, *directory* is that title's own folder, *needs* is empty and
+    *unit* says the folder is the game's save; *extra_sources* says how the
+    title was named.
     """
     return SavefilePlacement(
         dir=directory,
         root_kind=root_kind,
-        needs=(HOLE_SAVE_ID,),
+        needs=needs,
         fallback_dir=None,
         file_set=FileSet(
             FILE_SET_DECLARED,
@@ -9841,11 +10018,12 @@ def _labelled_per_title_placement(
                     granularity=GRANULARITY_PER_GAME_DIRECTORY,
                     role=ROLE_BATTERY,
                     size_fixed=False,
+                    unit=unit,
                 ),
                 *extra_groups,
             ),
         ),
-        sources=(f"{label}: {source}",),
+        sources=(f"{label}: {source}", *extra_sources),
         caveats=tuple(caveats),
         physical_dir=physical,
         granularity=Granularity(
@@ -9866,6 +10044,7 @@ def _dolphin_wii_answer(
     tree: _DolphinTree,
     ini_path: str | None,
     extra_caveats: tuple[Caveat, ...],
+    disc: dolphin_disc.DolphinDiscFacts | None = None,
 ) -> SavefilePlacement:
     """The Wii answer: one title's save directory in the NAND, keyed by its title id.
 
@@ -9880,6 +10059,11 @@ def _dolphin_wii_answer(
     (:func:`_wii_title_listing`). The key is matched the way the emulator
     matches it — ASCII case-insensitively (the chain is on
     :func:`_parse_sectioned_ini`, #295).
+
+    Where the content path is a Wii disc whose title this host can name
+    (:func:`_dolphin_wii_title`), the hole is filled instead: the answer is
+    that title's own folder, ``title/<hi>/<lo>`` — the folder ``data`` lies
+    in — stated as the game's save whole (:func:`_dolphin_wii_title_answer`).
     """
     cite = tree.cite
     configured, spelled = _simpleini_value(values, "General", "NANDRootPath")
@@ -9907,15 +10091,21 @@ def _dolphin_wii_answer(
             f"user directory ({cite('wii_dir')} at {cite('build')})",
         )
     title_tree = os.path.join(nand_root, "title")
-    directory = os.path.join(title_tree, TEMPLATE_SAVE_ID, "data")
     # The link walk stops at the NAND root: the ``title`` tree below it is
     # created at the first Wii disc boot, so its absence is no dead link — the
     # root's own resolution is the boundary the arrangement reroutes.
     resolved_root, link_caveats = _link_view(machine, nand_root) if tree.readable else (None, ())
+    caveats.extend(link_caveats)
+    readings = (_reading_with_file(reading, ini_path),)
+    title = _dolphin_wii_title(machine, disc, title_tree, tree=tree)
+    if title is not None:
+        return _dolphin_wii_title_answer(
+            title, title_tree=title_tree, resolved_root=resolved_root, tree=tree, caveats=caveats, readings=readings
+        )
+    directory = os.path.join(title_tree, TEMPLATE_SAVE_ID, "data")
     physical = (
         os.path.join(resolved_root, "title", TEMPLATE_SAVE_ID, "data") if resolved_root else None
     )
-    caveats.extend(link_caveats)
     caveats.append(
         Caveat(
             CAVEAT_FILE_NAMES_UNESTABLISHED,
@@ -9944,11 +10134,136 @@ def _dolphin_wii_answer(
         physical=physical,
         caveats=caveats,
         mode="nand",
-        readings=(_reading_with_file(reading, ini_path),),
+        readings=readings,
         provenance=(
             f"{tree.label}: a title's save directory in the Wii NAND "
             f"({cite('nand_tree')} at {cite('build')})"
         ),
+    )
+
+
+@dataclass(frozen=True, slots=True)
+class _WiiTitle:
+    """A Wii disc's title id as the NAND spells it, and the sentence saying how it was named."""
+
+    high: str
+    low: str
+    basis: str
+
+
+def _dolphin_wii_title(
+    machine: Machine,
+    disc: dolphin_disc.DolphinDiscFacts | None,
+    title_tree: str,
+    *,
+    tree: _DolphinTree,
+) -> _WiiTitle | None:
+    """The title the content path's Wii disc saves under — ``None`` where nothing read names it whole.
+
+    The id the disc's game partition ticket states, where the image exposes
+    the ticket: the id Dolphin takes (``title_id``). An image that does not —
+    WIA and RVZ keep the partition compressed — still states the game code,
+    which is the id's low word (:func:`atlas.dolphin_disc.game_code_word`),
+    but not the high word, which is the title's category: ``00010000`` for a
+    disc, ``00010004`` for one that installs a channel. That word is taken
+    from the NAND only, where the ``title`` tree holds exactly one directory
+    of that low word — the one Dolphin created when it booted the disc
+    (``title_created``). Where the NAND does not single one out — no such
+    directory, as on a device that never ran the game, or two of them — the
+    high word is the disc-title category, ``00010000``, and the sentence says
+    it was derived rather than read. A tree or listing that could not be read
+    establishes nothing, so it leaves the hole: it is no evidence the title is
+    absent.
+    """
+    if disc is None or disc.platform != dolphin_disc.PLATFORM_WII:
+        return None
+    cite = tree.cite
+    if disc.title_id is not None:
+        high, low = dolphin_disc.title_words(disc.title_id)
+        return _WiiTitle(
+            high,
+            low,
+            f"the title id {high}/{low} is the one the disc's game partition ticket states, read from "
+            f"the {disc.container} image ({cite('title_id')} at {cite('build')})",
+        )
+    low = dolphin_disc.game_code_word(disc)
+    if not tree.readable:
+        return None
+    listing = machine.glob(os.path.join(_glob_escape(title_tree), _WII_TITLE_WORD_PATTERN, low, ""))
+    if listing.unreadable:
+        return None
+    if len(listing.matches) != 1:
+        return _WiiTitle(
+            dolphin_disc.DISC_TITLE_HIGH_WORD,
+            low,
+            f"the {disc.container} image exposes no ticket and the NAND names no single title of the "
+            f"low word {low}, the disc's game code {disc.game_id[:4]!r}, so the high word "
+            f"{dolphin_disc.DISC_TITLE_HIGH_WORD} is the disc-title default — derived, not read: the "
+            "category of disc titles (TitleType, Formats.h:33-41 at dolphin 2609), under which the "
+            f"emulator creates title/{dolphin_disc.DISC_TITLE_HIGH_WORD}/{low}/data when it boots such a "
+            f"disc ({cite('title_created')} at {cite('build')}); a disc that installs a channel is "
+            "00010004 instead",
+        )
+    high = os.path.basename(os.path.dirname(listing.matches[0].rstrip("/")))
+    return _WiiTitle(
+        high,
+        low,
+        f"the {disc.container} image exposes no ticket, so the low word {low} is the disc's game code "
+        f"{disc.game_id[:4]!r} and the high word {high} the one title directory the NAND holds under "
+        f"it, which the emulator created when it booted the disc ({cite('title_created')} at "
+        f"{cite('build')})",
+    )
+
+
+def _dolphin_wii_title_answer(
+    title: _WiiTitle,
+    *,
+    title_tree: str,
+    resolved_root: str | None,
+    tree: _DolphinTree,
+    caveats: list[Caveat],
+    readings: tuple[OptionReading, ...],
+) -> SavefilePlacement:
+    """The named title's own folder as the Wii answer: the game's whole save, packed under its low word.
+
+    ``title/<hi>/<lo>`` holds ``data``, the save, beside ``content``, where
+    the emulator keeps the disc's TMD (``title_created``); the folder is the
+    title's alone, so it is the unit. An archive of it keeps its entries
+    under the low word, ``<lo>/data/…`` — the shape RomM's Android client,
+    Argosy, packs a Wii save in.
+    """
+    cite = tree.cite
+    directory = os.path.join(title_tree, title.high, title.low)
+    physical = os.path.join(resolved_root, "title", title.high, title.low) if resolved_root else None
+    caveats.append(
+        Caveat(
+            CAVEAT_FILE_NAMES_UNESTABLISHED,
+            "the files below this title's folder are the game's own writes — its save in data — "
+            "so the folder moves whole",
+            {
+                "token": tree.token,
+                "dir": directory,
+                "role": ROLE_BATTERY,
+                "citation": f"{cite('nand_tree')} and {cite('title_id')} at {cite('build')}",
+            },
+        )
+    )
+    return _labelled_per_title_placement(
+        tree.label,
+        tree.provenance,
+        root_kind=tree.root_kind,
+        directory=directory,
+        physical=physical,
+        caveats=caveats,
+        mode="nand",
+        readings=readings,
+        provenance=(
+            f"{tree.label}: the disc's title folder in the Wii NAND "
+            f"({cite('nand_tree')} at {cite('build')})"
+        ),
+        needs=(),
+        unit=SaveUnitStatement(SAVE_UNIT_FOLDER, None, title.low),
+        extra_sources=(title.basis,),
     )
 
 
@@ -10059,6 +10374,7 @@ def _dolphin_savefile_placement(
         ini_path=stated_ini,
         wii=wii,
         cwd=cwd,
+        content_path=content_path,
         before=(*extra_caveats, *missing),
         after=tuple(
             _dolphin_game_settings_caveats(
@@ -10083,6 +10399,7 @@ def _dolphin_tree_answer(
     cwd: str | None,
     before: tuple[Caveat, ...],
     after: tuple[Caveat, ...],
+    content_path: str | None = None,
 ) -> SavefilePlacement | Unresolved:
     """One Dolphin tree's save answer from its parsed Dolphin.ini: the Wii NAND, or the card slots.
 
@@ -10090,7 +10407,11 @@ def _dolphin_tree_answer(
     emulator and the libretro core reach here with their own tree. *before*
     and *after* are the caveats the caller states around the readings' own —
     the GameCube answer puts the per-session overrides between them.
+    *content_path* is the disc the question names, read the way Dolphin reads
+    it (:mod:`atlas.dolphin_disc`) to name the Wii title or the GameCube
+    region and game code; an image that does not read leaves the holes.
     """
+    disc = _dolphin_disc(machine, content_path)
     cite = tree.cite
     if wii:
         return _dolphin_wii_answer(
@@ -10100,6 +10421,7 @@ def _dolphin_tree_answer(
             tree=tree,
             ini_path=ini_path,
             extra_caveats=(*before, *after),
+            disc=disc,
         )
     override_caveats = tuple(
         Caveat(
@@ -10119,14 +10441,24 @@ def _dolphin_tree_answer(
     refusal = _dolphin_uninterpreted_refusal(slots, token=tree.token, config=ini_path)
     if refusal is not None:
         return refusal
+    narrowed, gc_disc = _dolphin_disc_slots(machine, slots, disc, tree)
     return _dolphin_gc_answer(
-        slots,
+        narrowed,
         machine=machine,
         ini_path=ini_path,
         tree=tree,
         alternatives=_dolphin_alternatives(slots, values, sandbox, tree),
         extra_caveats=(*before, *override_caveats, *after),
+        disc=gc_disc,
     )
+
+
+def _dolphin_disc(machine: Machine, content_path: str | None) -> dolphin_disc.DolphinDiscFacts | None:
+    """The disc at *content_path* as Dolphin reads it — ``None`` where there is none, or it did not read."""
+    if content_path is None:
+        return None
+    result = machine.read_dolphin_disc(content_path)
+    return result.facts if result.status == DOLPHIN_DISC_OK else None
 
 
 # ---------------------------------------------------------------------------
@@ -10162,6 +10494,7 @@ _DOLPHIN_CORE_LINES: Mapping[str, str] = MappingProxyType(
             "GCMemcardDirectory.cpp:193, FileSearch.h:13-15, FileSearch.cpp:32-63, :86-91, "
             "GCMemcardDirectory.cpp:210, GCMemcard.h:245-246, EXI_DeviceMemoryCard.cpp:177-183"
         ),
+        "disc_region": "VolumeGC.cpp:104-106, ConfigManager.cpp:456-457, EXI_DeviceMemoryCard.cpp:164",
         "nand_tree": "NandPaths.cpp:63-72",
         "title_id": "VolumeWii.cpp:270-276",
         "title_created": "ES.cpp:823-860, Boot_BS2Emu.cpp:616",
@@ -10462,6 +10795,7 @@ def _dolphin_core_placement(
         ini_path=ini_path,
         wii=wii,
         cwd=query.cwd,
+        content_path=query.content_path,
         before=ini_caveats,
         after=tuple(layer_caveats),
     )

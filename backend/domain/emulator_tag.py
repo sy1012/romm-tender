@@ -4,7 +4,8 @@ The emulator tag determines the server-side folder path for saves:
 saves/{system}/{rom_id}/{emulator}/
 
 Format: retroarch-{core} where core is the libretro core name
-without the _libretro suffix, lowercased.
+without the _libretro suffix, lowercased; a standalone emulator's
+tag is its identity, lowercased.
 
 No I/O, no service/adapter/lib imports. Pure functions only.
 """
@@ -15,15 +16,19 @@ _LIBRETRO_SUFFIX = "_libretro"
 _FALLBACK = "retroarch"
 
 
-def build_emulator_tag(core_so: str | None) -> str:
-    """Build a RomM emulator tag from a RetroArch core .so name.
+def build_emulator_tag(core_so: str | None, emulator_identity: str | None = None) -> str:
+    """Build a RomM emulator tag from a RetroArch core .so name, or a standalone emulator's identity.
 
     Parameters
     ----------
     core_so:
         The libretro core name as found in ES-DE config, e.g. "mgba_libretro",
         "snes9x_libretro", "swanstation_libretro".
-        May be None if core resolution failed.
+        May be None if core resolution failed, and is None for a
+        standalone emulator.
+    emulator_identity:
+        The save answer's identity of the emulator, e.g. "DOLPHIN"; None
+        where the answer carries none.
 
     Returns
     -------
@@ -35,10 +40,11 @@ def build_emulator_tag(core_so: str | None) -> str:
     - Strip "_libretro" suffix
     - Lowercase
     - Prepend "retroarch-"
-    - Fallback to "retroarch" if core_so is None/empty
+    - Without a core, the identity lowercased ("dolphin") where there is one
+    - Fallback to "retroarch" if core_so is None/empty and there is no identity
     """
     if not core_so:
-        return _FALLBACK
+        return emulator_identity.lower() if emulator_identity else _FALLBACK
     core = core_so.lower()
     if core.endswith(_LIBRETRO_SUFFIX):
         core = core[: -len(_LIBRETRO_SUFFIX)]

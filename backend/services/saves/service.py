@@ -35,6 +35,7 @@ from services.saves.prune_support import PruneSaveSupport, PruneSaveSupportConfi
 from services.saves.rom_info import RomInfoService, RomInfoServiceConfig
 from services.saves.save_backup import SaveBackup, SaveBackupConfig
 from services.saves.save_transfer import SaveTransfer, SaveTransferConfig
+from services.saves.save_units import SaveUnits, SaveUnitsConfig
 from services.saves.slots import SlotsService, SlotsServiceConfig
 from services.saves.slots.switching import SlotSwitchBackupFailed, SlotSwitchBackupFolderUnusable, SlotSwitchStopped
 from services.saves.status import StatusService, StatusServiceConfig
@@ -111,6 +112,14 @@ class SaveService:
             version=VERSION,
         )
 
+        # Built before every service that reads or writes a game's local saves:
+        # each of them reaches a save unit's zip through it.
+        self._save_units = SaveUnits(
+            config=SaveUnitsConfig(
+                store=config.save_unit_store, staging_root=config.save_units_dir, log_debug=config.log_debug
+            ),
+        )
+
         self._rom_info = RomInfoService(
             config=RomInfoServiceConfig(
                 uow_factory=config.uow_factory,
@@ -119,6 +128,7 @@ class SaveService:
                 active_core=config.active_core,
                 save_locations=config.save_locations,
                 platform_systems=config.platform_systems,
+                save_units=self._save_units,
                 logger=config.logger,
             ),
         )
@@ -135,6 +145,7 @@ class SaveService:
                 save_file_store=config.save_file_store,
                 clock=config.clock,
                 backup=self._save_backup,
+                save_units=self._save_units,
                 logger=config.logger,
                 log_debug=config.log_debug,
             ),
@@ -244,6 +255,7 @@ class SaveService:
                 log_debug=config.log_debug,
                 save_backup=self._save_backup,
                 save_transfer=self._save_transfer,
+                save_units=self._save_units,
             ),
         )
 
@@ -255,6 +267,7 @@ class SaveService:
                 rom_info=self._rom_info,
                 sync_engine=self._sync_engine,
                 save_backup=self._save_backup,
+                save_units=self._save_units,
             ),
         )
 
@@ -697,6 +710,9 @@ class SaveService:
         for f in files:
             try:
                 self._save_file_store.remove_file(f["path"])
+                # Under the same confirmation as the file: a save unit's staged
+                # zip stands for the unit's own files.
+                self._save_units.clear_placed(f["path"])
                 deleted += 1
             except Exception as e:
                 errors.append(f"{f['filename']}: {e}")

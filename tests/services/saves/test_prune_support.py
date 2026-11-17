@@ -315,3 +315,50 @@ class TestValidatePruneAbsences:
         _folders(support).saves = ""
 
         assert support.validate_prune_absences({}) is True
+
+
+class TestASaveUnit:
+    """The cleanup reaches a save unit's staged zip and never the unit's own files."""
+
+    @staticmethod
+    def _unit_service(tmp_path):
+        from fakes.fake_save_location_reader import FakeSaveLocationReader
+
+        from domain.save_answer import SaveUnit, unit_answer
+
+        svc, _ = make_service(tmp_path)
+        _install_rom(svc, tmp_path, rom_id=42, system="wii", file_name="Wii Sports.rvz")
+        root = tmp_path / "nand" / "data"
+        root.mkdir(parents=True)
+        (root / "save.dat").write_bytes(b"progress")
+        reader = svc._rom_info._save_locations
+        assert isinstance(reader, FakeSaveLocationReader)
+        reader.answer_with(
+            "wii",
+            unit_answer(
+                unit=SaveUnit(root=str(root)), emulator="Dolphin", emulator_identity="DOLPHIN", content_installed=True
+            ),
+        )
+        return svc, root, tmp_path / "data" / "save-units" / "42" / "Wii Sports.zip"
+
+    def test_the_inventory_names_the_staged_zip_and_nothing_of_the_unit(self, tmp_path):
+        svc, root, staged = self._unit_service(tmp_path)
+
+        inventory = svc.prune_support.inventory_prune_saves([42])
+
+        assert [item["path"] for item in inventory["exclusive"]] == [str(staged)]
+        assert all(not item["source_path"].startswith(str(root)) for item in inventory["artifacts"])
+        assert inventory["warnings"] == []
+
+    def test_the_backup_moves_the_staged_zip_and_leaves_the_unit(self, tmp_path):
+        svc, root, staged = self._unit_service(tmp_path)
+        support = svc.prune_support
+        inventory = support.inventory_prune_saves([42])
+
+        result = support.back_up_prune_saves(inventory["exclusive"], inventory["source_claims"])
+
+        assert result == PruneSaveBackup(moved=[str(staged)], ambiguous=False)
+        assert not staged.exists()
+        assert len(list((staged.parent / ".romm-backup").iterdir())) == 1
+        assert (root / "save.dat").read_bytes() == b"progress"
+        assert support.validate_prune_absences(inventory["source_claims"]) is True
