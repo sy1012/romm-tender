@@ -48,9 +48,13 @@ from typing import TYPE_CHECKING, Any
 from _vendor.atlas import (
     CAVEAT_ACTIVE_PROFILE_UNESTABLISHED,
     CAVEAT_FILE_MEMBERSHIP_BY_HEADER,
+    CAVEAT_PSN_SAVE_PREFIX_MAY_DIFFER,
     CAVEAT_REDIRECT_OUTRANKED,
     CAVEAT_SAVE_FILES_SHARED_WITH_CORE,
     HEALTH_ISSUE_NOT_SET_UP,
+    SAVE_UNIT_FOLDER,
+    SAVE_UNIT_MEMBERS,
+    SAVE_UNIT_PREFIXED_FOLDERS,
     UNRESOLVED_APPIMAGE_AMBIGUOUS,
     SavestateAbsence,
     SavestatePlacement,
@@ -96,13 +100,19 @@ if TYPE_CHECKING:
 # id, so the answer is a hole Tender refuses before the note matters (#2698 D3).
 # ``active-profile-unestablished`` says which user Eden runs a game as is not
 # known; it stands beside a folder whose path still needs ``profile_id``, so
-# the answer is a hole too.
+# the answer is a hole too. ``psn-save-prefix-may-differ`` says a PSN release's
+# game may save under its disc release's id rather than its own; the unit is
+# still the folders under the id the answer names, so a save under another id
+# is simply not this unit's — Tender neither finds it nor touches it, and a zip
+# laid out under another id is refused by the unpack. The note rides the
+# answer's ``caveats``.
 _NOTES_THAT_CHANGE_NOTHING = frozenset(
     {
         CAVEAT_REDIRECT_OUTRANKED,
         CAVEAT_SAVE_FILES_SHARED_WITH_CORE,
         CAVEAT_FILE_MEMBERSHIP_BY_HEADER,
         CAVEAT_ACTIVE_PROFILE_UNESTABLISHED,
+        CAVEAT_PSN_SAVE_PREFIX_MAY_DIFFER,
     }
 )
 
@@ -367,24 +377,21 @@ def _translate(placement: Any, emulator_label: str, content_installed: bool, ide
 
     A placement with no hole left whose one group the resolver states is the
     game's own save is a save unit; nothing else is — a granularity alone never
-    makes one (ADR-0046).
+    makes one (ADR-0046). A statement of a kind this adapter does not know is
+    no unit either.
     """
     file_set = placement.file_set
     granularity = placement.granularity
     stated = [group for group in file_set.groups if group.unit is not None]
-    if not placement.needs and len(stated) == 1:
-        (group,) = stated
-        statement = group.unit
+    unit = _unit(stated[0]) if not placement.needs and len(stated) == 1 else None
+    if unit is not None:
         return unit_answer(
-            unit=SaveUnit(
-                root=group.dir,
-                members=None if statement.members is None else tuple(statement.members),
-                archive_folder=statement.archive_folder,
-            ),
+            unit=unit,
             emulator=emulator_label,
             emulator_identity=identity,
             content_installed=content_installed,
             granularity=granularity.value if granularity is not None else None,
+            caveats=tuple(caveat.code for caveat in placement.caveats),
         )
     return build_save_answer(
         emulator=emulator_label,
@@ -409,6 +416,18 @@ def _translate(placement: Any, emulator_label: str, content_installed: bool, ide
         root_kind=placement.root_kind,
         fallback_directory=placement.fallback_dir,
     )
+
+
+def _unit(group: Any) -> SaveUnit | None:
+    """The save unit *group*'s statement makes, or ``None`` for a kind not known here."""
+    statement = group.unit
+    if statement.kind == SAVE_UNIT_FOLDER:
+        return SaveUnit(root=group.dir, archive_folder=statement.archive_folder)
+    if statement.kind == SAVE_UNIT_MEMBERS:
+        return SaveUnit(root=group.dir, members=tuple(statement.members), archive_folder=statement.archive_folder)
+    if statement.kind == SAVE_UNIT_PREFIXED_FOLDERS:
+        return SaveUnit(root=group.dir, members=tuple(statement.members), prefix=statement.prefix)
+    return None
 
 
 def describe_core_probe_interpreter() -> str:

@@ -188,11 +188,12 @@ and binds, and the other areas: [the register's index](index.md).
   refused unpack that fails the download with the unit intact, a rollback restoring every member, a switch to an empty
   slot (unit emptied, its files in the backed-up zip) and to one with a save, a failed set-aside leaving the unit, both
   deletes, and the control that a plain answer makes no staging folder; `tests/adapters/test_save_unit.py` pins the
-  zip's bytes, its RomM content hash, and every refused entry. **Prompt-only:** a new reader that builds a save path
-  without `get_rom_save_info` reads the zip as it was last packed, and a new step that writes a save file other than
-  through `download_save_file` leaves the unit unchanged under a zip that says otherwise — nothing finds either. The
-  directory follow, the adoption rename and the removed-game cleanup skip a unit's own files explicitly
-  (`test_save_directory.py::TestASaveUnitIsNotFollowed`, `test_rom_adoption.py`'s
+  zip's bytes, its RomM content hash, every refused entry, and that a unit of prefixed folders' restore and clear remove
+  only its member folders, refusing a zip folder over any other (`TestPrefixedFolders`). **Prompt-only:** a new reader
+  that builds a save path without `get_rom_save_info` reads the zip as it was last packed, and a new step that writes a
+  save file other than through `download_save_file` leaves the unit unchanged under a zip that says otherwise — nothing
+  finds either. The directory follow, the adoption rename and the removed-game cleanup skip a unit's own files
+  explicitly (`test_save_directory.py::TestASaveUnitIsNotFollowed`, `test_rom_adoption.py`'s
   `test_a_save_unit_s_files_are_never_carried_and_the_states_still_are`, `test_prune_support.py::TestASaveUnit`).
   Detail: `docs/architecture/save-file-sync-architecture.md`, "Save units"
 - **A save place whose directory still holds a resolver template (`<cwd>`, `<region>`, `<save_id>`) is never followed,

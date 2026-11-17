@@ -52,15 +52,15 @@ The [emu-atlas](https://github.com/danielcopper/emu-atlas) resolver — the conf
 extracted from this plugin.
 
 - **Upstream:** <https://github.com/danielcopper/emu-atlas>, through the fork <https://github.com/sy1012/emu-atlas>
-- **Version:** 0.34.0+tender.3 — the fork's branch `tender` at commit `74f18be585cb328c1ea03c6cf636bf7c62c28ecb`, which
+- **Version:** 0.34.0+tender.4 — the fork's branch `tender` at commit `e803cd3e45c92f32bce7b50883b75cc516fbf247`, which
   is upstream's release `v0.34.0` (commit `d73f9f9`) plus the Dolphin disc reading, the save-unit statement
-  (`FileGroup.unit`) the standalone Eden AppImage installation and its extra-content folders. The fork publishes no
-  release, so the wheel `emu_atlas-0.34.0+tender.3-py3-none-any.whl` and the vectors tarball are built here from that
-  commit (`uv build
-  --wheel`; the tarball sorted, owner and mtime zeroed) and `atlas.SHA256SUMS` is the release-shaped
-  manifest written over them — the same lines upstream's release manifest carries, so the gate reads it the same way.
-  What it proves is that nobody has edited the copy since it was built from that commit, not that a third party
-  published it.
+  (`FileGroup.unit`), the standalone Eden AppImage installation, its extra-content folders and PPSSPP's per-game save
+  folders. The fork publishes no release, so the wheel `emu_atlas-0.34.0+tender.4-py3-none-any.whl` and the vectors
+  tarball are built here from that commit (`uv build
+  --wheel`; the tarball sorted, owner and mtime zeroed) and
+  `atlas.SHA256SUMS` is the release-shaped manifest written over them — the same lines upstream's release manifest
+  carries, so the gate reads it the same way. What it proves is that nobody has edited the copy since it was built from
+  that commit, not that a third party published it.
 - **License:** MIT — see [`atlas.LICENSE`](atlas.LICENSE)
 - **Local patches:** none. Upstream made the package relocatable in
   [emu-atlas#327](https://github.com/danielcopper/emu-atlas/issues/327) — no absolute self-imports, no `files("atlas")`

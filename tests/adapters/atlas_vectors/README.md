@@ -2,7 +2,7 @@
 
 `vectors/` is [emu-atlas](https://github.com/danielcopper/emu-atlas)'s `vectors/` folder, copied verbatim from the fork
 [sy1012/emu-atlas](https://github.com/sy1012/emu-atlas) at the commit the resolver is vendored from, packed as
-`emu-atlas-vectors-v0.34.0+tender.3.tar.gz` (`sha256:1da0331a15268212912a570ddb43d6752d58ccd99d6caf5bba1b47b99d6252c0`).
+`emu-atlas-vectors-v0.34.0+tender.4.tar.gz` (`sha256:44ba46ff327860c69b9bf9659791d4181281195d063a459057efba41e0b725bf`).
 It is the same build as the resolver vendored at `backend/_vendor/atlas/`, and the release-shaped manifest beside it,
 `backend/_vendor/atlas.SHA256SUMS`, lists that digest for that tarball (`backend/_vendor/README.md` says how both were
 built).

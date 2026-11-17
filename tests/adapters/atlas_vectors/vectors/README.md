@@ -170,6 +170,18 @@ in order) and not all zero, since a zero record lists nobody. Or the one state `
 structure Eden reads, which Eden treats as no file. The same rules as `switch_packages` for a declared file with no
 entry, an `unreadable` one and a missing one.
 
+**`psp_discs`** — the path of a PSP disc image `files` declares → what PPSSPP reads of it to name the game:
+`{"container": "iso", "disc_id": …}`, where `disc_id` is the `DISC_ID` string the image's `PSP_GAME/PARAM.SFO` states,
+spelled as the disc spells it (atlas normalises it, it is not normalised here). Or one of two states:
+`"format-not-read"`, a container PPSSPP opens and atlas does not read (a CSO, a PBP, a CHD), and `"not-a-disc"`, a plain
+image with no `CD001` volume, no `PSP_GAME/PARAM.SFO` or no `DISC_ID` in it. The same rules as `switch_packages` for a
+declared file with no entry, an `unreadable` one and a missing one.
+
+**`psp_param_sfos`** — the path of a `PARAM.SFO` `files` declares, in a PSP savedata folder → the keys it holds once
+PPSSPP's reader has kept its entries (`["CATEGORY", "SAVEDATA_FILE_LIST", "SAVEDATA_PARAMS", …]`, each named once), or
+the one state `"not-an-sfo"`: a file that reader does not keep, or one past atlas's bound. The same rules as
+`switch_packages` for a declared file with no entry, an `unreadable` one and a missing one.
+
 **`disc_identities`** — the path of a PlayStation disc image `files` declares (a `.cue`, `.bin`, `.img`, `.iso`, `.chd`
 or `.pbp`) → what reading its first data track yields:
 `{"license": …, "system_cnf": …, "boot_found": …, "edc_valid": …}`, where `license` is the start of sector 4's user
@@ -368,9 +380,13 @@ Two rules decide what belongs in a vector:
   claim; every entry of `file_set.groups` carries `size_fixed` — `true`, `false`, or `null` where the size was not
   established — and the validator refuses a group without it, because a port that leaves the key out has answered a
   question about the file's size by silence; every entry carries `unit` too — `null`, or the statement that the group's
-  directory is the asked game's own save, `{"kind": "own-folder", "members": null, "archive_folder": …}`, or that the
-  files `members` names in it are, `{"kind": "own-files", "members": […], "archive_folder": …}` — set only where a
-  reading established it, never read off the granularity;
+  directory is the asked game's own save,
+  `{"kind": "own-folder", "members": null, "archive_folder": …, "prefix": null}`, or that the files `members` names in
+  it are, `{"kind": "own-files", "members": […], "archive_folder": …, "prefix":
+  null}`, or that the folders in it
+  whose names begin with `prefix` are, less those `members` leaves out,
+  `{"kind": "own-folders-by-prefix", "members": […], "archive_folder": null, "prefix": …}` — set only where a reading
+  established it, never read off the granularity;
 - **prose is not** — `sources`, caveat `message` and the `*provenance` fields are for humans and change freely, so they
   are not serialized and not asserted.
 

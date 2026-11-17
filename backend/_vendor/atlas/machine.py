@@ -95,7 +95,7 @@ from dataclasses import dataclass, field
 from types import MappingProxyType
 from typing import BinaryIO, Callable, Iterable, Literal, Mapping, NamedTuple, Protocol, cast, runtime_checkable
 
-from . import dolphin_disc, eden, lha, ps2_bios, ps3_file, ps3_iso, psx_chd, psx_disc, psx_pbp, squashfs, switch_title, whdload
+from . import dolphin_disc, eden, lha, ps2_bios, ps3_file, ps3_iso, psp_disc, psx_chd, psx_disc, psx_pbp, squashfs, switch_title, whdload
 from .content_path import archive_delimiter
 
 try:
@@ -284,6 +284,42 @@ SWITCH_PACKAGE_STATUSES: tuple[SwitchPackageStatus, ...] = (
     SWITCH_PACKAGE_MISSING,
     SWITCH_PACKAGE_UNREADABLE,
     SWITCH_PACKAGE_NOT_A_PACKAGE,
+)
+
+# Reading what PPSSPP reads of a PSP disc image (atlas.psp_disc) fails the way
+# a plain read fails, and in two ways that are findings about the bytes:
+# "format-not-read" is a container PPSSPP opens that atlas does not read — a
+# CSO, an EBOOT (PBP), a CHD — and "not-a-disc" is a plain image that holds no
+# CD001 volume, no PSP_GAME/PARAM.SFO or no DISC_ID in it. "missing" is no
+# regular file there once links are followed.
+PspDiscStatus = Literal["ok", "missing", "unreadable", "format-not-read", "not-a-disc"]
+PSP_DISC_OK: PspDiscStatus = "ok"
+PSP_DISC_MISSING: PspDiscStatus = "missing"
+PSP_DISC_UNREADABLE: PspDiscStatus = "unreadable"
+PSP_DISC_FORMAT_NOT_READ: PspDiscStatus = "format-not-read"
+PSP_DISC_NOT_A_DISC: PspDiscStatus = "not-a-disc"
+PSP_DISC_STATUSES: tuple[PspDiscStatus, ...] = (
+    PSP_DISC_OK,
+    PSP_DISC_MISSING,
+    PSP_DISC_UNREADABLE,
+    PSP_DISC_FORMAT_NOT_READ,
+    PSP_DISC_NOT_A_DISC,
+)
+
+# Reading the keys of a PSP savedata folder's PARAM.SFO (atlas.psp_disc) fails
+# the way a plain read fails, and in one way of the file's own: "not-an-sfo" is
+# a file ReadSFO does not keep — a wrong magic, a table past the end, or one
+# past atlas's bound.
+PspParamSfoStatus = Literal["ok", "missing", "unreadable", "not-an-sfo"]
+PSP_PARAM_SFO_OK: PspParamSfoStatus = "ok"
+PSP_PARAM_SFO_MISSING: PspParamSfoStatus = "missing"
+PSP_PARAM_SFO_UNREADABLE: PspParamSfoStatus = "unreadable"
+PSP_PARAM_SFO_NOT_AN_SFO: PspParamSfoStatus = "not-an-sfo"
+PSP_PARAM_SFO_STATUSES: tuple[PspParamSfoStatus, ...] = (
+    PSP_PARAM_SFO_OK,
+    PSP_PARAM_SFO_MISSING,
+    PSP_PARAM_SFO_UNREADABLE,
+    PSP_PARAM_SFO_NOT_AN_SFO,
 )
 
 # Reading Eden's user list (atlas.eden) fails the way a plain read fails, and
@@ -524,6 +560,39 @@ class SwitchPackageResult:
         if (self.names is None) == (self.status == SWITCH_PACKAGE_OK):
             raise ValueError(
                 f"SwitchPackageResult: names must be set exactly when status is 'ok' (got {self.status!r})"
+            )
+
+
+@dataclass(frozen=True, slots=True)
+class PspDiscResult:
+    """One read of what PPSSPP reads of a PSP disc image — ``facts`` is set exactly when ``status`` is ok.
+
+    ``missing`` / ``unreadable`` mean what they mean on :class:`ReadResult`;
+    the facts are :class:`atlas.psp_disc.PspDiscFacts`.
+    """
+
+    status: PspDiscStatus
+    facts: psp_disc.PspDiscFacts | None = None
+
+    def __post_init__(self) -> None:
+        if (self.facts is None) == (self.status == PSP_DISC_OK):
+            raise ValueError(f"PspDiscResult: facts must be set exactly when status is 'ok' (got {self.status!r})")
+
+
+@dataclass(frozen=True, slots=True)
+class PspParamSfoResult:
+    """One read of a ``PARAM.SFO``'s keys — ``keys`` is set exactly when ``status`` is ok.
+
+    ``keys`` are the keys ``ReadSFO`` keeps (:func:`atlas.psp_disc.parse_sfo_keys`).
+    """
+
+    status: PspParamSfoStatus
+    keys: frozenset[str] | None = None
+
+    def __post_init__(self) -> None:
+        if (self.keys is None) == (self.status == PSP_PARAM_SFO_OK):
+            raise ValueError(
+                f"PspParamSfoResult: keys must be set exactly when status is 'ok' (got {self.status!r})"
             )
 
 
@@ -1330,6 +1399,10 @@ class Machine(Protocol):
 
     def read_eden_profiles(self, path: str) -> EdenProfilesResult: ...
 
+    def read_psp_disc(self, path: str) -> PspDiscResult: ...
+
+    def read_psp_param_sfo(self, path: str) -> PspParamSfoResult: ...
+
     def read_disc_identity(self, path: str, *, extracted: ExtractedEntry | None = None) -> DiscIdentityResult: ...
 
     def list_archive(self, path: str) -> ArchiveListResult: ...
@@ -1854,6 +1927,62 @@ class RealMachine:
             return EdenProfilesResult(EDEN_PROFILES_OK, eden.parse_profiles(data))
         except eden.ProfilesUnread:
             return EdenProfilesResult(EDEN_PROFILES_SHORT)
+
+    def read_psp_disc(self, path: str) -> PspDiscResult:
+        """What PPSSPP reads of the PSP disc image at *path* — a status, and the facts where it was read.
+
+        A regular file once links are followed, checked before opening, as for
+        :meth:`read_dolphin_disc`. The reader is :mod:`atlas.psp_disc`, which
+        reads the volume descriptor, two directories and ``PSP_GAME/PARAM.SFO``
+        under its own bounds.
+        """
+        try:
+            st = os.stat(path)
+        except (FileNotFoundError, NotADirectoryError):
+            return PspDiscResult(PSP_DISC_MISSING)
+        except OSError:
+            return PspDiscResult(PSP_DISC_UNREADABLE)
+        if not _stat.S_ISREG(st.st_mode):
+            return PspDiscResult(PSP_DISC_MISSING)
+        try:
+            with open(path, "rb") as f:
+                facts = psp_disc.read_facts(f)
+        except (FileNotFoundError, NotADirectoryError):
+            return PspDiscResult(PSP_DISC_MISSING)
+        except psp_disc.PspDiscFormatNotRead:
+            return PspDiscResult(PSP_DISC_FORMAT_NOT_READ)
+        except psp_disc.PspDiscUnread:
+            return PspDiscResult(PSP_DISC_NOT_A_DISC)
+        except OSError:
+            return PspDiscResult(PSP_DISC_UNREADABLE)
+        return PspDiscResult(PSP_DISC_OK, facts)
+
+    def read_psp_param_sfo(self, path: str) -> PspParamSfoResult:
+        """The keys of the ``PARAM.SFO`` at *path* — a status, and the keys where it was read.
+
+        A regular file once links are followed; at most one byte past
+        :data:`atlas.psp_disc.MAX_SFO_BYTES` is read, so a larger file is
+        ``not-an-sfo`` without being read whole.
+        """
+        try:
+            st = os.stat(path)
+        except (FileNotFoundError, NotADirectoryError):
+            return PspParamSfoResult(PSP_PARAM_SFO_MISSING)
+        except OSError:
+            return PspParamSfoResult(PSP_PARAM_SFO_UNREADABLE)
+        if not _stat.S_ISREG(st.st_mode):
+            return PspParamSfoResult(PSP_PARAM_SFO_MISSING)
+        try:
+            with open(path, "rb") as f:
+                data = f.read(psp_disc.MAX_SFO_BYTES + 1)
+        except (FileNotFoundError, NotADirectoryError):
+            return PspParamSfoResult(PSP_PARAM_SFO_MISSING)
+        except OSError:
+            return PspParamSfoResult(PSP_PARAM_SFO_UNREADABLE)
+        try:
+            return PspParamSfoResult(PSP_PARAM_SFO_OK, psp_disc.parse_sfo_keys(data))
+        except psp_disc.SfoUnread:
+            return PspParamSfoResult(PSP_PARAM_SFO_NOT_AN_SFO)
 
     def read_disc_identity(self, path: str, *, extracted: ExtractedEntry | None = None) -> DiscIdentityResult:
         """The bytes a PlayStation disc's emulators decide its region from — a status, and the identity where read.
@@ -3011,6 +3140,73 @@ def _validate_fixture_eden_profiles(
     return validated
 
 
+_FIXTURE_PSP_DISC_FIELDS = ("container", "disc_id")
+
+
+def _declared_bytes(what: str, path: str, files: Mapping[str, tuple[ReadStatus, str | None]]) -> None:
+    """Refuse facts declared about a file whose bytes are not there to state them."""
+    if path not in files:
+        raise ValueError(f"{what} {path!r}: facts describe a file's bytes, and no file is declared there")
+    if files[path][0] == READ_UNREADABLE:
+        raise ValueError(f"{what} {path!r}: an unreadable file states no facts — its bytes are what cannot be read")
+
+
+def _validate_fixture_psp_discs(
+    declared: Mapping[str, object] | None,
+    files: Mapping[str, tuple[ReadStatus, str | None]],
+) -> dict[str, psp_disc.PspDiscFacts | PspDiscStatus]:
+    """The declared facts of each PSP disc image — or ``format-not-read`` / ``not-a-disc``.
+
+    The facts describe a file's bytes, so the path must be a declared file
+    whose bytes can be read, as for ``dolphin_discs``. ``disc_id`` is the
+    string ``DISC_ID`` states, as the disc spells it.
+    """
+    validated: dict[str, psp_disc.PspDiscFacts | PspDiscStatus] = {}
+    for path, spec in (declared or {}).items():
+        _declared_bytes("psp disc", path, files)
+        if spec in (PSP_DISC_FORMAT_NOT_READ, PSP_DISC_NOT_A_DISC):
+            validated[path] = cast(PspDiscStatus, spec)
+            continue
+        if not isinstance(spec, Mapping) or set(cast("Mapping[str, object]", spec)) != set(_FIXTURE_PSP_DISC_FIELDS):
+            raise ValueError(
+                f"psp disc {path!r}: expected 'format-not-read', 'not-a-disc' or an object with exactly "
+                f"{', '.join(_FIXTURE_PSP_DISC_FIELDS)}, got {spec!r}"
+            )
+        fields = cast("Mapping[str, object]", spec)
+        try:
+            validated[path] = psp_disc.PspDiscFacts(
+                container=cast("psp_disc.PspContainer", fields["container"]),
+                disc_id=cast(str, fields["disc_id"]),
+            )
+        except (TypeError, ValueError) as error:
+            raise ValueError(f"psp disc {path!r}: {error}") from error
+    return validated
+
+
+def _validate_fixture_psp_param_sfos(
+    declared: Mapping[str, object] | None,
+    files: Mapping[str, tuple[ReadStatus, str | None]],
+) -> dict[str, frozenset[str] | str]:
+    """The keys each ``PARAM.SFO`` holds — or ``not-an-sfo``.
+
+    The keys describe a file's bytes, so the path must be a declared file whose
+    bytes can be read; each key is a non-empty string, named once.
+    """
+    validated: dict[str, frozenset[str] | str] = {}
+    for path, spec in (declared or {}).items():
+        _declared_bytes("psp param.sfo", path, files)
+        if spec == PSP_PARAM_SFO_NOT_AN_SFO:
+            validated[path] = PSP_PARAM_SFO_NOT_AN_SFO
+            continue
+        keys = cast("list[object]", spec) if isinstance(spec, list) else None
+        if keys is None or not all(isinstance(key, str) and key for key in keys) or len(set(keys)) != len(keys):
+            raise ValueError(
+                f"psp param.sfo {path!r}: expected 'not-an-sfo' or a list of distinct non-empty keys, got {spec!r}"
+            )
+        validated[path] = frozenset(cast("list[str]", keys))
+    return validated
+
+
 _FIXTURE_PS3_FILE_FIELDS = ("magic", "iso", "category")
 _FIXTURE_PS3_ISO_FIELDS = ("regions", "watermark")
 _FIXTURE_PS3_ISO_OPTIONAL = ("blocks",)
@@ -3534,6 +3730,8 @@ class FixtureMachine:
         dolphin_discs: Mapping[str, object] | None = None,
         switch_packages: Mapping[str, object] | None = None,
         eden_profiles: Mapping[str, object] | None = None,
+        psp_discs: Mapping[str, object] | None = None,
+        psp_param_sfos: Mapping[str, object] | None = None,
         disc_identities: Mapping[str, Mapping[str, object] | str] | None = None,
         archives: Mapping[str, object] | None = None,
         whdload_slaves: Mapping[str, object] | None = None,
@@ -3549,6 +3747,8 @@ class FixtureMachine:
         self._dolphin_discs = _validate_fixture_dolphin_discs(dolphin_discs or {}, self._files)
         self._switch_packages = _validate_fixture_switch_packages(switch_packages, self._files)
         self._eden_profiles = _validate_fixture_eden_profiles(eden_profiles, self._files)
+        self._psp_discs = _validate_fixture_psp_discs(psp_discs, self._files)
+        self._psp_param_sfos = _validate_fixture_psp_param_sfos(psp_param_sfos, self._files)
         self._inaccessible = set(inaccessible or ())
         self._unlistable = set(unlistable or ())
         _refuse_both_unreadable_lists(self._inaccessible, self._unlistable)
@@ -3821,6 +4021,52 @@ class FixtureMachine:
         if resolved in self._files:
             return EdenProfilesResult(EDEN_PROFILES_UNREADABLE)
         return EdenProfilesResult(EDEN_PROFILES_MISSING)
+
+    def read_psp_disc(self, path: str) -> PspDiscResult:
+        """The modeled read of what PPSSPP reads of a PSP disc image — the facts declared, RealMachine's outcomes.
+
+        Modeled beside ``files`` for the reason ``dolphin_discs`` is. A path
+        declared in ``psp_discs`` answers its facts, ``format-not-read`` or
+        ``not-a-disc``; a declared file with no entry there answers
+        ``unreadable``, so a vector that forgot the key cannot prove a disc
+        nobody modeled. A directory, a dead link and nothing at all answer
+        ``missing``.
+        """
+        if self._is_inaccessible(path):
+            return PspDiscResult(PSP_DISC_UNREADABLE)
+        resolved = self._resolve(path).path
+        if resolved is None or resolved in self._dirs:
+            return PspDiscResult(PSP_DISC_MISSING)
+        declared = self._psp_discs.get(resolved)
+        if isinstance(declared, psp_disc.PspDiscFacts):
+            return PspDiscResult(PSP_DISC_OK, declared)
+        if declared is not None:
+            return PspDiscResult(declared)
+        if resolved in self._files:
+            return PspDiscResult(PSP_DISC_UNREADABLE)
+        return PspDiscResult(PSP_DISC_MISSING)
+
+    def read_psp_param_sfo(self, path: str) -> PspParamSfoResult:
+        """The modeled read of a ``PARAM.SFO``'s keys — the keys declared, RealMachine's outcomes.
+
+        A path declared in ``psp_param_sfos`` answers its keys or
+        ``not-an-sfo``; a declared file with no entry there answers
+        ``unreadable``, and an ``unreadable`` file too. A directory, a dead
+        link and nothing at all answer ``missing``.
+        """
+        if self._is_inaccessible(path):
+            return PspParamSfoResult(PSP_PARAM_SFO_UNREADABLE)
+        resolved = self._resolve(path).path
+        if resolved is None or resolved in self._dirs:
+            return PspParamSfoResult(PSP_PARAM_SFO_MISSING)
+        declared = self._psp_param_sfos.get(resolved)
+        if isinstance(declared, frozenset):
+            return PspParamSfoResult(PSP_PARAM_SFO_OK, declared)
+        if declared is not None:
+            return PspParamSfoResult(PSP_PARAM_SFO_NOT_AN_SFO)
+        if resolved in self._files:
+            return PspParamSfoResult(PSP_PARAM_SFO_UNREADABLE)
+        return PspParamSfoResult(PSP_PARAM_SFO_MISSING)
 
     def read_disc_identity(self, path: str, *, extracted: ExtractedEntry | None = None) -> DiscIdentityResult:
         """The modeled disc identity read — the four facts in, the same outcomes RealMachine reports.

@@ -98,6 +98,14 @@ or the Eden user cannot be told — no tag, no readable package, no profile list
 Tender says it could not be established. Start Eden once and set it up yourself first: Tender does not install Eden's
 keys or firmware, and does not download a game's updates or DLC. This has not yet been observed on a device.
 
+**PSP syncs on PPSSPP (Standalone), for an `.iso`.** Tender reads the game's ID from the disc (`ULUS10064`, say) and
+carries the game's save folders in PPSSPP's `PSP/SAVEDATA` — the ones named starting with that ID — to RomM as one
+`<game>.zip`, each folder at the top the way Argosy lays it out. A folder of data the game installed from its disc is
+not a save and is left alone, and so is every other game's folder: restoring replaces only the folders that were this
+game's save, and refuses rather than write over anything else. A compressed image (`.cso`, `.chd`) or an EBOOT (`.pbp`)
+is not read, so nothing is synced for it. A PlayStation Network release may save under the ID of its disc release;
+Tender syncs the folders under the game's own ID. This has not yet been observed on a device.
+
 The systems whose default core has been **watched writing a save on a stock RetroDECK install** are Game Boy / Color /
 Advance, N64, Saturn, Neo Geo Pocket (Color) and Pokémon Mini. The rest of the ✅ rows follow the same standard `.srm`
 convention and are expected to behave identically, but haven't been observed one by one.
@@ -125,7 +133,6 @@ release.
 | PlayStation 2 | The LRPS2 core ships with **shared memory cards on** (`Mcd001.ps2` / `Mcd002.ps2`). With that option off it writes one `<game>.ps2` card per game — which would fit per-game sync. The PCEE2 core always writes shared cards, in the same folder. |
 | Neo Geo CD    | Ships writing one shared save. The core has a per-content mode; which one wins when loading isn't confirmed.                                                                                                                                      |
 | Nintendo 3DS  | The Azahar core appears to use its own save subtree. Not confirmed on-device yet.                                                                                                                                                                 |
-| PSP           | Where the PPSSPP core keeps its saves, and whether they are per game, hasn't been established.                                                                                                                                                    |
 | Arcade (MAME) | NVRAM is stored separately by the emulator, not as a file named after your ROM.                                                                                                                                                                   |
 | Amiga         | PUAE keeps an `.adf` floppy's save inside the disk image itself, so there is no separate file to carry. A `.lha` names a `WHDSaves` folder whose contents the core does not list, and an `.hdf` is not answered at all.                           |
 
@@ -179,7 +186,7 @@ states still work locally). See the full table for specifics.
     | `neogeocd` | ❌ | Shared save (the core has a per-content mode) |
     | `neogeocdjp` | ❌ | Shared save (the core has a per-content mode) |
     | `ps2` | ❌ | Shared memory card by default (LRPS2), always (PCEE2); per-game `<game>.ps2` available as an LRPS2 core option |
-    | `psp` | ❌ | Where the PPSSPP core keeps its saves is not established |
+    | `psp` | ✅ | PPSSPP (Standalone): the game's save folders (named by its ID) as one zip — `.iso` only; not yet observed on a device |
     | `pv1000` | ❌ | Saves are stored separately by the emulator (MAME) |
     | `scummvm` | ❌ | Not synced |
     | `scv` | ❌ | Saves are stored separately by the emulator (MAME) |

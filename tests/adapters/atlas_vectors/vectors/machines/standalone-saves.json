@@ -1356,7 +1356,7 @@
     },
     {
       "name": "ppsspp-keeps-one-savedata-directory-per-game-on-its-memstick",
-      "rationale": "PPSSPP's memory stick on Linux is fixed by the build — the XDG config tree itself, no setting names it — so the card names no governing config and the answer is a path join plus the links: SAVEDATA is rerouted by the arrangement, and physical_dir says where. One directory per game, named by the game itself from its own id, so the tree is stated and its entries refused.",
+      "rationale": "PPSSPP's memory stick on Linux is fixed by the build — the XDG config tree itself, no setting names it — so the card names no governing config and the answer is a path join plus the links: SAVEDATA is rerouted by the arrangement, and physical_dir says where. A game's folders are named by the game itself, beginning with its own id; no disc is named, so the tree is stated and the id is the save_id hole, spelled psp-game-id (vectors/machines/ppsspp-savedata.json names the disc).",
       "input": {
         "home": "/home/deck",
         "files": {
@@ -1392,7 +1392,9 @@
         "entry_savefile_location": {
           "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/config/ppsspp/PSP/SAVEDATA",
           "root_kind": "emulator_directory",
-          "needs": [],
+          "needs": [
+            "save_id"
+          ],
           "fallback_dir": null,
           "physical_dir": "/mnt/sd/retrodeck/saves/PSP/PPSSPP-SA",
           "file_set": {
@@ -1417,7 +1419,9 @@
                 "token": "PPSSPP",
                 "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/config/ppsspp/PSP/SAVEDATA",
                 "role": "battery",
-                "citation": "the game names its savedata directory; the tree is <memstick>/PSP/SAVEDATA (PathUtil.cpp:52,:62-63 at ppsspp v1.20.4)"
+                "save_id": "the game's id as its disc's PSP_GAME/PARAM.SFO states DISC_ID, nine characters without a dash — the prefix of its savedata folders' names, not a whole name",
+                "save_id_spelling": "psp-game-id",
+                "citation": "the tree is <memstick>/PSP/SAVEDATA (PathUtil.cpp:52,:62-63 at ppsspp v1.20.4); the game names its folders <gameName><saveName> (SavedataParam.cpp:49, :238-245, :269-272 and :1563-1571 at ppsspp v1.20.4); SavedataParam.cpp:533, :538 and PSPGamedataInstallDialog.cpp:211-243 at ppsspp v1.20.4"
               }
             }
           ],
@@ -11326,7 +11330,9 @@
         "entry_savefile_location": {
           "dir": "/home/deck/.var/app/org.ppsspp.PPSSPP/config/ppsspp/PSP/SAVEDATA",
           "root_kind": "emulator_directory",
-          "needs": [],
+          "needs": [
+            "save_id"
+          ],
           "fallback_dir": null,
           "physical_dir": null,
           "file_set": {
@@ -11351,7 +11357,9 @@
                 "token": "PPSSPP",
                 "dir": "/home/deck/.var/app/org.ppsspp.PPSSPP/config/ppsspp/PSP/SAVEDATA",
                 "role": "battery",
-                "citation": "the game names its savedata directory; the tree is <memstick>/PSP/SAVEDATA (PathUtil.cpp:52,:62-63 at ppsspp v1.20.4)"
+                "save_id": "the game's id as its disc's PSP_GAME/PARAM.SFO states DISC_ID, nine characters without a dash — the prefix of its savedata folders' names, not a whole name",
+                "save_id_spelling": "psp-game-id",
+                "citation": "the tree is <memstick>/PSP/SAVEDATA (PathUtil.cpp:52,:62-63 at ppsspp v1.20.4); the game names its folders <gameName><saveName> (SavedataParam.cpp:49, :238-245, :269-272 and :1563-1571 at ppsspp v1.20.4); SavedataParam.cpp:533, :538 and PSPGamedataInstallDialog.cpp:211-243 at ppsspp v1.20.4"
               }
             }
           ],
@@ -31317,7 +31325,8 @@
                   "members": [
                     "01-GALE-SuperSmashBros0110290334.gci"
                   ],
-                  "archive_folder": null
+                  "archive_folder": null,
+                  "prefix": null
                 }
               }
             ]
@@ -31594,7 +31603,8 @@
                 "unit": {
                   "kind": "own-files",
                   "members": [],
-                  "archive_folder": null
+                  "archive_folder": null,
+                  "prefix": null
                 }
               }
             ]
@@ -32213,7 +32223,8 @@
                 "unit": {
                   "kind": "own-folder",
                   "members": null,
-                  "archive_folder": "52534245"
+                  "archive_folder": "52534245",
+                  "prefix": null
                 }
               }
             ]
@@ -32423,7 +32434,8 @@
                 "unit": {
                   "kind": "own-folder",
                   "members": null,
-                  "archive_folder": "52464e45"
+                  "archive_folder": "52464e45",
+                  "prefix": null
                 }
               }
             ]
@@ -32632,7 +32644,8 @@
                 "unit": {
                   "kind": "own-folder",
                   "members": null,
-                  "archive_folder": "52464e45"
+                  "archive_folder": "52464e45",
+                  "prefix": null
                 }
               }
             ]

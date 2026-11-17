@@ -494,6 +494,15 @@ CAVEAT_ACTIVE_PROFILE_UNESTABLISHED = "active-profile-unestablished"
 # holding another game's value is that game's, and atlas keeps no list of games
 # that write under another's.
 CAVEAT_FILE_MEMBERSHIP_BY_HEADER = "file-membership-by-header"
+# The folder-name prefix a PSP save unit matches by is the id the game's disc
+# states, and the game alone decides the prefix it saves under: a release on
+# PlayStation Network (an ``NP…`` id) may save under its disc release's id
+# instead, so its folders begin with another prefix and the unit lists none of
+# them. Stated beside every unit whose prefix is such an id. ``data`` carries
+# the ``token``, the ``dir`` the unit matches in, the ``prefix`` it matches by
+# and the ``citation``. atlas keeps no table of which release saves under
+# which: the prefix stands as read.
+CAVEAT_PSN_SAVE_PREFIX_MAY_DIFFER = "psn-save-prefix-may-differ"
 # A directory under this answer's own root that the card states and the
 # observation did not read. An observed set's groups describe the one directory
 # that was read, so a mode whose parts lie in sibling subdirectories — Kronos's
@@ -1353,7 +1362,7 @@ def checked_appendconfig(appendconfig: Sequence[str]) -> tuple[str, ...]:
 # caller checks its value against it before filling (:func:`checked_save_id`):
 # a source that hands over a Wii disc's low word alone is caught as one word
 # short instead of naming a folder the emulator never opens.
-SaveIdSpelling = Literal["title-id-words", "path-segment", "game-code"]
+SaveIdSpelling = Literal["title-id-words", "path-segment", "game-code", "psp-game-id"]
 SAVE_ID_SPELLING_TITLE_ID_WORDS: SaveIdSpelling = "title-id-words"
 """The title id as its two words: eight lowercase hex digits for the high word, ``/``, and
 eight for the low word, such as ``00010000/524d4745`` — two path segments, composed the way
@@ -1369,13 +1378,20 @@ SAVE_ID_SPELLING_GAME_CODE: SaveIdSpelling = "game-code"
 such as ``GMSE`` — the first four characters of the disc's six-character game id, compared
 with the four bytes a save file's header begins with.
 """
+SAVE_ID_SPELLING_PSP_GAME_ID: SaveIdSpelling = "psp-game-id"
+"""A PSP game's id as its savedata folders begin with it: four ASCII uppercase letters and five
+digits, without the dash a disc's ``UMD_DATA.BIN`` spells, such as ``ULUS10064`` — the prefix of
+the folder names, not a whole name.
+"""
 SAVE_ID_SPELLINGS = (
     SAVE_ID_SPELLING_TITLE_ID_WORDS,
     SAVE_ID_SPELLING_PATH_SEGMENT,
     SAVE_ID_SPELLING_GAME_CODE,
+    SAVE_ID_SPELLING_PSP_GAME_ID,
 )
 _TITLE_ID_WORD = re.compile(r"[0-9a-f]{8}")
 _GAME_CODE = re.compile(r"[A-Z0-9]{4}")
+_PSP_GAME_ID = re.compile(r"[A-Z]{4}[0-9]{5}")
 # The segments that name no entry of their own: nothing, this directory, its parent.
 _NOT_AN_ENTRY = ("", ".", "..")
 
@@ -1409,6 +1425,11 @@ def checked_save_id(spelling: str, value: str) -> str:
             raise ValueError(
                 f"save_id spelled {spelling!r} is four characters, each an ASCII uppercase letter "
                 f"or digit, got {value!r}"
+            )
+    elif spelling == SAVE_ID_SPELLING_PSP_GAME_ID:
+        if not _PSP_GAME_ID.fullmatch(value):
+            raise ValueError(
+                f"save_id spelled {spelling!r} is four ASCII uppercase letters and five digits, got {value!r}"
             )
     else:
         raise ValueError(f"save_id spelling must be one of {list(SAVE_ID_SPELLINGS)}, got {spelling!r}")
@@ -1521,8 +1542,9 @@ class SizeFact:
 
 
 # What a :class:`SaveUnitStatement` says a group's directory is to one game:
-# the whole folder its save, or a named few of the files a shared folder holds.
-SaveUnitKind = Literal["own-folder", "own-files"]
+# the whole folder its save, a named few of the files a shared folder holds,
+# or the folders in a shared folder whose names begin with the game's prefix.
+SaveUnitKind = Literal["own-folder", "own-files", "own-folders-by-prefix"]
 SAVE_UNIT_FOLDER: SaveUnitKind = "own-folder"
 """The group's directory is this game's own save, whole: everything below it is the game's, and
 nothing of another game's lies there — a client moves the directory as one unit.
@@ -1532,7 +1554,25 @@ SAVE_UNIT_MEMBERS: SaveUnitKind = "own-files"
 game's own save — every other file there is another game's, and the list may be empty where the
 game has not saved yet.
 """
-SAVE_UNIT_KINDS = (SAVE_UNIT_FOLDER, SAVE_UNIT_MEMBERS)
+SAVE_UNIT_PREFIXED_FOLDERS: SaveUnitKind = "own-folders-by-prefix"
+"""The group's directory is shared, and the game's save is the folders directly in it whose names
+begin with ``prefix`` — ASCII case aside — less those that hold something other than a save:
+``members`` names the ones there now, possibly none. A folder beginning with ``prefix`` that
+``members`` leaves out is not the game's save (a PSP game's installed data) and is left alone. A
+client packs each member at the archive's top level, ``<member>/…``; a restore removes the
+current members, and nothing else, before placing the folders it carries.
+"""
+SAVE_UNIT_KINDS = (SAVE_UNIT_FOLDER, SAVE_UNIT_MEMBERS, SAVE_UNIT_PREFIXED_FOLDERS)
+
+
+_ASCII_UPPER = str.maketrans("abcdefghijklmnopqrstuvwxyz", "ABCDEFGHIJKLMNOPQRSTUVWXYZ")
+
+
+def begins_with_prefix(name: str, prefix: str) -> bool:
+    """Does *name* begin with *prefix*, ASCII letters compared without their case — the
+    ``own-folders-by-prefix`` match?
+    """
+    return name[: len(prefix)].translate(_ASCII_UPPER) == prefix.translate(_ASCII_UPPER)
 
 
 @dataclass(frozen=True, slots=True)
@@ -1545,14 +1585,18 @@ class SaveUnitStatement:
     would hand a client every game's saves. This is stated only by a reading
     that established it for the game the question named — today Dolphin's,
     its PrimeHack fork's and the libretro Dolphin core's, where the content
-    path's disc names the Wii title or the GameCube game code — and is
-    ``None`` on every other group.
+    path's disc names the Wii title or the GameCube game code, Eden's, where
+    the content names the Switch application, and PPSSPP's, where the
+    content path's disc names the PSP game's id — and is ``None`` on every
+    other group.
 
-    ``kind`` is :data:`SAVE_UNIT_FOLDER` or :data:`SAVE_UNIT_MEMBERS`;
-    ``members`` the basenames the second names, and ``None`` with the first;
-    ``archive_folder`` the one folder name a client packing this unit into an
-    archive puts its entries under, and ``None`` where the entries sit at the
-    archive's top level.
+    ``kind`` is :data:`SAVE_UNIT_FOLDER`, :data:`SAVE_UNIT_MEMBERS` or
+    :data:`SAVE_UNIT_PREFIXED_FOLDERS`; ``members`` the basenames the second
+    and third name, and ``None`` with the first; ``archive_folder`` the one
+    folder name a client packing this unit into an archive puts its entries
+    under, and ``None`` where the entries sit at the archive's top level;
+    ``prefix`` the name start the third matches folders by, and ``None`` with
+    the other two.
     """
 
     kind: SaveUnitKind
@@ -1561,20 +1605,33 @@ class SaveUnitStatement:
     """
     members: tuple[str, ...] | None
     """The basenames lying directly in the group's directory that are this game's save, in name
-    order — possibly none — where ``kind`` is ``members``, and ``None`` where it is ``folder``.
+    order — possibly none — where ``kind`` is ``own-files`` or ``own-folders-by-prefix``, and
+    ``None`` where it is ``own-folder``.
     """
     archive_folder: str | None
     """The single folder an archive of this unit keeps its entries under — a Wii title's low word,
     so a save packs as ``<archive_folder>/data/…`` — and ``None`` where the entries are the
     archive's top level.
     """
+    prefix: str | None = None
+    """The start every member's name has, compared ASCII case-insensitively — a PSP game's
+    nine-character id such as ``ULUS10064`` — where ``kind`` is ``own-folders-by-prefix``, and
+    ``None`` otherwise.
+    """
 
     def __post_init__(self) -> None:
         if self.kind not in SAVE_UNIT_KINDS:
             raise ValueError(f"SaveUnitStatement: kind must be one of {SAVE_UNIT_KINDS}, got {self.kind!r}")
         if (self.members is None) != (self.kind == SAVE_UNIT_FOLDER):
-            raise ValueError("SaveUnitStatement: members are stated exactly when kind is 'own-files'")
-        for name in (*(self.members or ()), *((self.archive_folder,) if self.archive_folder is not None else ())):
+            raise ValueError(
+                "SaveUnitStatement: members are stated exactly when kind is 'own-files' or 'own-folders-by-prefix'"
+            )
+        if (self.prefix is None) != (self.kind != SAVE_UNIT_PREFIXED_FOLDERS):
+            raise ValueError("SaveUnitStatement: a prefix is stated exactly when kind is 'own-folders-by-prefix'")
+        if self.prefix is not None and self.archive_folder is not None:
+            raise ValueError("SaveUnitStatement: folders matched by prefix pack at the archive's top level")
+        named = (*(self.members or ()), *(n for n in (self.archive_folder, self.prefix) if n is not None))
+        for name in named:
             if name in _NOT_AN_ENTRY or "/" in name or "\0" in name:
                 raise ValueError(
                     f"SaveUnitStatement: {name!r} is no entry name — one path segment, not empty, "
@@ -1582,6 +1639,10 @@ class SaveUnitStatement:
                 )
         if self.members is not None and len(set(self.members)) != len(self.members):
             raise ValueError("SaveUnitStatement: a member is named once")
+        if self.prefix is not None and not all(
+            begins_with_prefix(member, self.prefix) for member in self.members or ()
+        ):
+            raise ValueError(f"SaveUnitStatement: every member's name begins with the prefix {self.prefix!r}")
 
 
 @dataclass(frozen=True, slots=True)

@@ -1,0 +1,679 @@
+{
+  "family": "machines",
+  "schema": 5,
+  "spec": "DESIGN.md — installations, the machine seam, standalone save cards (issue #181)",
+  "description": "PPSSPP's savedata answer where the question names a PSP disc: the disc's DISC_ID read (atlas/psp_disc.py) and the SAVEDATA folders beginning with it stated as the game's save unit, own-folders-by-prefix — or the save_id hole where the id or the folders are not established.",
+  "vectors": [
+    {
+      "name": "ppsspp-names-the-discs-savedata-folders-by-its-id",
+      "rationale": "The question names a plain ISO whose PSP_GAME/PARAM.SFO states DISC_ID ULUS10064 — the id PPSSPP loads for the disc (PSPLoaders.cpp:129-141 at ppsspp v1.20.4). SAVEDATA holds two games' folders: ULUS10064DATA00 (a savedata PARAM.SFO, carrying SAVEDATA_FILE_LIST and SAVEDATA_PARAMS), ULUS10064SETTINGS (no PARAM.SFO, which an install always writes, so no install), ULUS10064INSTALL (a PARAM.SFO with neither savedata key — a game-data install, PSPGamedataInstallDialog.cpp:211-243 — left out), ULES00001DATA (another game's), and a file ULUS10064.txt (no folder). The answer states the unit own-folders-by-prefix with prefix ULUS10064 and the two save folders as members, needs empty.",
+      "input": {
+        "home": "/home/deck",
+        "files": {
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retrodeck/retrodeck.json": "{\"paths\": {\"rd_home_path\": \"/mnt/sd/retrodeck\", \"saves_path\": \"/mnt/sd/retrodeck/saves\"}}",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retroarch/retroarch.cfg": "savefile_directory = \"/mnt/sd/retrodeck/saves\"\nsort_savefiles_by_content_enable = \"false\"\nsort_savefiles_enable = \"false\"\nsystem_directory = \"/mnt/sd/retrodeck/bios\"\nglobal_core_options = \"true\"\nlibretro_directory = \"/app/cores\"\n",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/files/retrodeck/components/es-de/share/es-de/resources/systems/linux/es_systems.xml": "<?xml version=\"1.0\"?>\n<systemList>\n  <system>\n    <name>psp</name>\n    <path>%ROMPATH%/psp</path>\n    <extension>.iso .ISO</extension>\n    <command label=\"Ppsspp (Standalone)\">%EMULATOR_PPSSPP% %ROM%</command>\n  </system>\n  <system>\n    <name>xbox</name>\n    <path>%ROMPATH%/xbox</path>\n    <extension>.iso .ISO</extension>\n    <command label=\"Xemu (Standalone)\">%EMULATOR_XEMU% %ROM%</command>\n  </system>\n  <system>\n    <name>wiiu</name>\n    <path>%ROMPATH%/wiiu</path>\n    <extension>.iso .ISO</extension>\n    <command label=\"Cemu (Standalone)\">%EMULATOR_CEMU% %ROM%</command>\n  </system>\n</systemList>\n",
+          "/mnt/sd/retrodeck/roms/psp/Game.iso": "iso bytes",
+          "/mnt/sd/retrodeck/saves/PSP/PPSSPP-SA/ULUS10064DATA00/PARAM.SFO": "sfo",
+          "/mnt/sd/retrodeck/saves/PSP/PPSSPP-SA/ULUS10064DATA00/DATA.BIN": "save",
+          "/mnt/sd/retrodeck/saves/PSP/PPSSPP-SA/ULUS10064SETTINGS/SETTINGS.BIN": "settings",
+          "/mnt/sd/retrodeck/saves/PSP/PPSSPP-SA/ULUS10064INSTALL/PARAM.SFO": "sfo",
+          "/mnt/sd/retrodeck/saves/PSP/PPSSPP-SA/ULUS10064INSTALL/DATA.PAK": "data",
+          "/mnt/sd/retrodeck/saves/PSP/PPSSPP-SA/ULES00001DATA/PARAM.SFO": "sfo",
+          "/mnt/sd/retrodeck/saves/PSP/PPSSPP-SA/ULUS10064.txt": "note"
+        },
+        "dirs": [
+          "/mnt/sd/retrodeck/saves",
+          "/mnt/sd/retrodeck/bios",
+          "/mnt/sd/retrodeck/saves/PSP/PPSSPP-SA",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/ROMs"
+        ],
+        "symlinks": {
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/ppsspp/PSP/SAVEDATA": "/mnt/sd/retrodeck/saves/PSP/PPSSPP-SA"
+        },
+        "entry_savefile_query": {
+          "system": "psp",
+          "content_path": "/mnt/sd/retrodeck/roms/psp/Game.iso"
+        },
+        "psp_discs": {
+          "/mnt/sd/retrodeck/roms/psp/Game.iso": {
+            "container": "iso",
+            "disc_id": "ULUS10064"
+          }
+        },
+        "psp_param_sfos": {
+          "/mnt/sd/retrodeck/saves/PSP/PPSSPP-SA/ULUS10064DATA00/PARAM.SFO": [
+            "TITLE",
+            "SAVEDATA_TITLE",
+            "SAVEDATA_DETAIL",
+            "PARENTAL_LEVEL",
+            "CATEGORY",
+            "SAVEDATA_DIRECTORY",
+            "SAVEDATA_FILE_LIST",
+            "SAVEDATA_PARAMS"
+          ],
+          "/mnt/sd/retrodeck/saves/PSP/PPSSPP-SA/ULUS10064INSTALL/PARAM.SFO": [
+            "TITLE",
+            "SAVEDATA_TITLE",
+            "SAVEDATA_DETAIL",
+            "PARENTAL_LEVEL",
+            "CATEGORY",
+            "SAVEDATA_DIRECTORY"
+          ],
+          "/mnt/sd/retrodeck/saves/PSP/PPSSPP-SA/ULES00001DATA/PARAM.SFO": [
+            "TITLE",
+            "SAVEDATA_TITLE",
+            "SAVEDATA_DETAIL",
+            "PARENTAL_LEVEL",
+            "CATEGORY",
+            "SAVEDATA_DIRECTORY",
+            "SAVEDATA_FILE_LIST",
+            "SAVEDATA_PARAMS"
+          ]
+        }
+      },
+      "expected": {
+        "installations": [
+          {
+            "kind": "retrodeck",
+            "label": "RetroDECK",
+            "kinds": [
+              "retrodeck"
+            ],
+            "root": "/mnt/sd/retrodeck",
+            "health": []
+          }
+        ],
+        "entry_savefile_location": {
+          "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/config/ppsspp/PSP/SAVEDATA",
+          "root_kind": "emulator_directory",
+          "needs": [],
+          "fallback_dir": null,
+          "physical_dir": "/mnt/sd/retrodeck/saves/PSP/PPSSPP-SA",
+          "file_set": {
+            "state": "declared",
+            "files": [],
+            "complete": false,
+            "groups": [
+              {
+                "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/config/ppsspp/PSP/SAVEDATA",
+                "files": null,
+                "granularity": "per-game-files",
+                "role": "battery",
+                "size_fixed": false,
+                "unit": {
+                  "kind": "own-folders-by-prefix",
+                  "members": [
+                    "ULUS10064DATA00",
+                    "ULUS10064SETTINGS"
+                  ],
+                  "archive_folder": null,
+                  "prefix": "ULUS10064"
+                }
+              }
+            ]
+          },
+          "caveats": [
+            {
+              "code": "file-names-unestablished",
+              "data": {
+                "token": "PPSSPP",
+                "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/config/ppsspp/PSP/SAVEDATA",
+                "role": "battery",
+                "citation": "the tree is <memstick>/PSP/SAVEDATA (PathUtil.cpp:52,:62-63 at ppsspp v1.20.4); the game names its folders <gameName><saveName> (SavedataParam.cpp:49, :238-245, :269-272 and :1563-1571 at ppsspp v1.20.4); SavedataParam.cpp:533, :538 and PSPGamedataInstallDialog.cpp:211-243 at ppsspp v1.20.4"
+              }
+            }
+          ],
+          "redirects": [
+            {
+              "via": "variable",
+              "name": "XDG_CONFIG_HOME",
+              "argument": "<dir>",
+              "moves": [
+                "saves",
+                "savestates",
+                "configuration",
+                "installed-content"
+              ]
+            }
+          ],
+          "granularity": {
+            "value": "per-game-files",
+            "mode": "memstick",
+            "readings": [],
+            "alternatives": []
+          }
+        }
+      }
+    },
+    {
+      "name": "ppsspp-a-game-never-saved-still-has-its-unit",
+      "rationale": "The disc's id is read and SAVEDATA holds no folder beginning with it: the unit is stated with no members, so a client restoring onto this machine places the folders it carries below SAVEDATA, beside nobody's.",
+      "input": {
+        "home": "/home/deck",
+        "files": {
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retrodeck/retrodeck.json": "{\"paths\": {\"rd_home_path\": \"/mnt/sd/retrodeck\", \"saves_path\": \"/mnt/sd/retrodeck/saves\"}}",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retroarch/retroarch.cfg": "savefile_directory = \"/mnt/sd/retrodeck/saves\"\nsort_savefiles_by_content_enable = \"false\"\nsort_savefiles_enable = \"false\"\nsystem_directory = \"/mnt/sd/retrodeck/bios\"\nglobal_core_options = \"true\"\nlibretro_directory = \"/app/cores\"\n",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/files/retrodeck/components/es-de/share/es-de/resources/systems/linux/es_systems.xml": "<?xml version=\"1.0\"?>\n<systemList>\n  <system>\n    <name>psp</name>\n    <path>%ROMPATH%/psp</path>\n    <extension>.iso .ISO</extension>\n    <command label=\"Ppsspp (Standalone)\">%EMULATOR_PPSSPP% %ROM%</command>\n  </system>\n  <system>\n    <name>xbox</name>\n    <path>%ROMPATH%/xbox</path>\n    <extension>.iso .ISO</extension>\n    <command label=\"Xemu (Standalone)\">%EMULATOR_XEMU% %ROM%</command>\n  </system>\n  <system>\n    <name>wiiu</name>\n    <path>%ROMPATH%/wiiu</path>\n    <extension>.iso .ISO</extension>\n    <command label=\"Cemu (Standalone)\">%EMULATOR_CEMU% %ROM%</command>\n  </system>\n</systemList>\n",
+          "/mnt/sd/retrodeck/roms/psp/Game.iso": "iso bytes"
+        },
+        "dirs": [
+          "/mnt/sd/retrodeck/saves",
+          "/mnt/sd/retrodeck/bios",
+          "/mnt/sd/retrodeck/saves/PSP/PPSSPP-SA",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/ROMs"
+        ],
+        "symlinks": {
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/ppsspp/PSP/SAVEDATA": "/mnt/sd/retrodeck/saves/PSP/PPSSPP-SA"
+        },
+        "entry_savefile_query": {
+          "system": "psp",
+          "content_path": "/mnt/sd/retrodeck/roms/psp/Game.iso"
+        },
+        "psp_discs": {
+          "/mnt/sd/retrodeck/roms/psp/Game.iso": {
+            "container": "iso",
+            "disc_id": "ULUS10064"
+          }
+        }
+      },
+      "expected": {
+        "installations": [
+          {
+            "kind": "retrodeck",
+            "label": "RetroDECK",
+            "kinds": [
+              "retrodeck"
+            ],
+            "root": "/mnt/sd/retrodeck",
+            "health": []
+          }
+        ],
+        "entry_savefile_location": {
+          "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/config/ppsspp/PSP/SAVEDATA",
+          "root_kind": "emulator_directory",
+          "needs": [],
+          "fallback_dir": null,
+          "physical_dir": "/mnt/sd/retrodeck/saves/PSP/PPSSPP-SA",
+          "file_set": {
+            "state": "declared",
+            "files": [],
+            "complete": false,
+            "groups": [
+              {
+                "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/config/ppsspp/PSP/SAVEDATA",
+                "files": null,
+                "granularity": "per-game-files",
+                "role": "battery",
+                "size_fixed": false,
+                "unit": {
+                  "kind": "own-folders-by-prefix",
+                  "members": [],
+                  "archive_folder": null,
+                  "prefix": "ULUS10064"
+                }
+              }
+            ]
+          },
+          "caveats": [
+            {
+              "code": "file-names-unestablished",
+              "data": {
+                "token": "PPSSPP",
+                "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/config/ppsspp/PSP/SAVEDATA",
+                "role": "battery",
+                "citation": "the tree is <memstick>/PSP/SAVEDATA (PathUtil.cpp:52,:62-63 at ppsspp v1.20.4); the game names its folders <gameName><saveName> (SavedataParam.cpp:49, :238-245, :269-272 and :1563-1571 at ppsspp v1.20.4); SavedataParam.cpp:533, :538 and PSPGamedataInstallDialog.cpp:211-243 at ppsspp v1.20.4"
+              }
+            }
+          ],
+          "redirects": [
+            {
+              "via": "variable",
+              "name": "XDG_CONFIG_HOME",
+              "argument": "<dir>",
+              "moves": [
+                "saves",
+                "savestates",
+                "configuration",
+                "installed-content"
+              ]
+            }
+          ],
+          "granularity": {
+            "value": "per-game-files",
+            "mode": "memstick",
+            "readings": [],
+            "alternatives": []
+          }
+        }
+      }
+    },
+    {
+      "name": "ppsspp-a-psn-release-states-its-prefix-may-differ",
+      "rationale": "An NPJH id read off the disc: the unit is stated by that prefix, and psn-save-prefix-may-differ says such a release may save under its disc release's id instead (NPJH50804 saves as ULJS00445), which atlas does not re-key.",
+      "input": {
+        "home": "/home/deck",
+        "files": {
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retrodeck/retrodeck.json": "{\"paths\": {\"rd_home_path\": \"/mnt/sd/retrodeck\", \"saves_path\": \"/mnt/sd/retrodeck/saves\"}}",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retroarch/retroarch.cfg": "savefile_directory = \"/mnt/sd/retrodeck/saves\"\nsort_savefiles_by_content_enable = \"false\"\nsort_savefiles_enable = \"false\"\nsystem_directory = \"/mnt/sd/retrodeck/bios\"\nglobal_core_options = \"true\"\nlibretro_directory = \"/app/cores\"\n",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/files/retrodeck/components/es-de/share/es-de/resources/systems/linux/es_systems.xml": "<?xml version=\"1.0\"?>\n<systemList>\n  <system>\n    <name>psp</name>\n    <path>%ROMPATH%/psp</path>\n    <extension>.iso .ISO</extension>\n    <command label=\"Ppsspp (Standalone)\">%EMULATOR_PPSSPP% %ROM%</command>\n  </system>\n  <system>\n    <name>xbox</name>\n    <path>%ROMPATH%/xbox</path>\n    <extension>.iso .ISO</extension>\n    <command label=\"Xemu (Standalone)\">%EMULATOR_XEMU% %ROM%</command>\n  </system>\n  <system>\n    <name>wiiu</name>\n    <path>%ROMPATH%/wiiu</path>\n    <extension>.iso .ISO</extension>\n    <command label=\"Cemu (Standalone)\">%EMULATOR_CEMU% %ROM%</command>\n  </system>\n</systemList>\n",
+          "/mnt/sd/retrodeck/roms/psp/Game.iso": "iso bytes",
+          "/mnt/sd/retrodeck/saves/PSP/PPSSPP-SA/NPJH50804DATA/PARAM.SFO": "sfo"
+        },
+        "dirs": [
+          "/mnt/sd/retrodeck/saves",
+          "/mnt/sd/retrodeck/bios",
+          "/mnt/sd/retrodeck/saves/PSP/PPSSPP-SA",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/ROMs"
+        ],
+        "symlinks": {
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/ppsspp/PSP/SAVEDATA": "/mnt/sd/retrodeck/saves/PSP/PPSSPP-SA"
+        },
+        "entry_savefile_query": {
+          "system": "psp",
+          "content_path": "/mnt/sd/retrodeck/roms/psp/Game.iso"
+        },
+        "psp_discs": {
+          "/mnt/sd/retrodeck/roms/psp/Game.iso": {
+            "container": "iso",
+            "disc_id": "NPJH50804"
+          }
+        },
+        "psp_param_sfos": {
+          "/mnt/sd/retrodeck/saves/PSP/PPSSPP-SA/NPJH50804DATA/PARAM.SFO": [
+            "TITLE",
+            "SAVEDATA_TITLE",
+            "SAVEDATA_DETAIL",
+            "PARENTAL_LEVEL",
+            "CATEGORY",
+            "SAVEDATA_DIRECTORY",
+            "SAVEDATA_FILE_LIST",
+            "SAVEDATA_PARAMS"
+          ]
+        }
+      },
+      "expected": {
+        "installations": [
+          {
+            "kind": "retrodeck",
+            "label": "RetroDECK",
+            "kinds": [
+              "retrodeck"
+            ],
+            "root": "/mnt/sd/retrodeck",
+            "health": []
+          }
+        ],
+        "entry_savefile_location": {
+          "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/config/ppsspp/PSP/SAVEDATA",
+          "root_kind": "emulator_directory",
+          "needs": [],
+          "fallback_dir": null,
+          "physical_dir": "/mnt/sd/retrodeck/saves/PSP/PPSSPP-SA",
+          "file_set": {
+            "state": "declared",
+            "files": [],
+            "complete": false,
+            "groups": [
+              {
+                "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/config/ppsspp/PSP/SAVEDATA",
+                "files": null,
+                "granularity": "per-game-files",
+                "role": "battery",
+                "size_fixed": false,
+                "unit": {
+                  "kind": "own-folders-by-prefix",
+                  "members": [
+                    "NPJH50804DATA"
+                  ],
+                  "archive_folder": null,
+                  "prefix": "NPJH50804"
+                }
+              }
+            ]
+          },
+          "caveats": [
+            {
+              "code": "file-names-unestablished",
+              "data": {
+                "token": "PPSSPP",
+                "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/config/ppsspp/PSP/SAVEDATA",
+                "role": "battery",
+                "citation": "the tree is <memstick>/PSP/SAVEDATA (PathUtil.cpp:52,:62-63 at ppsspp v1.20.4); the game names its folders <gameName><saveName> (SavedataParam.cpp:49, :238-245, :269-272 and :1563-1571 at ppsspp v1.20.4); SavedataParam.cpp:533, :538 and PSPGamedataInstallDialog.cpp:211-243 at ppsspp v1.20.4"
+              }
+            },
+            {
+              "code": "psn-save-prefix-may-differ",
+              "data": {
+                "token": "PPSSPP",
+                "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/config/ppsspp/PSP/SAVEDATA",
+                "prefix": "NPJH50804",
+                "citation": "the tree is <memstick>/PSP/SAVEDATA (PathUtil.cpp:52,:62-63 at ppsspp v1.20.4); the game names its folders <gameName><saveName> (SavedataParam.cpp:49, :238-245, :269-272 and :1563-1571 at ppsspp v1.20.4)"
+              }
+            }
+          ],
+          "redirects": [
+            {
+              "via": "variable",
+              "name": "XDG_CONFIG_HOME",
+              "argument": "<dir>",
+              "moves": [
+                "saves",
+                "savestates",
+                "configuration",
+                "installed-content"
+              ]
+            }
+          ],
+          "granularity": {
+            "value": "per-game-files",
+            "mode": "memstick",
+            "readings": [],
+            "alternatives": []
+          }
+        }
+      }
+    },
+    {
+      "name": "ppsspp-an-image-that-is-no-psp-disc-keeps-the-hole",
+      "rationale": "The content path's bytes hold no PSP_GAME/PARAM.SFO (not-a-disc): the id is not read, so the answer is the tree with the save_id hole, spelled psp-game-id, and the rule that fills it.",
+      "input": {
+        "home": "/home/deck",
+        "files": {
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retrodeck/retrodeck.json": "{\"paths\": {\"rd_home_path\": \"/mnt/sd/retrodeck\", \"saves_path\": \"/mnt/sd/retrodeck/saves\"}}",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retroarch/retroarch.cfg": "savefile_directory = \"/mnt/sd/retrodeck/saves\"\nsort_savefiles_by_content_enable = \"false\"\nsort_savefiles_enable = \"false\"\nsystem_directory = \"/mnt/sd/retrodeck/bios\"\nglobal_core_options = \"true\"\nlibretro_directory = \"/app/cores\"\n",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/files/retrodeck/components/es-de/share/es-de/resources/systems/linux/es_systems.xml": "<?xml version=\"1.0\"?>\n<systemList>\n  <system>\n    <name>psp</name>\n    <path>%ROMPATH%/psp</path>\n    <extension>.iso .ISO</extension>\n    <command label=\"Ppsspp (Standalone)\">%EMULATOR_PPSSPP% %ROM%</command>\n  </system>\n  <system>\n    <name>xbox</name>\n    <path>%ROMPATH%/xbox</path>\n    <extension>.iso .ISO</extension>\n    <command label=\"Xemu (Standalone)\">%EMULATOR_XEMU% %ROM%</command>\n  </system>\n  <system>\n    <name>wiiu</name>\n    <path>%ROMPATH%/wiiu</path>\n    <extension>.iso .ISO</extension>\n    <command label=\"Cemu (Standalone)\">%EMULATOR_CEMU% %ROM%</command>\n  </system>\n</systemList>\n",
+          "/mnt/sd/retrodeck/roms/psp/Game.iso": "iso bytes"
+        },
+        "dirs": [
+          "/mnt/sd/retrodeck/saves",
+          "/mnt/sd/retrodeck/bios",
+          "/mnt/sd/retrodeck/saves/PSP/PPSSPP-SA",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/ROMs"
+        ],
+        "symlinks": {
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/ppsspp/PSP/SAVEDATA": "/mnt/sd/retrodeck/saves/PSP/PPSSPP-SA"
+        },
+        "entry_savefile_query": {
+          "system": "psp",
+          "content_path": "/mnt/sd/retrodeck/roms/psp/Game.iso"
+        },
+        "psp_discs": {
+          "/mnt/sd/retrodeck/roms/psp/Game.iso": "not-a-disc"
+        }
+      },
+      "expected": {
+        "installations": [
+          {
+            "kind": "retrodeck",
+            "label": "RetroDECK",
+            "kinds": [
+              "retrodeck"
+            ],
+            "root": "/mnt/sd/retrodeck",
+            "health": []
+          }
+        ],
+        "entry_savefile_location": {
+          "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/config/ppsspp/PSP/SAVEDATA",
+          "root_kind": "emulator_directory",
+          "needs": [
+            "save_id"
+          ],
+          "fallback_dir": null,
+          "physical_dir": "/mnt/sd/retrodeck/saves/PSP/PPSSPP-SA",
+          "file_set": {
+            "state": "declared",
+            "files": [],
+            "complete": false,
+            "groups": [
+              {
+                "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/config/ppsspp/PSP/SAVEDATA",
+                "files": null,
+                "granularity": "per-game-files",
+                "role": "battery",
+                "size_fixed": false,
+                "unit": null
+              }
+            ]
+          },
+          "caveats": [
+            {
+              "code": "file-names-unestablished",
+              "data": {
+                "token": "PPSSPP",
+                "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/config/ppsspp/PSP/SAVEDATA",
+                "role": "battery",
+                "save_id": "the game's id as its disc's PSP_GAME/PARAM.SFO states DISC_ID, nine characters without a dash — the prefix of its savedata folders' names, not a whole name",
+                "save_id_spelling": "psp-game-id",
+                "citation": "the tree is <memstick>/PSP/SAVEDATA (PathUtil.cpp:52,:62-63 at ppsspp v1.20.4); the game names its folders <gameName><saveName> (SavedataParam.cpp:49, :238-245, :269-272 and :1563-1571 at ppsspp v1.20.4); SavedataParam.cpp:533, :538 and PSPGamedataInstallDialog.cpp:211-243 at ppsspp v1.20.4"
+              }
+            }
+          ],
+          "redirects": [
+            {
+              "via": "variable",
+              "name": "XDG_CONFIG_HOME",
+              "argument": "<dir>",
+              "moves": [
+                "saves",
+                "savestates",
+                "configuration",
+                "installed-content"
+              ]
+            }
+          ],
+          "granularity": {
+            "value": "per-game-files",
+            "mode": "memstick",
+            "readings": [],
+            "alternatives": []
+          }
+        }
+      }
+    },
+    {
+      "name": "ppsspp-a-compressed-iso-is-not-read",
+      "rationale": "A CSO is a container PPSSPP opens by its CISO magic (BlockDevices.cpp:244-246 at ppsspp v1.20.4) and atlas does not read: format-not-read, so the answer keeps the save_id hole.",
+      "input": {
+        "home": "/home/deck",
+        "files": {
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retrodeck/retrodeck.json": "{\"paths\": {\"rd_home_path\": \"/mnt/sd/retrodeck\", \"saves_path\": \"/mnt/sd/retrodeck/saves\"}}",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retroarch/retroarch.cfg": "savefile_directory = \"/mnt/sd/retrodeck/saves\"\nsort_savefiles_by_content_enable = \"false\"\nsort_savefiles_enable = \"false\"\nsystem_directory = \"/mnt/sd/retrodeck/bios\"\nglobal_core_options = \"true\"\nlibretro_directory = \"/app/cores\"\n",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/files/retrodeck/components/es-de/share/es-de/resources/systems/linux/es_systems.xml": "<?xml version=\"1.0\"?>\n<systemList>\n  <system>\n    <name>psp</name>\n    <path>%ROMPATH%/psp</path>\n    <extension>.iso .ISO</extension>\n    <command label=\"Ppsspp (Standalone)\">%EMULATOR_PPSSPP% %ROM%</command>\n  </system>\n  <system>\n    <name>xbox</name>\n    <path>%ROMPATH%/xbox</path>\n    <extension>.iso .ISO</extension>\n    <command label=\"Xemu (Standalone)\">%EMULATOR_XEMU% %ROM%</command>\n  </system>\n  <system>\n    <name>wiiu</name>\n    <path>%ROMPATH%/wiiu</path>\n    <extension>.iso .ISO</extension>\n    <command label=\"Cemu (Standalone)\">%EMULATOR_CEMU% %ROM%</command>\n  </system>\n</systemList>\n",
+          "/mnt/sd/retrodeck/roms/psp/Game.cso": "cso bytes"
+        },
+        "dirs": [
+          "/mnt/sd/retrodeck/saves",
+          "/mnt/sd/retrodeck/bios",
+          "/mnt/sd/retrodeck/saves/PSP/PPSSPP-SA",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/ROMs"
+        ],
+        "symlinks": {
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/ppsspp/PSP/SAVEDATA": "/mnt/sd/retrodeck/saves/PSP/PPSSPP-SA"
+        },
+        "entry_savefile_query": {
+          "system": "psp",
+          "content_path": "/mnt/sd/retrodeck/roms/psp/Game.cso"
+        },
+        "psp_discs": {
+          "/mnt/sd/retrodeck/roms/psp/Game.cso": "format-not-read"
+        }
+      },
+      "expected": {
+        "installations": [
+          {
+            "kind": "retrodeck",
+            "label": "RetroDECK",
+            "kinds": [
+              "retrodeck"
+            ],
+            "root": "/mnt/sd/retrodeck",
+            "health": []
+          }
+        ],
+        "entry_savefile_location": {
+          "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/config/ppsspp/PSP/SAVEDATA",
+          "root_kind": "emulator_directory",
+          "needs": [
+            "save_id"
+          ],
+          "fallback_dir": null,
+          "physical_dir": "/mnt/sd/retrodeck/saves/PSP/PPSSPP-SA",
+          "file_set": {
+            "state": "declared",
+            "files": [],
+            "complete": false,
+            "groups": [
+              {
+                "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/config/ppsspp/PSP/SAVEDATA",
+                "files": null,
+                "granularity": "per-game-files",
+                "role": "battery",
+                "size_fixed": false,
+                "unit": null
+              }
+            ]
+          },
+          "caveats": [
+            {
+              "code": "file-names-unestablished",
+              "data": {
+                "token": "PPSSPP",
+                "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/config/ppsspp/PSP/SAVEDATA",
+                "role": "battery",
+                "save_id": "the game's id as its disc's PSP_GAME/PARAM.SFO states DISC_ID, nine characters without a dash — the prefix of its savedata folders' names, not a whole name",
+                "save_id_spelling": "psp-game-id",
+                "citation": "the tree is <memstick>/PSP/SAVEDATA (PathUtil.cpp:52,:62-63 at ppsspp v1.20.4); the game names its folders <gameName><saveName> (SavedataParam.cpp:49, :238-245, :269-272 and :1563-1571 at ppsspp v1.20.4); SavedataParam.cpp:533, :538 and PSPGamedataInstallDialog.cpp:211-243 at ppsspp v1.20.4"
+              }
+            }
+          ],
+          "redirects": [
+            {
+              "via": "variable",
+              "name": "XDG_CONFIG_HOME",
+              "argument": "<dir>",
+              "moves": [
+                "saves",
+                "savestates",
+                "configuration",
+                "installed-content"
+              ]
+            }
+          ],
+          "granularity": {
+            "value": "per-game-files",
+            "mode": "memstick",
+            "readings": [],
+            "alternatives": []
+          }
+        }
+      }
+    },
+    {
+      "name": "ppsspp-a-folder-whose-param-sfo-does-not-parse-establishes-nothing",
+      "rationale": "The id is read, but a folder beginning with it holds a PARAM.SFO that does not parse: whether it is a save or installed game data is not established, and a restore removes the members it lists, so no unit is stated — the save_id hole stays.",
+      "input": {
+        "home": "/home/deck",
+        "files": {
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retrodeck/retrodeck.json": "{\"paths\": {\"rd_home_path\": \"/mnt/sd/retrodeck\", \"saves_path\": \"/mnt/sd/retrodeck/saves\"}}",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retroarch/retroarch.cfg": "savefile_directory = \"/mnt/sd/retrodeck/saves\"\nsort_savefiles_by_content_enable = \"false\"\nsort_savefiles_enable = \"false\"\nsystem_directory = \"/mnt/sd/retrodeck/bios\"\nglobal_core_options = \"true\"\nlibretro_directory = \"/app/cores\"\n",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/files/retrodeck/components/es-de/share/es-de/resources/systems/linux/es_systems.xml": "<?xml version=\"1.0\"?>\n<systemList>\n  <system>\n    <name>psp</name>\n    <path>%ROMPATH%/psp</path>\n    <extension>.iso .ISO</extension>\n    <command label=\"Ppsspp (Standalone)\">%EMULATOR_PPSSPP% %ROM%</command>\n  </system>\n  <system>\n    <name>xbox</name>\n    <path>%ROMPATH%/xbox</path>\n    <extension>.iso .ISO</extension>\n    <command label=\"Xemu (Standalone)\">%EMULATOR_XEMU% %ROM%</command>\n  </system>\n  <system>\n    <name>wiiu</name>\n    <path>%ROMPATH%/wiiu</path>\n    <extension>.iso .ISO</extension>\n    <command label=\"Cemu (Standalone)\">%EMULATOR_CEMU% %ROM%</command>\n  </system>\n</systemList>\n",
+          "/mnt/sd/retrodeck/roms/psp/Game.iso": "iso bytes",
+          "/mnt/sd/retrodeck/saves/PSP/PPSSPP-SA/ULUS10064DATA00/PARAM.SFO": "garbage"
+        },
+        "dirs": [
+          "/mnt/sd/retrodeck/saves",
+          "/mnt/sd/retrodeck/bios",
+          "/mnt/sd/retrodeck/saves/PSP/PPSSPP-SA",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/ROMs"
+        ],
+        "symlinks": {
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/ppsspp/PSP/SAVEDATA": "/mnt/sd/retrodeck/saves/PSP/PPSSPP-SA"
+        },
+        "entry_savefile_query": {
+          "system": "psp",
+          "content_path": "/mnt/sd/retrodeck/roms/psp/Game.iso"
+        },
+        "psp_discs": {
+          "/mnt/sd/retrodeck/roms/psp/Game.iso": {
+            "container": "iso",
+            "disc_id": "ULUS10064"
+          }
+        },
+        "psp_param_sfos": {
+          "/mnt/sd/retrodeck/saves/PSP/PPSSPP-SA/ULUS10064DATA00/PARAM.SFO": "not-an-sfo"
+        }
+      },
+      "expected": {
+        "installations": [
+          {
+            "kind": "retrodeck",
+            "label": "RetroDECK",
+            "kinds": [
+              "retrodeck"
+            ],
+            "root": "/mnt/sd/retrodeck",
+            "health": []
+          }
+        ],
+        "entry_savefile_location": {
+          "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/config/ppsspp/PSP/SAVEDATA",
+          "root_kind": "emulator_directory",
+          "needs": [
+            "save_id"
+          ],
+          "fallback_dir": null,
+          "physical_dir": "/mnt/sd/retrodeck/saves/PSP/PPSSPP-SA",
+          "file_set": {
+            "state": "declared",
+            "files": [],
+            "complete": false,
+            "groups": [
+              {
+                "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/config/ppsspp/PSP/SAVEDATA",
+                "files": null,
+                "granularity": "per-game-files",
+                "role": "battery",
+                "size_fixed": false,
+                "unit": null
+              }
+            ]
+          },
+          "caveats": [
+            {
+              "code": "file-names-unestablished",
+              "data": {
+                "token": "PPSSPP",
+                "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/config/ppsspp/PSP/SAVEDATA",
+                "role": "battery",
+                "save_id": "the game's id as its disc's PSP_GAME/PARAM.SFO states DISC_ID, nine characters without a dash — the prefix of its savedata folders' names, not a whole name",
+                "save_id_spelling": "psp-game-id",
+                "citation": "the tree is <memstick>/PSP/SAVEDATA (PathUtil.cpp:52,:62-63 at ppsspp v1.20.4); the game names its folders <gameName><saveName> (SavedataParam.cpp:49, :238-245, :269-272 and :1563-1571 at ppsspp v1.20.4); SavedataParam.cpp:533, :538 and PSPGamedataInstallDialog.cpp:211-243 at ppsspp v1.20.4"
+              }
+            }
+          ],
+          "redirects": [
+            {
+              "via": "variable",
+              "name": "XDG_CONFIG_HOME",
+              "argument": "<dir>",
+              "moves": [
+                "saves",
+                "savestates",
+                "configuration",
+                "installed-content"
+              ]
+            }
+          ],
+          "granularity": {
+            "value": "per-game-files",
+            "mode": "memstick",
+            "readings": [],
+            "alternatives": []
+          }
+        }
+      }
+    }
+  ]
+}

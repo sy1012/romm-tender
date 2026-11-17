@@ -28,6 +28,7 @@ import json
 import os
 import pwd
 import sys
+from types import SimpleNamespace
 from typing import Any, cast
 
 import pytest
@@ -38,6 +39,7 @@ from _vendor.atlas import (
     CAVEAT_EMULATOR_CONFIG_UNREADABLE,
     CAVEAT_FILE_NAMES_UNESTABLISHED,
     CAVEAT_FILENAMES_CONTENT_CONDITIONAL,
+    CAVEAT_PSN_SAVE_PREFIX_MAY_DIFFER,
     CAVEAT_REDIRECT_OUTRANKED,
     CAVEAT_SAVE_FILES_SHARED_WITH_CORE,
     CAVEAT_SAVE_INSIDE_CONTENT,
@@ -85,6 +87,7 @@ from _vendor.atlas.placement import (
     FILE_SET_UNKNOWN,
     SAVE_UNIT_FOLDER,
     SAVE_UNIT_MEMBERS,
+    SAVE_UNIT_PREFIXED_FOLDERS,
     TEMPLATE_CWD,
     TEMPLATE_REGION,
     TEMPLATE_SAVE_ID,
@@ -96,7 +99,7 @@ from _vendor.atlas.placement import (
     SaveUnitStatement,
 )
 
-from adapters.atlas_saves import AtlasSaveLocationAdapter, describe_core_probe_interpreter
+from adapters.atlas_saves import AtlasSaveLocationAdapter, _unit, describe_core_probe_interpreter
 from adapters.emulator_sources import EmulatorSourcesAdapter
 from domain.emulator_tag import build_emulator_tag
 from domain.save_answer import (
@@ -900,6 +903,7 @@ class TestOnlyTheResolversStatementMakesASaveUnit:
 
     _WII_TITLE = "/nand/Wii/title/00010000/52534245"
     _GCI_FOLDER = "/dolphin/GC/USA/Card A"
+    _SAVEDATA = "/memstick/PSP/SAVEDATA"
 
     def test_a_folder_statement_is_a_folder_unit_laid_out_under_its_archive_folder(self, traces):
         answer = _ask(
@@ -950,6 +954,82 @@ class TestOnlyTheResolversStatementMakesASaveUnit:
         )
 
         assert answer.unit == SaveUnit(root=self._GCI_FOLDER, members=("01-GALE-a.gci", "01-GALE-b.gci"))
+
+    def _psp(self, traces, members: tuple[str, ...], prefix: str, caveats: tuple[str, ...] = ()):
+        return _ask(
+            _placement(
+                files=(),
+                directory=self._SAVEDATA,
+                groups=(
+                    FileGroup(
+                        dir=self._SAVEDATA,
+                        files=None,
+                        granularity=GRANULARITY_PER_GAME_DIRECTORY,
+                        role=ROLE_BATTERY,
+                        unit=SaveUnitStatement(SAVE_UNIT_PREFIXED_FOLDERS, members, None, prefix),
+                    ),
+                ),
+                granularity=GRANULARITY_PER_GAME_DIRECTORY,
+                caveats=caveats,
+            ),
+            traces,
+            label="PPSSPP",
+            emulator="PPSSPP",
+            identity="PPSSPP",
+        )
+
+    def test_a_prefixed_folders_statement_is_a_unit_of_those_folders_at_the_zip_s_top(self, traces):
+        answer = self._psp(traces, ("ULUS10064DATA00", "ULUS10064DATA01"), "ULUS10064")
+
+        assert answer.state == "per_game_unit"
+        assert answer.unit == SaveUnit(
+            root=self._SAVEDATA, members=("ULUS10064DATA00", "ULUS10064DATA01"), prefix="ULUS10064"
+        )
+
+    def test_a_prefixed_folders_statement_with_no_folders_yet_is_still_a_unit(self, traces):
+        answer = self._psp(traces, (), "ULUS10064")
+
+        assert answer.state == "per_game_unit"
+        assert answer.unit == SaveUnit(root=self._SAVEDATA, members=(), prefix="ULUS10064")
+
+    def test_a_psn_release_s_unit_stands_and_carries_the_note(self, traces):
+        answer = self._psp(traces, ("NPUH10001DATA",), "NPUH10001", caveats=(CAVEAT_PSN_SAVE_PREFIX_MAY_DIFFER,))
+
+        assert answer.state == "per_game_unit"
+        assert answer.unit is not None
+        assert answer.unit.prefix == "NPUH10001"
+        assert answer.caveats == (CAVEAT_PSN_SAVE_PREFIX_MAY_DIFFER,)
+
+    def test_the_other_kinds_name_no_prefix(self, traces):
+        answer = _ask(
+            _placement(
+                files=(),
+                directory=self._GCI_FOLDER,
+                groups=(
+                    FileGroup(
+                        dir=self._GCI_FOLDER,
+                        files=None,
+                        granularity=GRANULARITY_PER_GAME_DIRECTORY,
+                        role=ROLE_BATTERY,
+                        unit=SaveUnitStatement(SAVE_UNIT_MEMBERS, ("01-GALE-a.gci",), None),
+                    ),
+                ),
+                granularity=GRANULARITY_PER_GAME_DIRECTORY,
+            ),
+            traces,
+            label="Dolphin",
+            emulator="Dolphin",
+        )
+
+        assert answer.unit is not None
+        assert answer.unit.prefix is None
+
+    def test_a_statement_of_a_kind_not_known_here_makes_no_unit(self):
+        group = SimpleNamespace(
+            dir=self._SAVEDATA, unit=SimpleNamespace(kind="a-kind-not-known", members=(), archive_folder=None)
+        )
+
+        assert _unit(group) is None
 
     def test_a_statement_in_an_answer_that_still_has_a_hole_is_no_unit(self, traces):
         answer = _ask(
@@ -1891,3 +1971,61 @@ class TestAnEdenAppImageSave:
 
         assert answer.state == SAVE_STATE_UNESTABLISHED
         assert answer.unit is None
+
+
+def _ppsspp(vector_name: str, traces: list[str]) -> tuple[AtlasSaveLocationAdapter, str]:
+    """The save adapter over the recorded PPSSPP machine *vector_name*, and the content its query names."""
+    path = os.path.join(os.path.dirname(__file__), "atlas_vectors", "vectors", "machines", "ppsspp-savedata.json")
+    with open(path, encoding="utf-8") as handle:
+        vectors = json.load(handle)["vectors"]
+    inp = next(vector for vector in vectors if vector["name"] == vector_name)["input"]
+    sources = _sources(atlas_detect, traces, machine=fixture_machine(inp))
+    return AtlasSaveLocationAdapter(sources=sources, log_debug=traces.append), inp["entry_savefile_query"][
+        "content_path"
+    ]
+
+
+class TestAPpssppSave:
+    """A PSP disc's save in standalone PPSSPP: its id's folders in the shared SAVEDATA, synced as a unit."""
+
+    _SAVEDATA = "/home/deck/.var/app/net.retrodeck.retrodeck/config/ppsspp/PSP/SAVEDATA"
+
+    def _answer(self, vector_name: str, traces: list[str]):
+        adapter, content = _ppsspp(vector_name, traces)
+        return adapter.resolve_save_answer(
+            system="psp", content_path=content, emulator_label="Ppsspp (Standalone)", content_installed=True
+        )
+
+    def test_the_disc_s_save_folders_are_one_unit_and_its_installed_data_is_not_a_member(self, traces):
+        answer = self._answer("ppsspp-names-the-discs-savedata-folders-by-its-id", traces)
+
+        assert answer.state == SAVE_STATE_PER_GAME_UNIT
+        assert answer.unit == SaveUnit(
+            root=self._SAVEDATA, members=("ULUS10064DATA00", "ULUS10064SETTINGS"), prefix="ULUS10064"
+        )
+
+    def test_a_game_never_saved_still_has_a_unit_to_restore_into(self, traces):
+        answer = self._answer("ppsspp-a-game-never-saved-still-has-its-unit", traces)
+
+        assert answer.state == SAVE_STATE_PER_GAME_UNIT
+        assert answer.unit == SaveUnit(root=self._SAVEDATA, members=(), prefix="ULUS10064")
+
+    def test_a_psn_release_is_still_a_unit_and_carries_the_note(self, traces):
+        answer = self._answer("ppsspp-a-psn-release-states-its-prefix-may-differ", traces)
+
+        assert answer.state == SAVE_STATE_PER_GAME_UNIT
+        assert CAVEAT_PSN_SAVE_PREFIX_MAY_DIFFER in answer.caveats
+
+    @pytest.mark.parametrize(
+        "vector_name",
+        [
+            "ppsspp-an-image-that-is-no-psp-disc-keeps-the-hole",
+            "ppsspp-a-compressed-iso-is-not-read",
+            "ppsspp-a-folder-whose-param-sfo-does-not-parse-establishes-nothing",
+        ],
+    )
+    def test_a_disc_or_folder_that_could_not_be_read_is_no_unit(self, traces, vector_name):
+        answer = self._answer(vector_name, traces)
+
+        assert answer.unit is None
+        assert answer.syncable is False

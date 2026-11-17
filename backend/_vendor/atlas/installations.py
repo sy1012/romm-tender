@@ -201,10 +201,11 @@ from .firmware import firmware_for_core as _resolve_for_core
 from .firmware import firmware_for_system as _resolve_for_system
 from .firmware import firmware_inventory as _resolve_inventory
 from .firmware import identify_firmware as _resolve_identification
-from . import dolphin_disc, eden, switch_title
+from . import dolphin_disc, eden, psp_disc, switch_title
 from .machine import (
     APPIMAGE_CAPABILITY_MISSING,
     DOLPHIN_DISC_OK,
+    PSP_PARAM_SFO_MISSING,
     EDEN_PROFILES_OK,
     EDEN_PROFILES_UNREADABLE,
     SWITCH_PACKAGE_OK,
@@ -329,6 +330,7 @@ from .placement import (
     CAVEAT_SANDBOX_PATH_UNTRANSLATED,
     CAVEAT_SAVE_ID_CANDIDATES,
     CAVEAT_ACTIVE_PROFILE_UNESTABLISHED,
+    CAVEAT_PSN_SAVE_PREFIX_MAY_DIFFER,
     HOLE_PROFILE_ID,
     TEMPLATE_PROFILE_ID,
     CAVEAT_SOFT_PATCHING_APPLIES,
@@ -379,8 +381,11 @@ from .placement import (
     TEMPLATE_ROM_STEM,
     TEMPLATE_SAVE_ID,
     SAVE_ID_SPELLING_GAME_CODE,
+    SAVE_ID_SPELLING_PSP_GAME_ID,
     SAVE_UNIT_FOLDER,
     SAVE_UNIT_MEMBERS,
+    SAVE_UNIT_PREFIXED_FOLDERS,
+    begins_with_prefix,
     SAVE_ID_SPELLING_PATH_SEGMENT,
     MEMBERSHIP_LIMIT_MAKER_CODE_NOT_COMPARED,
     MEMBERSHIP_LIMIT_OTHER_GAMES_LOADED,
@@ -9917,16 +9922,22 @@ def _unnamed_tree_placement(
     caveats: tuple[Caveat, ...],
     physical: str | None,
     provenance: str,
+    needs: tuple[str, ...] = (),
+    unit: SaveUnitStatement | None = None,
+    extra_sources: tuple[str, ...] = (),
 ) -> SavefilePlacement:
     """One unnamed per-game tree as a whole answer — a PSP memstick's savedata.
 
     The tree is stated, its entries are named by the game and refused, and the
     granularity is per-game-files with the readings that located the tree.
+    Where a reading established which of the tree's entries are the asked
+    game's, *unit* states them and *extra_sources* how they were named; where
+    it did not, *needs* holds the hole a caller fills to pick them.
     """
     return SavefilePlacement(
         dir=directory,
         root_kind=ROOT_EMULATOR_DIRECTORY,
-        needs=(),
+        needs=needs,
         fallback_dir=None,
         file_set=FileSet(
             FILE_SET_DECLARED,
@@ -9940,10 +9951,11 @@ def _unnamed_tree_placement(
                     granularity=GRANULARITY_PER_GAME_FILES,
                     role=ROLE_BATTERY,
                     size_fixed=False,
+                    unit=unit,
                 ),
             ),
         ),
-        sources=(f"standalone save card '{card.token}': {card.provenance}",),
+        sources=(f"standalone save card '{card.token}': {card.provenance}", *extra_sources),
         caveats=caveats,
         physical_dir=physical,
         granularity=Granularity(
@@ -10843,9 +10855,124 @@ _CODE_ANSWERED_CARDS: Mapping[str, "Callable[..., SavefilePlacement | Unresolved
 # PPSSPP v1.20.4 — the memstick is fixed by the build on Linux: the config
 # tree itself ($XDG_CONFIG_HOME/ppsspp, NativeApp.cpp:473-482), no setting
 # names it. Savedata is <memstick>/PSP/SAVEDATA (PathUtil.cpp:52, :62-63),
-# one directory per game, named by the game itself out of its own id and
-# save name — read from nothing atlas touches.
+# folders directly below it named <gameName><saveName> — gameName the name the
+# game hands the savedata utility (SavedataParam.cpp:238-245, :269-272), by
+# the platform's convention its disc's own id. Where the question names a
+# disc image atlas reads (atlas/psp_disc.py), that id names the game's
+# folders; otherwise the id is the save_id hole.
 # ---------------------------------------------------------------------------
+
+_PPSSPP_BUILD = "ppsspp v1.20.4"
+# Where the folder names come from, and what the savedata utility lists for a
+# game: the folders whose names begin with its gameName.
+_PPSSPP_FOLDER_CITATION = (
+    f"the tree is <memstick>/PSP/SAVEDATA (PathUtil.cpp:52,:62-63 at {_PPSSPP_BUILD}); the game names its "
+    f"folders <gameName><saveName> (SavedataParam.cpp:49, :238-245, :269-272 and :1563-1571 at {_PPSSPP_BUILD})"
+)
+# What tells a game-data install from a save: a savedata write sets
+# SAVEDATA_FILE_LIST and SAVEDATA_PARAMS, an install neither.
+_PPSSPP_INSTALL_CITATION = (
+    f"SavedataParam.cpp:533, :538 and PSPGamedataInstallDialog.cpp:211-243 at {_PPSSPP_BUILD}"
+)
+_PSP_PARAM_SFO = "PARAM.SFO"
+
+
+@dataclass(frozen=True, slots=True)
+class _PspGame:
+    """The content path's PSP game id, and the sentence saying how it was read."""
+
+    game_id: str
+    basis: str
+
+
+def _ppsspp_game(machine: Machine, content_path: str | None) -> tuple[_PspGame | None, tuple[str, ...]]:
+    """The id the content path's disc states — or ``None`` and the sentence saying why it was not read.
+
+    The id is ``DISC_ID`` in the image's ``PSP_GAME/PARAM.SFO``, the one
+    PPSSPP loads (PSPLoaders.cpp:129-141), normalised to the nine characters
+    a savedata folder begins with (:func:`atlas.psp_disc.game_id`). A
+    container atlas does not read (CSO, PBP, CHD), an image that is no PSP
+    disc and an id that is no product code leave it unread.
+    """
+    if content_path is None:
+        return None, ()
+    result = machine.read_psp_disc(content_path)
+    if result.facts is None:
+        return None, (
+            f"the content path {content_path} was not read as a PSP disc ({result.status}): atlas reads a plain "
+            "ISO image's PSP_GAME/PARAM.SFO, and a CSO, PBP or CHD is a container PPSSPP opens and atlas does not "
+            f"(BlockDevices.cpp:222-262 at {_PPSSPP_BUILD})",
+        )
+    game_id = psp_disc.game_id(result.facts)
+    if game_id is None:
+        return None, (
+            f"the disc's DISC_ID {result.facts.disc_id!r} is no PSP product code (four letters, five digits), "
+            "so it names no savedata folder atlas can stand behind",
+        )
+    return (
+        _PspGame(
+            game_id,
+            f"the game id {game_id} is DISC_ID in the {result.facts.container} image's PSP_GAME/PARAM.SFO, the "
+            f"id PPSSPP loads for the disc (PSPLoaders.cpp:129-141, ParamSFO.cpp:75-80 at {_PPSSPP_BUILD}); the "
+            "savedata folders a game writes begin with the gameName it hands the savedata utility, by the "
+            f"platform's convention that id ({_PPSSPP_FOLDER_CITATION}) — derived, not read from the game",
+        ),
+        (),
+    )
+
+
+def _ppsspp_members(machine: Machine, directory: str, prefix: str) -> tuple[str, ...] | None:
+    """The folders in *directory* that are the save of the game *prefix* names — ``None`` where not established.
+
+    A member is a directory lying directly in SAVEDATA whose name begins with
+    *prefix*, ASCII case aside — the savedata utility lists a game's folders
+    by that prefix (``SavedataParam.cpp:1563-1571``) and the memstick opens a
+    name in any case on Linux (``DirectoryFileSystem.cpp:136-143``) — less a
+    folder holding a game-data install: one whose ``PARAM.SFO`` reads and
+    carries neither ``SAVEDATA_FILE_LIST`` nor ``SAVEDATA_PARAMS``, which every
+    savedata write sets and an install never does. ``CATEGORY`` tells nothing,
+    both write ``MS``. A folder with no ``PARAM.SFO`` is no install — an
+    install writes one when it ends — so it is a member. An absent SAVEDATA
+    holds none: a game that has not saved yet. A listing that could not be
+    read, a ``PARAM.SFO`` that could not be read or does not parse, or two of
+    them spelled in different cases establish nothing — so a client never
+    removes a folder on a guess about what it holds.
+    """
+    names = _host_listing(machine, directory)
+    if names is None:
+        return None
+    members: list[str] = []
+    for name in sorted(set(names)):
+        if not begins_with_prefix(name, prefix):
+            continue
+        folder = os.path.join(directory, name)
+        kind = machine.path_kind(folder)
+        if kind == KIND_INACCESSIBLE:
+            return None
+        if kind != KIND_DIRECTORY:
+            continue
+        verdict = _psp_folder_is_save(machine, folder)
+        if verdict is None:
+            return None
+        if verdict:
+            members.append(name)
+    return tuple(members)
+
+
+def _psp_folder_is_save(machine: Machine, folder: str) -> bool | None:
+    """Is *folder* savedata rather than a game-data install — ``None`` where its ``PARAM.SFO`` does not say."""
+    inside = _host_listing(machine, folder)
+    if inside is None:
+        return None
+    spelled = [name for name in inside if name.upper() == _PSP_PARAM_SFO]
+    if not spelled:
+        return True
+    if len(spelled) > 1:
+        return None
+    read = machine.read_psp_param_sfo(os.path.join(folder, spelled[0]))
+    if read.keys is None:
+        return True if read.status == PSP_PARAM_SFO_MISSING else None
+    return psp_disc.is_savedata(read.keys)
 
 
 def _ppsspp_savefile_placement(
@@ -10860,26 +10987,35 @@ def _ppsspp_savefile_placement(
     content_path: str | None = None,
     cwd: str | None = None,
 ) -> SavefilePlacement | Unresolved:
-    """PPSSPP's save answer — a compiled-in XDG join, then the links."""
+    """PPSSPP's save answer — a compiled-in XDG join, then the links, then the disc's folders.
+
+    Where the content path is a disc whose id atlas reads, the answer states
+    the game's save as the SAVEDATA folders that id begins
+    (``own-folders-by-prefix``, :func:`_ppsspp_members`); otherwise, and where
+    the folders could not be established, it keeps the id as the ``save_id``
+    hole and states the rule that fills it.
+    """
     directory = os.path.join(homes.emulator_root(XDG_CONFIG, card.token), "PSP", "SAVEDATA")
     physical, link_caveats = _link_view(machine, directory)
-    caveats = [
-        *extra_caveats,
-        *link_caveats,
-        Caveat(
-            CAVEAT_FILE_NAMES_UNESTABLISHED,
-            "a PSP save is one directory per game below SAVEDATA, named by the game itself "
-            "from its own id and save name — it follows from nothing atlas reads; back the "
-            "tree up whole",
-            {
-                "token": card.token,
-                "dir": directory,
-                "role": ROLE_BATTERY,
-                "citation": "the game names its savedata directory; the tree is "
-                "<memstick>/PSP/SAVEDATA (PathUtil.cpp:52,:62-63 at ppsspp v1.20.4)",
-            },
-        ),
-    ]
+    game, unread = _ppsspp_game(machine, content_path)
+    members = _ppsspp_members(machine, directory, game.game_id) if game is not None else None
+    caveats: list[Caveat] = [*extra_caveats, *link_caveats]
+    sources: tuple[str, ...] = unread
+    unit: SaveUnitStatement | None = None
+    if game is not None and members is not None:
+        unit = SaveUnitStatement(SAVE_UNIT_PREFIXED_FOLDERS, members, None, prefix=game.game_id)
+        sources = (game.basis,)
+        caveats.append(_ppsspp_listed_names(card.token, directory, game.game_id))
+        if game.game_id.startswith("NP"):
+            caveats.append(_ppsspp_psn_prefix(card.token, directory, game.game_id))
+    else:
+        if game is not None:
+            sources = (
+                game.basis,
+                f"the folders below {directory} could not be established for {game.game_id}: the tree, a folder "
+                "or a folder's PARAM.SFO could not be read — so the id stays a hole",
+            )
+        caveats.append(_ppsspp_unlisted_names(card.token, directory))
     return _unnamed_tree_placement(
         card,
         directory=directory,
@@ -10891,6 +11027,67 @@ def _ppsspp_savefile_placement(
             f"standalone save card '{card.token}': the memstick is fixed by the build "
             "(NativeApp.cpp:473-482 at v1.20.4) — no switch selects anything"
         ),
+        needs=() if unit is not None else (HOLE_SAVE_ID,),
+        unit=unit,
+        extra_sources=sources,
+    )
+
+
+def _ppsspp_unlisted_names(token: str, directory: str) -> Caveat:
+    """``file-names-unestablished`` where the game's id was not read: the rule, and the ``save_id`` that fills it."""
+    return Caveat(
+        CAVEAT_FILE_NAMES_UNESTABLISHED,
+        "a PSP save is the folders directly below SAVEDATA whose names begin with the game's id — the "
+        "name the game hands the savedata utility, by convention its disc's DISC_ID — joined with a save "
+        "name the game alone chooses. The save_id hole is that id: the game's folders are the directories "
+        "here beginning with it (ASCII case aside), less any whose PARAM.SFO carries neither "
+        "SAVEDATA_FILE_LIST nor SAVEDATA_PARAMS, which is installed game data, not a save; without it, "
+        "back the tree up whole",
+        {
+            "token": token,
+            "dir": directory,
+            "role": ROLE_BATTERY,
+            "save_id": (
+                "the game's id as its disc's PSP_GAME/PARAM.SFO states DISC_ID, nine characters without a "
+                "dash — the prefix of its savedata folders' names, not a whole name"
+            ),
+            "save_id_spelling": SAVE_ID_SPELLING_PSP_GAME_ID,
+            "citation": f"{_PPSSPP_FOLDER_CITATION}; {_PPSSPP_INSTALL_CITATION}",
+        },
+    )
+
+
+def _ppsspp_listed_names(token: str, directory: str, game_id: str) -> Caveat:
+    """``file-names-unestablished`` where the game's folders were listed: the files inside are the game's own."""
+    return Caveat(
+        CAVEAT_FILE_NAMES_UNESTABLISHED,
+        f"the game's save is the folders directly below SAVEDATA whose names begin with {game_id} (ASCII case "
+        "aside), less installed game data — a folder whose PARAM.SFO carries neither SAVEDATA_FILE_LIST nor "
+        "SAVEDATA_PARAMS; the group's unit names the ones there now. The files inside each are the game's own "
+        "writes, so each folder moves whole",
+        {
+            "token": token,
+            "dir": directory,
+            "role": ROLE_BATTERY,
+            "citation": f"{_PPSSPP_FOLDER_CITATION}; {_PPSSPP_INSTALL_CITATION}",
+        },
+    )
+
+
+def _ppsspp_psn_prefix(token: str, directory: str, game_id: str) -> Caveat:
+    """``psn-save-prefix-may-differ``: a PlayStation Network release may save under its disc release's id."""
+    return Caveat(
+        CAVEAT_PSN_SAVE_PREFIX_MAY_DIFFER,
+        f"{game_id} is a PlayStation Network release's id, and the game alone names the prefix it saves "
+        "under: such a release may save under its disc release's id instead (NPJH50804 saves as ULJS00445), "
+        "so its folders would begin with another prefix and the unit would list none of them. atlas keeps no "
+        "table of which release saves under which",
+        {
+            "token": token,
+            "dir": directory,
+            "prefix": game_id,
+            "citation": _PPSSPP_FOLDER_CITATION,
+        },
     )
 
 
