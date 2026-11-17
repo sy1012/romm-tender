@@ -57,6 +57,7 @@ from _vendor.atlas import (
 )
 
 from adapters.atlas_catalogue import catalogue_refused
+from adapters.atlas_identity import emulator_identity
 from adapters.emulator_sources import source_roots
 from domain.emulator_sources import SourceFinding
 from domain.save_answer import (
@@ -65,8 +66,10 @@ from domain.save_answer import (
     UNESTABLISHED_NOT_ASKED,
     SaveAnswer,
     SaveGroup,
+    SaveUnit,
     build_save_answer,
     unestablished_answer,
+    unit_answer,
     with_source_findings,
 )
 from domain.savestate_location import NoSavestates, SavestateLocation
@@ -198,7 +201,7 @@ class AtlasSaveLocationAdapter:
                 declined = _findings((placement,))
             return unestablished_answer(emulator=emulator_label, content_installed=content_installed), declined
 
-        answer = _translate(placement, emulator_label, content_installed)
+        answer = _translate(placement, emulator_label, content_installed, emulator_identity(entry))
         self._log_debug(
             f"[saves] {subject}: state={answer.state} shape={answer.unestablished} "
             f"granularity={answer.granularity} files={len(answer.components)} "
@@ -334,10 +337,30 @@ def _findings(caveats: Any, *, only: str | None = None) -> tuple[SourceFinding, 
     )
 
 
-def _translate(placement: Any, emulator_label: str, content_installed: bool) -> SaveAnswer:
-    """Restate one resolved placement in Tender's own save vocabulary."""
+def _translate(placement: Any, emulator_label: str, content_installed: bool, identity: str | None) -> SaveAnswer:
+    """Restate one resolved placement in Tender's own save vocabulary.
+
+    A placement with no hole left whose one group the resolver states is the
+    game's own save is a save unit; nothing else is — a granularity alone never
+    makes one (ADR-0046).
+    """
     file_set = placement.file_set
     granularity = placement.granularity
+    stated = [group for group in file_set.groups if group.unit is not None]
+    if not placement.needs and len(stated) == 1:
+        (group,) = stated
+        statement = group.unit
+        return unit_answer(
+            unit=SaveUnit(
+                root=group.dir,
+                members=None if statement.members is None else tuple(statement.members),
+                archive_folder=statement.archive_folder,
+            ),
+            emulator=emulator_label,
+            emulator_identity=identity,
+            content_installed=content_installed,
+            granularity=granularity.value if granularity is not None else None,
+        )
     return build_save_answer(
         emulator=emulator_label,
         directory=placement.dir,

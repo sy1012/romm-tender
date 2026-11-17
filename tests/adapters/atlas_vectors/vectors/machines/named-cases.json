@@ -56,7 +56,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "unknown",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               }
             ]
           },
@@ -123,7 +124,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "unknown",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               }
             ]
           },
@@ -327,7 +329,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "unknown",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               }
             ]
           },
@@ -576,7 +579,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "unknown",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               }
             ]
           },
@@ -756,7 +760,8 @@
                 ],
                 "granularity": "per-game-files",
                 "role": "unknown",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               }
             ]
           },
@@ -1247,7 +1252,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "unknown",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               }
             ]
           },
@@ -1442,7 +1448,8 @@
                 ],
                 "granularity": "shared-card",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/retrodeck/bios/dc",
@@ -1451,7 +1458,8 @@
                 ],
                 "granularity": "shared-card",
                 "role": "battery",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -1577,7 +1585,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/retrodeck/bios/dc",
@@ -1588,7 +1597,8 @@
                 ],
                 "granularity": "shared-card",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/retrodeck/bios/dc",
@@ -1597,7 +1607,8 @@
                 ],
                 "granularity": "shared-card",
                 "role": "battery",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -1758,7 +1769,8 @@
                 ],
                 "granularity": "per-game-files",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/retrodeck/bios/dc",
@@ -1767,7 +1779,8 @@
                 ],
                 "granularity": "shared-card",
                 "role": "battery",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -1908,7 +1921,8 @@
                 ],
                 "granularity": "shared-card",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/retrodeck/roms/dreamcast/dc",
@@ -1917,7 +1931,8 @@
                 ],
                 "granularity": "shared-card",
                 "role": "battery",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -2049,7 +2064,8 @@
                 ],
                 "granularity": "shared-card",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               },
               {
                 "dir": "<content_dir>/dc",
@@ -2058,7 +2074,8 @@
                 ],
                 "granularity": "shared-card",
                 "role": "battery",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -2185,7 +2202,8 @@
                 ],
                 "granularity": "shared-card",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/retrodeck/roms/dreamcast/dc",
@@ -2194,7 +2212,8 @@
                 ],
                 "granularity": "shared-card",
                 "role": "battery",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -2321,7 +2340,8 @@
                 ],
                 "granularity": "shared-card",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               },
               {
                 "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/config/retroarch/system/dc",
@@ -2330,7 +2350,8 @@
                 ],
                 "granularity": "shared-card",
                 "role": "battery",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -2461,7 +2482,8 @@
                 ],
                 "granularity": "shared-card",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               },
               {
                 "dir": "/var/db/bios/dc",
@@ -2470,7 +2492,8 @@
                 ],
                 "granularity": "shared-card",
                 "role": "battery",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -2604,7 +2627,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/retrodeck/roms/dreamcast/dc",
@@ -2615,7 +2639,8 @@
                 ],
                 "granularity": "shared-card",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/retrodeck/roms/dreamcast/dc",
@@ -2624,7 +2649,8 @@
                 ],
                 "granularity": "shared-card",
                 "role": "battery",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -3286,7 +3312,8 @@
                 ],
                 "granularity": "shared-card",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -3519,7 +3546,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "battery",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -3956,7 +3984,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "unknown",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               }
             ]
           },
@@ -4206,7 +4235,8 @@
                 ],
                 "granularity": "shared-card",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -4311,7 +4341,8 @@
                 ],
                 "granularity": "shared-card",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -4698,7 +4729,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "battery",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -4917,7 +4949,8 @@
                 ],
                 "granularity": "shared-card",
                 "role": "battery",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -5136,7 +5169,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "battery",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -5416,7 +5450,8 @@
                 ],
                 "granularity": "shared-card",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -5628,7 +5663,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "battery",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -5805,7 +5841,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "battery",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/retrodeck/saves/saturn",
@@ -5814,7 +5851,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "battery",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/retrodeck/saves/saturn",
@@ -5823,7 +5861,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "settings",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -6423,7 +6462,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "battery",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/retrodeck/saves/saturn",
@@ -6432,7 +6472,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "battery",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/retrodeck/saves/saturn",
@@ -6441,7 +6482,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "settings",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -6638,7 +6680,8 @@
                 ],
                 "granularity": "shared-card",
                 "role": "battery",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -7328,7 +7371,8 @@
                 ],
                 "granularity": "shared-card",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -7686,7 +7730,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "unknown",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               }
             ]
           },
@@ -7755,7 +7800,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "unknown",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               }
             ]
           },
@@ -7823,7 +7869,8 @@
                 ],
                 "granularity": "per-game-files",
                 "role": "unknown",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               }
             ]
           },
@@ -7951,7 +7998,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "unknown",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               }
             ]
           },
@@ -8079,7 +8127,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "unknown",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               }
             ]
           },
@@ -8152,7 +8201,8 @@
                 ],
                 "granularity": "per-game-files",
                 "role": "unknown",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               }
             ]
           },
@@ -8287,7 +8337,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "battery",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -8416,7 +8467,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "battery",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -8553,7 +8605,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "battery",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -9015,7 +9068,8 @@
                     ],
                     "granularity": "per-game-file",
                     "role": "unknown",
-                    "size_fixed": null
+                    "size_fixed": null,
+                    "unit": null
                   }
                 ]
               },
@@ -9059,7 +9113,8 @@
                     ],
                     "granularity": "per-game-file",
                     "role": "unknown",
-                    "size_fixed": null
+                    "size_fixed": null,
+                    "unit": null
                   }
                 ]
               },
@@ -9237,7 +9292,8 @@
                     ],
                     "granularity": "per-game-file",
                     "role": "unknown",
-                    "size_fixed": null
+                    "size_fixed": null,
+                    "unit": null
                   }
                 ]
               },
@@ -9358,7 +9414,8 @@
                     ],
                     "granularity": "per-game-file",
                     "role": "unknown",
-                    "size_fixed": null
+                    "size_fixed": null,
+                    "unit": null
                   }
                 ]
               },
@@ -9403,7 +9460,8 @@
                     ],
                     "granularity": "per-game-file",
                     "role": "unknown",
-                    "size_fixed": null
+                    "size_fixed": null,
+                    "unit": null
                   }
                 ]
               },
@@ -9560,7 +9618,8 @@
                     ],
                     "granularity": "per-game-file",
                     "role": "battery",
-                    "size_fixed": true
+                    "size_fixed": true,
+                    "unit": null
                   }
                 ]
               },
@@ -9614,7 +9673,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "battery",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -9718,7 +9778,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "battery",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -9813,7 +9874,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "battery",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -9927,7 +9989,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "battery",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -10019,7 +10082,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "battery",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -10111,7 +10175,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "battery",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -10221,7 +10286,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "unknown",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               }
             ]
           },
@@ -10322,7 +10388,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "unknown",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               }
             ]
           },
@@ -11208,7 +11275,8 @@
                 ],
                 "granularity": "shared-card",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -11518,7 +11586,8 @@
                 "files": null,
                 "granularity": "per-game-files",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -12634,7 +12703,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "battery",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -12782,7 +12852,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "battery",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -12872,7 +12943,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "battery",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -12961,7 +13033,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "battery",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -13056,7 +13129,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "battery",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -14338,7 +14412,8 @@
                 ],
                 "granularity": "per-game-files",
                 "role": "battery",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               }
             ]
           },
@@ -14993,7 +15068,8 @@
                 ],
                 "granularity": "per-game-files",
                 "role": "battery",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               }
             ]
           },
@@ -15168,7 +15244,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "unknown",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               }
             ]
           },
@@ -15245,7 +15322,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "unknown",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               }
             ]
           },
@@ -15329,7 +15407,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "unknown",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               }
             ]
           },
@@ -15420,7 +15499,8 @@
                     ],
                     "granularity": "per-game-file",
                     "role": "unknown",
-                    "size_fixed": null
+                    "size_fixed": null,
+                    "unit": null
                   }
                 ]
               },
@@ -15464,7 +15544,8 @@
                     ],
                     "granularity": "per-game-file",
                     "role": "unknown",
-                    "size_fixed": null
+                    "size_fixed": null,
+                    "unit": null
                   }
                 ]
               },
@@ -15781,7 +15862,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "battery",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -15867,7 +15949,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "battery",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -16013,7 +16096,8 @@
                 ],
                 "granularity": "shared-card",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/retrodeck/bios/dc",
@@ -16022,7 +16106,8 @@
                 ],
                 "granularity": "shared-card",
                 "role": "battery",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -16195,7 +16280,8 @@
                 ],
                 "granularity": "shared-card",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/retrodeck/bios/dc",
@@ -16204,7 +16290,8 @@
                 ],
                 "granularity": "shared-card",
                 "role": "battery",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -16796,7 +16883,8 @@
                 ],
                 "granularity": "shared-card",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -22281,7 +22369,8 @@
                 ],
                 "granularity": "shared-card",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -23025,7 +23114,8 @@
                 ],
                 "granularity": "per-game-files",
                 "role": "battery",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/retrodeck/saves/saturn/kronos/stv",
@@ -23034,7 +23124,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "battery",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/retrodeck/saves/saturn/kronos/stv",
@@ -23043,7 +23134,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "battery",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -23159,7 +23251,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/retrodeck/bios/dc",
@@ -23170,7 +23263,8 @@
                 ],
                 "granularity": "shared-card",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/retrodeck/bios/dc",
@@ -23179,7 +23273,8 @@
                 ],
                 "granularity": "shared-card",
                 "role": "battery",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -23352,7 +23447,8 @@
                 ],
                 "granularity": "shared-card",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -23525,7 +23621,8 @@
                 ],
                 "granularity": "shared-card",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -23695,7 +23792,8 @@
                 ],
                 "granularity": "shared-card",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -23871,7 +23969,8 @@
                 ],
                 "granularity": "shared-card",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -24176,7 +24275,8 @@
                 ],
                 "granularity": "shared-card",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -24330,7 +24430,8 @@
                 ],
                 "granularity": "shared-card",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -24497,7 +24598,8 @@
                 ],
                 "granularity": "shared-card",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -24667,7 +24769,8 @@
                 ],
                 "granularity": "shared-card",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -24825,7 +24928,8 @@
                 ],
                 "granularity": "shared-card",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -24979,7 +25083,8 @@
                 "files": null,
                 "granularity": "shared-card",
                 "role": "memory-card",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               }
             ]
           },
@@ -25121,7 +25226,8 @@
                 "files": null,
                 "granularity": "shared-card",
                 "role": "memory-card",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               }
             ]
           },
@@ -25268,7 +25374,8 @@
                 ],
                 "granularity": "shared-card",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -25412,7 +25519,8 @@
                 ],
                 "granularity": "shared-card",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -25538,7 +25646,8 @@
                 ],
                 "granularity": "shared-card",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -25676,7 +25785,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -25816,7 +25926,8 @@
                 ],
                 "granularity": "shared-card",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -25925,21 +26036,24 @@
                 "files": null,
                 "granularity": "per-game-files",
                 "role": "memory-card",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/retrodeck/saves/gc/User/GC/EUR/Card A",
                 "files": null,
                 "granularity": "per-game-files",
                 "role": "memory-card",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/retrodeck/saves/gc/User/GC/JAP/Card A",
                 "files": null,
                 "granularity": "per-game-files",
                 "role": "memory-card",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -26143,7 +26257,8 @@
                 ],
                 "granularity": "shared-file",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/retrodeck/saves/gc/User/GC",
@@ -26152,7 +26267,8 @@
                 ],
                 "granularity": "shared-file",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/retrodeck/saves/gc/User/GC",
@@ -26161,7 +26277,8 @@
                 ],
                 "granularity": "shared-file",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -26276,7 +26393,8 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -26399,7 +26517,8 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -26512,7 +26631,8 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },

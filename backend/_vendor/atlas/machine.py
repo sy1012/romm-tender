@@ -95,7 +95,7 @@ from dataclasses import dataclass, field
 from types import MappingProxyType
 from typing import BinaryIO, Callable, Iterable, Literal, Mapping, NamedTuple, Protocol, cast, runtime_checkable
 
-from . import lha, ps2_bios, ps3_file, ps3_iso, psx_chd, psx_disc, psx_pbp, squashfs, whdload
+from . import dolphin_disc, lha, ps2_bios, ps3_file, ps3_iso, psx_chd, psx_disc, psx_pbp, squashfs, whdload
 from .content_path import archive_delimiter
 
 try:
@@ -251,6 +251,23 @@ Ps3FileStatus = Literal["ok", "missing", "unreadable"]
 PS3_FILE_OK: Ps3FileStatus = "ok"
 PS3_FILE_MISSING: Ps3FileStatus = "missing"
 PS3_FILE_UNREADABLE: Ps3FileStatus = "unreadable"
+
+# Reading what Dolphin reads of a GameCube or Wii disc image (atlas.dolphin_disc)
+# fails the way a plain read fails, and in one way that is a finding about the
+# bytes: "not-a-disc" is a file no container reader there takes, or whose disc
+# header carries neither disc magic — a TGC, an NFS, a playlist, a truncated
+# image. "missing" is no regular file there once links are followed.
+DolphinDiscStatus = Literal["ok", "missing", "unreadable", "not-a-disc"]
+DOLPHIN_DISC_OK: DolphinDiscStatus = "ok"
+DOLPHIN_DISC_MISSING: DolphinDiscStatus = "missing"
+DOLPHIN_DISC_UNREADABLE: DolphinDiscStatus = "unreadable"
+DOLPHIN_DISC_NOT_A_DISC: DolphinDiscStatus = "not-a-disc"
+DOLPHIN_DISC_STATUSES: tuple[DolphinDiscStatus, ...] = (
+    DOLPHIN_DISC_OK,
+    DOLPHIN_DISC_MISSING,
+    DOLPHIN_DISC_UNREADABLE,
+    DOLPHIN_DISC_NOT_A_DISC,
+)
 
 # Reading a PlayStation disc's identity has two ways to fail beyond a plain
 # file read, and both are findings rather than read failures. "format-not-read"
@@ -438,6 +455,24 @@ class AppImageStampResult:
         if (self.stamp is None) == (self.status == APPIMAGE_STAMP_OK):
             raise ValueError(
                 f"AppImageStampResult: stamp must be set exactly when status is 'ok' (got {self.status!r})"
+            )
+
+
+@dataclass(frozen=True, slots=True)
+class DolphinDiscResult:
+    """One read of what Dolphin reads of a disc image — ``facts`` is set exactly when ``status`` is ok.
+
+    ``missing`` / ``unreadable`` mean what they mean on :class:`ReadResult`;
+    the facts are :class:`atlas.dolphin_disc.DolphinDiscFacts`.
+    """
+
+    status: DolphinDiscStatus
+    facts: dolphin_disc.DolphinDiscFacts | None = None
+
+    def __post_init__(self) -> None:
+        if (self.facts is None) == (self.status == DOLPHIN_DISC_OK):
+            raise ValueError(
+                f"DolphinDiscResult: facts must be set exactly when status is 'ok' (got {self.status!r})"
             )
 
 
@@ -1220,6 +1255,8 @@ class Machine(Protocol):
 
     def read_ps3_file(self, path: str) -> Ps3FileResult: ...
 
+    def read_dolphin_disc(self, path: str) -> DolphinDiscResult: ...
+
     def read_disc_identity(self, path: str, *, extracted: ExtractedEntry | None = None) -> DiscIdentityResult: ...
 
     def list_archive(self, path: str) -> ArchiveListResult: ...
@@ -1666,6 +1703,32 @@ class RealMachine:
         except (OSError, ps3_file.Ps3FileUnread):
             return Ps3FileResult(PS3_FILE_UNREADABLE)
         return Ps3FileResult(PS3_FILE_OK, facts)
+
+    def read_dolphin_disc(self, path: str) -> DolphinDiscResult:
+        """What Dolphin reads of the disc image at *path* — a status, and the facts where it was read.
+
+        A regular file once links are followed, checked before opening, as
+        for :meth:`read_ps3_file`. The reader is :mod:`atlas.dolphin_disc`;
+        an image it does not take is ``not-a-disc``.
+        """
+        try:
+            st = os.stat(path)
+        except (FileNotFoundError, NotADirectoryError):
+            return DolphinDiscResult(DOLPHIN_DISC_MISSING)
+        except OSError:
+            return DolphinDiscResult(DOLPHIN_DISC_UNREADABLE)
+        if not _stat.S_ISREG(st.st_mode):
+            return DolphinDiscResult(DOLPHIN_DISC_MISSING)
+        try:
+            with open(path, "rb") as f:
+                facts = dolphin_disc.read_facts(f)
+        except (FileNotFoundError, NotADirectoryError):
+            return DolphinDiscResult(DOLPHIN_DISC_MISSING)
+        except dolphin_disc.DolphinDiscUnread:
+            return DolphinDiscResult(DOLPHIN_DISC_NOT_A_DISC)
+        except OSError:
+            return DolphinDiscResult(DOLPHIN_DISC_UNREADABLE)
+        return DolphinDiscResult(DOLPHIN_DISC_OK, facts)
 
     def read_disc_identity(self, path: str, *, extracted: ExtractedEntry | None = None) -> DiscIdentityResult:
         """The bytes a PlayStation disc's emulators decide its region from — a status, and the identity where read.
@@ -2704,6 +2767,61 @@ def _fixture_ps2_bios_header(path: str, spec: Mapping[str, object]) -> ps2_bios.
     return ps2_bios.Ps2BiosHeader.from_strings(strings["romver"], strings["serial"])
 
 
+_FIXTURE_DOLPHIN_DISC_FIELDS = ("container", "platform", "game_id", "revision", "region_code", "title_id")
+
+
+def _validate_fixture_dolphin_discs(
+    declared: Mapping[str, object],
+    files: Mapping[str, tuple[ReadStatus, str | None]],
+) -> dict[str, dolphin_disc.DolphinDiscFacts | str]:
+    """The declared facts of each disc image Dolphin reads, built by the reader's own type — or ``not-a-disc``.
+
+    The facts describe a file's bytes, so the path must be a declared file
+    whose bytes can be read, as for ``ps3_files``. Every field is stated:
+    ``region_code`` and ``title_id`` are ``null`` where the disc is the other
+    platform's or the container does not expose them; ``title_id`` is the
+    sixteen lowercase hex digits ``{:016x}`` spells.
+    """
+    validated: dict[str, dolphin_disc.DolphinDiscFacts | str] = {}
+    for path, spec in declared.items():
+        if path not in files:
+            raise ValueError(f"dolphin disc {path!r}: facts describe a file's bytes, and no file is declared there")
+        if files[path][0] == READ_UNREADABLE:
+            raise ValueError(
+                f"dolphin disc {path!r}: an unreadable file states no facts — its bytes are what cannot be read"
+            )
+        if spec == DOLPHIN_DISC_NOT_A_DISC:
+            validated[path] = DOLPHIN_DISC_NOT_A_DISC
+            continue
+        if not isinstance(spec, Mapping) or set(cast("Mapping[str, object]", spec)) != set(_FIXTURE_DOLPHIN_DISC_FIELDS):
+            raise ValueError(
+                f"dolphin disc {path!r}: expected 'not-a-disc' or an object with exactly "
+                f"{', '.join(_FIXTURE_DOLPHIN_DISC_FIELDS)}, got {spec!r}"
+            )
+        validated[path] = _fixture_dolphin_facts(path, cast("Mapping[str, object]", spec))
+    return validated
+
+
+def _fixture_dolphin_facts(path: str, fields: Mapping[str, object]) -> dolphin_disc.DolphinDiscFacts:
+    title = fields["title_id"]
+    if title is not None and (not isinstance(title, str) or not re.fullmatch("[0-9a-f]{16}", title)):
+        raise ValueError(f"dolphin disc {path!r}: title_id must be null or sixteen lowercase hex digits")
+    region, revision = fields["region_code"], fields["revision"]
+    if (region is not None and (type(region) is not int)) or type(revision) is not int:
+        raise ValueError(f"dolphin disc {path!r}: revision and region_code are numbers")
+    try:
+        return dolphin_disc.DolphinDiscFacts(
+            container=cast("dolphin_disc.Container", fields["container"]),
+            platform=cast("dolphin_disc.DiscPlatform", fields["platform"]),
+            game_id=cast(str, fields["game_id"]),
+            revision=revision,
+            region_code=region,
+            title_id=None if title is None else int(title, 16),
+        )
+    except (TypeError, ValueError) as error:
+        raise ValueError(f"dolphin disc {path!r}: {error}") from error
+
+
 _FIXTURE_PS3_FILE_FIELDS = ("magic", "iso", "category")
 _FIXTURE_PS3_ISO_FIELDS = ("regions", "watermark")
 _FIXTURE_PS3_ISO_OPTIONAL = ("blocks",)
@@ -3224,6 +3342,7 @@ class FixtureMachine:
         appimage_stamps: Mapping[str, object] | None = None,
         ps2_bios_headers: Mapping[str, Mapping[str, object] | str] | None = None,
         ps3_files: Mapping[str, object] | None = None,
+        dolphin_discs: Mapping[str, object] | None = None,
         disc_identities: Mapping[str, Mapping[str, object] | str] | None = None,
         archives: Mapping[str, object] | None = None,
         whdload_slaves: Mapping[str, object] | None = None,
@@ -3236,6 +3355,7 @@ class FixtureMachine:
         self._appimage_stamps = _validate_fixture_appimage_stamps(appimage_stamps or {}, self._appimages)
         self._ps2_bios_headers = _validate_fixture_ps2_bios_headers(ps2_bios_headers or {}, self._files)
         self._ps3_files = _validate_fixture_ps3_files(ps3_files or {}, self._files)
+        self._dolphin_discs = _validate_fixture_dolphin_discs(dolphin_discs or {}, self._files)
         self._inaccessible = set(inaccessible or ())
         self._unlistable = set(unlistable or ())
         _refuse_both_unreadable_lists(self._inaccessible, self._unlistable)
@@ -3438,6 +3558,31 @@ class FixtureMachine:
         if resolved in self._files:
             return Ps3FileResult(PS3_FILE_UNREADABLE)
         return Ps3FileResult(PS3_FILE_MISSING)
+
+    def read_dolphin_disc(self, path: str) -> DolphinDiscResult:
+        """The modeled read of what Dolphin reads of a disc image — the facts declared, RealMachine's outcomes.
+
+        Modeled beside ``files`` for the reason ``ps3_files`` is: the facts sit
+        in a disc image, or behind a container's compression, that no fixture
+        should carry. A path declared in ``dolphin_discs`` answers its facts or
+        ``not-a-disc``. A declared file with no entry there answers
+        ``unreadable``, so a vector that forgot the key cannot prove a disc
+        nobody modeled. A directory, a dead link and nothing at all answer
+        ``missing``, an ``unreadable`` file ``unreadable``.
+        """
+        if self._is_inaccessible(path):
+            return DolphinDiscResult(DOLPHIN_DISC_UNREADABLE)
+        resolved = self._resolve(path).path
+        if resolved is None or resolved in self._dirs:
+            return DolphinDiscResult(DOLPHIN_DISC_MISSING)
+        declared = self._dolphin_discs.get(resolved)
+        if isinstance(declared, dolphin_disc.DolphinDiscFacts):
+            return DolphinDiscResult(DOLPHIN_DISC_OK, declared)
+        if declared is not None:
+            return DolphinDiscResult(DOLPHIN_DISC_NOT_A_DISC)
+        if resolved in self._files:
+            return DolphinDiscResult(DOLPHIN_DISC_UNREADABLE)
+        return DolphinDiscResult(DOLPHIN_DISC_MISSING)
 
     def read_disc_identity(self, path: str, *, extracted: ExtractedEntry | None = None) -> DiscIdentityResult:
         """The modeled disc identity read — the four facts in, the same outcomes RealMachine reports.

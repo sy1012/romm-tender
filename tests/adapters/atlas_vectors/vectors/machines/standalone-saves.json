@@ -63,21 +63,24 @@
                 "files": null,
                 "granularity": "per-game-files",
                 "role": "memory-card",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               },
               {
                 "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/data/dolphin-emu/GC/EUR/Card A",
                 "files": null,
                 "granularity": "per-game-files",
                 "role": "memory-card",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               },
               {
                 "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/data/dolphin-emu/GC/JAP/Card A",
                 "files": null,
                 "granularity": "per-game-files",
                 "role": "memory-card",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -390,21 +393,24 @@
                 "files": null,
                 "granularity": "per-game-files",
                 "role": "memory-card",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               },
               {
                 "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/data/dolphin-emu/GC/EUR/Card A",
                 "files": null,
                 "granularity": "per-game-files",
                 "role": "memory-card",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               },
               {
                 "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/data/dolphin-emu/GC/JAP/Card A",
                 "files": null,
                 "granularity": "per-game-files",
                 "role": "memory-card",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -720,7 +726,8 @@
                 ],
                 "granularity": "shared-file",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               },
               {
                 "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/data/dolphin-emu/GC",
@@ -729,7 +736,8 @@
                 ],
                 "granularity": "shared-file",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               },
               {
                 "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/data/dolphin-emu/GC",
@@ -738,7 +746,8 @@
                 ],
                 "granularity": "shared-file",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -969,7 +978,8 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -1162,7 +1172,8 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -1394,7 +1405,8 @@
                 "files": null,
                 "granularity": "per-game-files",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -1487,7 +1499,8 @@
                 ],
                 "granularity": "shared-file",
                 "role": "battery",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/retrodeck/saves/xbox/xemu",
@@ -1496,7 +1509,8 @@
                 ],
                 "granularity": "shared-file",
                 "role": "settings",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -1634,7 +1648,8 @@
                 ],
                 "granularity": "shared-file",
                 "role": "battery",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               },
               {
                 "dir": "/home/deck/Emulation/saves/xemu",
@@ -1643,7 +1658,8 @@
                 ],
                 "granularity": "shared-file",
                 "role": "settings",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -1732,7 +1748,8 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -1850,7 +1867,8 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -1966,7 +1984,8 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -2181,14 +2200,16 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/retrodeck/saves/n3ds/azahar/sdmc/Nintendo 3DS/00000000000000000000000000000000/00000000000000000000000000000000/extdata",
                 "files": null,
                 "granularity": "per-game-files",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -2319,14 +2340,16 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               },
               {
                 "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/data/azahar-emu/sdmc/Nintendo 3DS/00000000000000000000000000000000/00000000000000000000000000000000/extdata",
                 "files": null,
                 "granularity": "per-game-files",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -2453,14 +2476,16 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               },
               {
                 "dir": "/home/deck/Emulation/storage/azahar/sdmc/Nintendo 3DS/00000000000000000000000000000000/00000000000000000000000000000000/extdata",
                 "files": null,
                 "granularity": "per-game-files",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -2596,14 +2621,16 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               },
               {
                 "dir": "/home/deck/Emulation/storage/azahar/sdmc/Nintendo 3DS/00000000000000000000000000000000/00000000000000000000000000000000/extdata",
                 "files": null,
                 "granularity": "per-game-files",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -2740,7 +2767,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -2859,7 +2887,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -2972,7 +3001,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -3087,7 +3117,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/retrodeck/saves/psx/duckstation/memcards",
@@ -3096,7 +3127,8 @@
                 ],
                 "granularity": "shared-card",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -3219,7 +3251,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -3349,7 +3382,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -3471,7 +3505,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -3604,7 +3639,8 @@
                 ],
                 "granularity": "shared-card",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards",
@@ -3613,7 +3649,8 @@
                 ],
                 "granularity": "shared-card",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -3730,7 +3767,8 @@
                 ],
                 "granularity": "shared-card",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               },
               {
                 "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/config/PCSX2/memcards",
@@ -3739,7 +3777,8 @@
                 ],
                 "granularity": "shared-card",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -3860,7 +3899,8 @@
                 "files": null,
                 "granularity": "per-game-files",
                 "role": "memory-card",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards",
@@ -3869,7 +3909,8 @@
                 ],
                 "granularity": "shared-card",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -3999,7 +4040,8 @@
                 ],
                 "granularity": "shared-card",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -4113,7 +4155,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "battery",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -4189,7 +4232,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "battery",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -4277,7 +4321,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "battery",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -4364,7 +4409,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "battery",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -4459,7 +4505,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "battery",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -4557,7 +4604,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "battery",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -4640,14 +4688,16 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/retrodeck/storage/rpcs3/dev_hdd0/savedata/vmc",
                 "files": null,
                 "granularity": "per-game-file",
                 "role": "memory-card",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               }
             ]
           },
@@ -4762,21 +4812,24 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/hdd0/home/00000002/savedata",
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/hdd0/savedata/vmc",
                 "files": null,
                 "granularity": "per-game-file",
                 "role": "memory-card",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               }
             ]
           },
@@ -4892,14 +4945,16 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/hdd0/savedata/vmc",
                 "files": null,
                 "granularity": "per-game-file",
                 "role": "memory-card",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               }
             ]
           },
@@ -5018,14 +5073,16 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/hdd0/savedata/vmc",
                 "files": null,
                 "granularity": "per-game-file",
                 "role": "memory-card",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               }
             ]
           },
@@ -5135,14 +5192,16 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               },
               {
                 "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/config/rpcs3/dev_hdd0/savedata/vmc",
                 "files": null,
                 "granularity": "per-game-file",
                 "role": "memory-card",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               }
             ]
           },
@@ -5260,14 +5319,16 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               },
               {
                 "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/config/rpcs3/dev_hdd0/savedata/vmc",
                 "files": null,
                 "granularity": "per-game-file",
                 "role": "memory-card",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               }
             ]
           },
@@ -5378,14 +5439,16 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/retrodeck/storage/rpcs3/dev_hdd0/savedata/vmc",
                 "files": null,
                 "granularity": "per-game-file",
                 "role": "memory-card",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               }
             ]
           },
@@ -5496,14 +5559,16 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/retrodeck/storage/rpcs3/dev_hdd0/savedata/vmc",
                 "files": null,
                 "granularity": "per-game-file",
                 "role": "memory-card",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               }
             ]
           },
@@ -5708,14 +5773,16 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               },
               {
                 "dir": "/home/deck/Emulation/storage/rpcs3/dev_hdd0/savedata/vmc",
                 "files": null,
                 "granularity": "per-game-file",
                 "role": "memory-card",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               }
             ]
           },
@@ -5829,14 +5896,16 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/hdd0/savedata/vmc",
                 "files": null,
                 "granularity": "per-game-file",
                 "role": "memory-card",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               }
             ]
           },
@@ -5954,14 +6023,16 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/hdd0/savedata/vmc",
                 "files": null,
                 "granularity": "per-game-file",
                 "role": "memory-card",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               }
             ]
           },
@@ -6079,21 +6150,24 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/hdd0/home/1234abcd/savedata",
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/hdd0/savedata/vmc",
                 "files": null,
                 "granularity": "per-game-file",
                 "role": "memory-card",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               }
             ]
           },
@@ -6209,14 +6283,16 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/hdd0/savedata/vmc",
                 "files": null,
                 "granularity": "per-game-file",
                 "role": "memory-card",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               }
             ]
           },
@@ -6331,14 +6407,16 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/hdd0/savedata/vmc",
                 "files": null,
                 "granularity": "per-game-file",
                 "role": "memory-card",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               }
             ]
           },
@@ -6458,14 +6536,16 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/hdd0/savedata/vmc",
                 "files": null,
                 "granularity": "per-game-file",
                 "role": "memory-card",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               }
             ]
           },
@@ -6583,14 +6663,16 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/hdd0/savedata/vmc",
                 "files": null,
                 "granularity": "per-game-file",
                 "role": "memory-card",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               }
             ]
           },
@@ -6709,14 +6791,16 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/hdd0/savedata/vmc",
                 "files": null,
                 "granularity": "per-game-file",
                 "role": "memory-card",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               }
             ]
           },
@@ -6835,14 +6919,16 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/hdd0/savedata/vmc",
                 "files": null,
                 "granularity": "per-game-file",
                 "role": "memory-card",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               }
             ]
           },
@@ -6959,7 +7045,8 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -7064,14 +7151,16 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/vita/ux0/user/01/savedata",
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -7177,14 +7266,16 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/vita/ux0/user/01/savedata",
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -7291,14 +7382,16 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/vita/ux0/user/01/savedata",
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -7405,14 +7498,16 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/vita/ux0/user/01/savedata",
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -7516,7 +7611,8 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -7624,7 +7720,8 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -7730,7 +7827,8 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -7836,14 +7934,16 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/vita/ux0/user/00/savedata",
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -7950,14 +8050,16 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/vita/ux0/user/00/savedata",
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -8063,7 +8165,8 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -8170,7 +8273,8 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -8274,7 +8378,8 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -8382,7 +8487,8 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -8491,7 +8597,8 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -8601,7 +8708,8 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -8707,7 +8815,8 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -8810,7 +8919,8 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -8913,7 +9023,8 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -9017,7 +9128,8 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -9120,7 +9232,8 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -9224,7 +9337,8 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -9328,7 +9442,8 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -9434,14 +9549,16 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/vita/ux0/user/01/savedata",
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -9546,7 +9663,8 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -9653,7 +9771,8 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -9760,7 +9879,8 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -9864,7 +9984,8 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -9968,7 +10089,8 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -10077,14 +10199,16 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/vita/ux0/user/01/savedata",
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -10195,7 +10319,8 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -10303,7 +10428,8 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -10410,7 +10536,8 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -10739,7 +10866,8 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -10887,21 +11015,24 @@
                 "files": null,
                 "granularity": "per-game-files",
                 "role": "memory-card",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               },
               {
                 "dir": "/home/deck/.var/app/org.DolphinEmu.dolphin-emu/data/dolphin-emu/GC/EUR/Card A",
                 "files": null,
                 "granularity": "per-game-files",
                 "role": "memory-card",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               },
               {
                 "dir": "/home/deck/.var/app/org.DolphinEmu.dolphin-emu/data/dolphin-emu/GC/JAP/Card A",
                 "files": null,
                 "granularity": "per-game-files",
                 "role": "memory-card",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -11208,7 +11339,8 @@
                 "files": null,
                 "granularity": "per-game-files",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -11297,21 +11429,24 @@
                 "files": null,
                 "granularity": "per-game-files",
                 "role": "memory-card",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               },
               {
                 "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/data/primehack/GC/EUR/Card A",
                 "files": null,
                 "granularity": "per-game-files",
                 "role": "memory-card",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               },
               {
                 "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/data/primehack/GC/JAP/Card A",
                 "files": null,
                 "granularity": "per-game-files",
                 "role": "memory-card",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -11617,7 +11752,8 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -11802,21 +11938,24 @@
                 "files": null,
                 "granularity": "per-game-files",
                 "role": "memory-card",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               },
               {
                 "dir": "/home/deck/.var/app/io.github.shiiion.primehack/data/dolphin-emu/GC/EUR/Card A",
                 "files": null,
                 "granularity": "per-game-files",
                 "role": "memory-card",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               },
               {
                 "dir": "/home/deck/.var/app/io.github.shiiion.primehack/data/dolphin-emu/GC/JAP/Card A",
                 "files": null,
                 "granularity": "per-game-files",
                 "role": "memory-card",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -12672,7 +12811,8 @@
                 ],
                 "granularity": "shared-file",
                 "role": "battery",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/retrodeck/saves/xbox/xemu",
@@ -12681,7 +12821,8 @@
                 ],
                 "granularity": "shared-file",
                 "role": "settings",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -12782,7 +12923,8 @@
                 ],
                 "granularity": "shared-file",
                 "role": "battery",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/retrodeck/saves/xbox/xemu",
@@ -12791,7 +12933,8 @@
                 ],
                 "granularity": "shared-file",
                 "role": "settings",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -12884,7 +13027,8 @@
                 ],
                 "granularity": "shared-file",
                 "role": "battery",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/retrodeck/saves/xbox/xemu",
@@ -12893,7 +13037,8 @@
                 ],
                 "granularity": "shared-file",
                 "role": "settings",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -12986,7 +13131,8 @@
                 ],
                 "granularity": "shared-file",
                 "role": "battery",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/retrodeck/saves/xbox/xemu",
@@ -12995,7 +13141,8 @@
                 ],
                 "granularity": "shared-file",
                 "role": "settings",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -13091,7 +13238,8 @@
                 ],
                 "granularity": "shared-card",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -13193,7 +13341,8 @@
                 ],
                 "granularity": "shared-card",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards",
@@ -13202,7 +13351,8 @@
                 ],
                 "granularity": "shared-card",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -13331,7 +13481,8 @@
                 ],
                 "granularity": "shared-file",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               },
               {
                 "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/data/dolphin-emu/GC",
@@ -13340,7 +13491,8 @@
                 ],
                 "granularity": "shared-file",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               },
               {
                 "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/data/dolphin-emu/GC",
@@ -13349,28 +13501,32 @@
                 ],
                 "granularity": "shared-file",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               },
               {
                 "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/data/dolphin-emu/GC/USA/Card B",
                 "files": null,
                 "granularity": "per-game-files",
                 "role": "memory-card",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               },
               {
                 "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/data/dolphin-emu/GC/EUR/Card B",
                 "files": null,
                 "granularity": "per-game-files",
                 "role": "memory-card",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               },
               {
                 "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/data/dolphin-emu/GC/JAP/Card B",
                 "files": null,
                 "granularity": "per-game-files",
                 "role": "memory-card",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -13674,7 +13830,8 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -13879,7 +14036,8 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -14093,7 +14251,8 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -14302,7 +14461,8 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -14514,7 +14674,8 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -14722,7 +14883,8 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -14920,7 +15082,8 @@
                 ],
                 "granularity": "shared-file",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               },
               {
                 "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/data/dolphin-emu/GC",
@@ -14929,7 +15092,8 @@
                 ],
                 "granularity": "shared-file",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               },
               {
                 "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/data/dolphin-emu/GC",
@@ -14938,7 +15102,8 @@
                 ],
                 "granularity": "shared-file",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -15189,7 +15354,8 @@
                 ],
                 "granularity": "shared-file",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               },
               {
                 "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/data/dolphin-emu/GC",
@@ -15198,7 +15364,8 @@
                 ],
                 "granularity": "shared-file",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               },
               {
                 "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/data/dolphin-emu/GC",
@@ -15207,7 +15374,8 @@
                 ],
                 "granularity": "shared-file",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -15457,7 +15625,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -15596,7 +15765,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -15730,7 +15900,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -15874,7 +16045,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -15996,7 +16168,8 @@
                 ],
                 "granularity": "shared-card",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards",
@@ -16005,7 +16178,8 @@
                 ],
                 "granularity": "shared-card",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -16156,7 +16330,8 @@
                 ],
                 "granularity": "shared-card",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards",
@@ -16165,7 +16340,8 @@
                 ],
                 "granularity": "shared-card",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -16311,7 +16487,8 @@
                 ],
                 "granularity": "shared-card",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards",
@@ -16320,7 +16497,8 @@
                 ],
                 "granularity": "shared-card",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -16472,7 +16650,8 @@
                 ],
                 "granularity": "shared-card",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -16584,7 +16763,8 @@
                 ],
                 "granularity": "shared-card",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -16692,7 +16872,8 @@
                 "files": null,
                 "granularity": "per-game-files",
                 "role": "memory-card",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -16814,7 +16995,8 @@
                 ],
                 "granularity": "shared-card",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -16936,7 +17118,8 @@
                 ],
                 "granularity": "shared-card",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -17049,7 +17232,8 @@
                 ],
                 "granularity": "shared-card",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards",
@@ -17058,7 +17242,8 @@
                 ],
                 "granularity": "shared-card",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -17185,7 +17370,8 @@
                 ],
                 "granularity": "shared-card",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -17310,7 +17496,8 @@
                 ],
                 "granularity": "shared-card",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -17416,7 +17603,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -17538,7 +17726,8 @@
                 ],
                 "granularity": "shared-card",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               },
               {
                 "dir": "/home/deck/Emulation/saves/duckstation/saves",
@@ -17547,7 +17736,8 @@
                 ],
                 "granularity": "shared-card",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -17651,21 +17841,24 @@
                 "files": null,
                 "granularity": "per-game-files",
                 "role": "memory-card",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               },
               {
                 "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/data/dolphin-emu/GC/EUR/Card B",
                 "files": null,
                 "granularity": "per-game-files",
                 "role": "memory-card",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               },
               {
                 "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/data/dolphin-emu/GC/JAP/Card B",
                 "files": null,
                 "granularity": "per-game-files",
                 "role": "memory-card",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -17965,21 +18158,24 @@
                 "files": null,
                 "granularity": "per-game-files",
                 "role": "memory-card",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               },
               {
                 "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/data/dolphin-emu/GC/EUR/Card B",
                 "files": null,
                 "granularity": "per-game-files",
                 "role": "memory-card",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               },
               {
                 "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/data/dolphin-emu/GC/JAP/Card B",
                 "files": null,
                 "granularity": "per-game-files",
                 "role": "memory-card",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -18283,42 +18479,48 @@
                 "files": null,
                 "granularity": "per-game-files",
                 "role": "memory-card",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               },
               {
                 "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/data/dolphin-emu/GC/EUR/Card A",
                 "files": null,
                 "granularity": "per-game-files",
                 "role": "memory-card",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               },
               {
                 "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/data/dolphin-emu/GC/JAP/Card A",
                 "files": null,
                 "granularity": "per-game-files",
                 "role": "memory-card",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               },
               {
                 "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/data/dolphin-emu/GC/USA/Card B",
                 "files": null,
                 "granularity": "per-game-files",
                 "role": "memory-card",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               },
               {
                 "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/data/dolphin-emu/GC/EUR/Card B",
                 "files": null,
                 "granularity": "per-game-files",
                 "role": "memory-card",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               },
               {
                 "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/data/dolphin-emu/GC/JAP/Card B",
                 "files": null,
                 "granularity": "per-game-files",
                 "role": "memory-card",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -18705,42 +18907,48 @@
                 "files": null,
                 "granularity": "per-game-files",
                 "role": "memory-card",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               },
               {
                 "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/data/dolphin-emu/GC/EUR/Card A",
                 "files": null,
                 "granularity": "per-game-files",
                 "role": "memory-card",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               },
               {
                 "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/data/dolphin-emu/GC/JAP/Card A",
                 "files": null,
                 "granularity": "per-game-files",
                 "role": "memory-card",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               },
               {
                 "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/data/dolphin-emu/GC/USA/Card B",
                 "files": null,
                 "granularity": "per-game-files",
                 "role": "memory-card",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               },
               {
                 "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/data/dolphin-emu/GC/EUR/Card B",
                 "files": null,
                 "granularity": "per-game-files",
                 "role": "memory-card",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               },
               {
                 "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/data/dolphin-emu/GC/JAP/Card B",
                 "files": null,
                 "granularity": "per-game-files",
                 "role": "memory-card",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -19361,21 +19569,24 @@
                 "files": null,
                 "granularity": "per-game-files",
                 "role": "memory-card",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               },
               {
                 "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/data/dolphin-emu/GC/EUR/Card A",
                 "files": null,
                 "granularity": "per-game-files",
                 "role": "memory-card",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               },
               {
                 "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/data/dolphin-emu/GC/JAP/Card A",
                 "files": null,
                 "granularity": "per-game-files",
                 "role": "memory-card",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -19695,7 +19906,8 @@
                 ],
                 "granularity": "shared-file",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               },
               {
                 "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/data/dolphin-emu/GC",
@@ -19704,7 +19916,8 @@
                 ],
                 "granularity": "shared-file",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               },
               {
                 "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/data/dolphin-emu/GC",
@@ -19713,7 +19926,8 @@
                 ],
                 "granularity": "shared-file",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               },
               {
                 "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/data/dolphin-emu/GC",
@@ -19722,7 +19936,8 @@
                 ],
                 "granularity": "shared-file",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               },
               {
                 "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/data/dolphin-emu/GC",
@@ -19731,7 +19946,8 @@
                 ],
                 "granularity": "shared-file",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               },
               {
                 "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/data/dolphin-emu/GC",
@@ -19740,7 +19956,8 @@
                 ],
                 "granularity": "shared-file",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -19973,7 +20190,8 @@
                 ],
                 "granularity": "shared-file",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               },
               {
                 "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/data/dolphin-emu/GC",
@@ -19982,7 +20200,8 @@
                 ],
                 "granularity": "shared-file",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               },
               {
                 "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/data/dolphin-emu/GC",
@@ -19991,7 +20210,8 @@
                 ],
                 "granularity": "shared-file",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -20227,21 +20447,24 @@
                 "files": null,
                 "granularity": "per-game-files",
                 "role": "memory-card",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               },
               {
                 "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/data/dolphin-emu/GC/EUR/Card A",
                 "files": null,
                 "granularity": "per-game-files",
                 "role": "memory-card",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               },
               {
                 "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/data/dolphin-emu/GC/JAP/Card A",
                 "files": null,
                 "granularity": "per-game-files",
                 "role": "memory-card",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -20798,7 +21021,8 @@
                 ],
                 "granularity": "shared-file",
                 "role": "battery",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -21930,7 +22154,8 @@
                 ],
                 "granularity": "shared-file",
                 "role": "battery",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -22162,7 +22387,8 @@
                 ],
                 "granularity": "shared-file",
                 "role": "battery",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -22852,7 +23078,8 @@
                 ],
                 "granularity": "shared-file",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               },
               {
                 "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/data/dolphin-emu/GC",
@@ -22861,7 +23088,8 @@
                 ],
                 "granularity": "shared-file",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               },
               {
                 "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/data/dolphin-emu/GC",
@@ -22870,7 +23098,8 @@
                 ],
                 "granularity": "shared-file",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/retrodeck/roms/gba",
@@ -22879,7 +23108,8 @@
                 ],
                 "granularity": "shared-file",
                 "role": "battery",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -24063,21 +24293,24 @@
                 "files": null,
                 "granularity": "per-game-files",
                 "role": "memory-card",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               },
               {
                 "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/data/dolphin-emu/GC/EUR/Card A",
                 "files": null,
                 "granularity": "per-game-files",
                 "role": "memory-card",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               },
               {
                 "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/data/dolphin-emu/GC/JAP/Card A",
                 "files": null,
                 "granularity": "per-game-files",
                 "role": "memory-card",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -24383,21 +24616,24 @@
                 "files": null,
                 "granularity": "per-game-files",
                 "role": "memory-card",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               },
               {
                 "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/data/dolphin-emu/GC/EUR/Card A",
                 "files": null,
                 "granularity": "per-game-files",
                 "role": "memory-card",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               },
               {
                 "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/data/dolphin-emu/GC/JAP/Card A",
                 "files": null,
                 "granularity": "per-game-files",
                 "role": "memory-card",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -24752,7 +24988,8 @@
                 ],
                 "granularity": "shared-file",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               },
               {
                 "dir": "/mnt/cards",
@@ -24761,7 +24998,8 @@
                 ],
                 "granularity": "shared-file",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               },
               {
                 "dir": "/mnt/cards",
@@ -24770,7 +25008,8 @@
                 ],
                 "granularity": "shared-file",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -25468,7 +25707,8 @@
                 ],
                 "granularity": "shared-file",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               },
               {
                 "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/data/primehack/GC",
@@ -25477,7 +25717,8 @@
                 ],
                 "granularity": "shared-file",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               },
               {
                 "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/data/primehack/GC",
@@ -25486,7 +25727,8 @@
                 ],
                 "granularity": "shared-file",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -26175,7 +26417,8 @@
                 ],
                 "granularity": "shared-file",
                 "role": "battery",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -26719,7 +26962,8 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -26826,7 +27070,8 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -26939,14 +27184,16 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/vita/ux0/user/01/savedata",
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -27048,14 +27295,16 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/vita/ux0/user/02/savedata",
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -27157,14 +27406,16 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/vita/ux0/user/03/savedata",
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -27266,14 +27517,16 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/vita/ux0/user/00/savedata",
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -27374,14 +27627,16 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/vita/ux0/user/01/savedata",
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -27479,7 +27734,8 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -27577,7 +27833,8 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -27675,7 +27932,8 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -27779,14 +28037,16 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/vita/ux0/user/01/savedata",
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -27888,7 +28148,8 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -27994,7 +28255,8 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -28099,7 +28361,8 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -28204,7 +28467,8 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -28308,7 +28572,8 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -28411,14 +28676,16 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/vita/ux0/user/null/savedata",
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -28520,7 +28787,8 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -28628,14 +28896,16 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/vita/ux0/user/01/savedata",
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -28736,14 +29006,16 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/vita/ux0/user/01/savedata",
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -28847,7 +29119,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "battery",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -28926,7 +29199,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "battery",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -29014,7 +29288,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "battery",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -29100,7 +29375,8 @@
                 ],
                 "granularity": "shared-file",
                 "role": "unknown",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/retrodeck/roms/gba",
@@ -29109,7 +29385,8 @@
                 ],
                 "granularity": "shared-file",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/retrodeck/roms/gba",
@@ -29118,7 +29395,8 @@
                 ],
                 "granularity": "shared-file",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -29382,7 +29660,8 @@
                 ],
                 "granularity": "shared-card",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -29488,7 +29767,8 @@
                 ],
                 "granularity": "shared-card",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -29608,7 +29888,8 @@
                 ],
                 "granularity": "shared-file",
                 "role": "unknown",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               }
             ]
           },
@@ -29710,7 +29991,8 @@
                 "files": null,
                 "granularity": "per-game-files",
                 "role": "memory-card",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -29843,21 +30125,24 @@
                 "files": null,
                 "granularity": "per-game-files",
                 "role": "memory-card",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/retrodeck/saves/gc/folders/EUR",
                 "files": null,
                 "granularity": "per-game-files",
                 "role": "memory-card",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/retrodeck/saves/gc/folders/JAP",
                 "files": null,
                 "granularity": "per-game-files",
                 "role": "memory-card",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -30189,21 +30474,24 @@
                 "files": null,
                 "granularity": "per-game-files",
                 "role": "memory-card",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               },
               {
                 "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/data/dolphin-emu/GC/EUR/Card A",
                 "files": null,
                 "granularity": "per-game-files",
                 "role": "memory-card",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               },
               {
                 "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/data/dolphin-emu/GC/JAP/Card A",
                 "files": null,
                 "granularity": "per-game-files",
                 "role": "memory-card",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -30512,7 +30800,8 @@
                 ],
                 "granularity": "per-game-file",
                 "role": "memory-card",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -30641,7 +30930,8 @@
                 ],
                 "granularity": "shared-file",
                 "role": "battery",
-                "size_fixed": null
+                "size_fixed": null,
+                "unit": null
               },
               {
                 "dir": "/mnt/sd/retrodeck/saves/xbox/xemu",
@@ -30650,7 +30940,8 @@
                 ],
                 "granularity": "shared-file",
                 "role": "settings",
-                "size_fixed": true
+                "size_fixed": true,
+                "unit": null
               }
             ]
           },
@@ -30740,7 +31031,8 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -30855,14 +31147,16 @@
                 "files": null,
                 "granularity": "per-game-directory",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               },
               {
                 "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/data/azahar-emu/sdmc/Nintendo 3DS/00000000000000000000000000000000/00000000000000000000000000000000/extdata",
                 "files": null,
                 "granularity": "per-game-files",
                 "role": "battery",
-                "size_fixed": false
+                "size_fixed": false,
+                "unit": null
               }
             ]
           },
@@ -30928,6 +31222,1548 @@
                 "key": "use_custom_storage",
                 "value": null,
                 "options_file": null
+              }
+            ],
+            "alternatives": []
+          }
+        }
+      }
+    },
+    {
+      "name": "dolphin-a-gamecube-disc-names-its-region-folder-and-its-gci-members",
+      "rationale": "The question names a GameCube disc image, a plain ISO whose region code at 0x458 is 1, NTSC-U (VolumeGC.cpp:91-108 at dolphin 2609). Dolphin files the disc's GCI folder under that region, so the answer is the USA folder alone and the region hole is gone; the .gci files directly in it whose first four bytes are the disc's game code GALE are listed as the members of the game's save, and that list is stated on the group as its unit — the zelda file beside them is another game's, and a file too short to hold a directory entry is no file Dolphin loads. The save_id hole is gone with it; file-membership-by-header states the code that was compared and its limits.",
+      "input": {
+        "home": "/home/deck",
+        "files": {
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retrodeck/retrodeck.json": "{\"paths\": {\"rd_home_path\": \"/mnt/sd/retrodeck\", \"saves_path\": \"/mnt/sd/retrodeck/saves\"}}",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retroarch/retroarch.cfg": "savefile_directory = \"/mnt/sd/retrodeck/saves\"\nsort_savefiles_by_content_enable = \"false\"\nsort_savefiles_enable = \"false\"\nsystem_directory = \"/mnt/sd/retrodeck/bios\"\nglobal_core_options = \"true\"\nlibretro_directory = \"/app/cores\"\n",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/files/retrodeck/components/es-de/share/es-de/resources/systems/linux/es_systems.xml": "<?xml version=\"1.0\"?>\n<systemList>\n  <system>\n    <name>gc</name>\n    <fullname>Nintendo GameCube</fullname>\n    <path>%ROMPATH%/gc</path>\n    <extension>.rvz .RVZ</extension>\n    <command label=\"Dolphin (Standalone)\">%EMULATOR_DOLPHIN% -b -e %ROM%</command>\n    <platform>gc</platform>\n    <theme>gc</theme>\n  </system>\n  <system>\n    <name>wii</name>\n    <fullname>Nintendo Wii</fullname>\n    <path>%ROMPATH%/wii</path>\n    <extension>.rvz .RVZ</extension>\n    <command label=\"Dolphin (Standalone)\">%EMULATOR_DOLPHIN% -b -e %ROM%</command>\n    <platform>wii</platform>\n    <theme>wii</theme>\n  </system>\n</systemList>\n",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/dolphin-emu/Dolphin.ini": "[Core]\nSlotA = 8\nSlotB = 255\n",
+          "/mnt/sd/retrodeck/roms/gc/Melee.iso": {
+            "size": 1459978240
+          },
+          "/mnt/sd/retrodeck/saves/gc/dolphin/US/Card A/01-GALE-SuperSmashBros0110290334.gci": {
+            "md5:4": "ad4d9bac6c7b6526af6990f9e53afd6e",
+            "size": 8256
+          },
+          "/mnt/sd/retrodeck/saves/gc/dolphin/US/Card A/8P-GZLE-gczelda2.gci": {
+            "md5:4": "605f129f3c61ba02f48e78ff56d606db",
+            "size": 16448
+          },
+          "/mnt/sd/retrodeck/saves/gc/dolphin/US/Card A/short.GCI": {
+            "md5": "ad4d9bac6c7b6526af6990f9e53afd6e",
+            "size": 4
+          }
+        },
+        "dirs": [
+          "/mnt/sd/retrodeck/saves",
+          "/mnt/sd/retrodeck/bios",
+          "/mnt/sd/retrodeck/saves/gc/dolphin/US",
+          "/mnt/sd/retrodeck/saves/gc/dolphin/EU",
+          "/mnt/sd/retrodeck/saves/gc/dolphin/JP",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/ROMs"
+        ],
+        "symlinks": {
+          "/home/deck/.var/app/net.retrodeck.retrodeck/data/dolphin-emu/GC/USA": "/mnt/sd/retrodeck/saves/gc/dolphin/US",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/data/dolphin-emu/GC/EUR": "/mnt/sd/retrodeck/saves/gc/dolphin/EU",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/data/dolphin-emu/GC/JAP": "/mnt/sd/retrodeck/saves/gc/dolphin/JP"
+        },
+        "entry_savefile_query": {
+          "system": "gc",
+          "content_path": "/mnt/sd/retrodeck/roms/gc/Melee.iso"
+        },
+        "dolphin_discs": {
+          "/mnt/sd/retrodeck/roms/gc/Melee.iso": {
+            "container": "plain",
+            "platform": "gc",
+            "game_id": "GALE01",
+            "revision": 0,
+            "region_code": 1,
+            "title_id": null
+          }
+        }
+      },
+      "expected": {
+        "installations": [
+          {
+            "kind": "retrodeck",
+            "label": "RetroDECK",
+            "kinds": [
+              "retrodeck"
+            ],
+            "root": "/mnt/sd/retrodeck",
+            "health": []
+          }
+        ],
+        "entry_savefile_location": {
+          "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/data/dolphin-emu/GC/USA/Card A",
+          "root_kind": "emulator_directory",
+          "needs": [],
+          "fallback_dir": null,
+          "physical_dir": "/mnt/sd/retrodeck/saves/gc/dolphin/US/Card A",
+          "file_set": {
+            "state": "declared",
+            "files": [],
+            "complete": false,
+            "groups": [
+              {
+                "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/data/dolphin-emu/GC/USA/Card A",
+                "files": null,
+                "granularity": "per-game-files",
+                "role": "memory-card",
+                "size_fixed": false,
+                "unit": {
+                  "kind": "own-files",
+                  "members": [
+                    "01-GALE-SuperSmashBros0110290334.gci"
+                  ],
+                  "archive_folder": null
+                }
+              }
+            ]
+          },
+          "caveats": [
+            {
+              "code": "per-game-build-layer-unread",
+              "data": {
+                "token": "DOLPHIN",
+                "key": [
+                  "[Core] MemcardAPath",
+                  "[Core] MemcardBPath",
+                  "[Core] GCIFolderAPath",
+                  "[Core] GCIFolderBPath",
+                  "[Core] AgpCartAPath",
+                  "[Core] AgpCartBPath"
+                ],
+                "layer": "GlobalGame"
+              }
+            },
+            {
+              "code": "file-names-unestablished",
+              "data": {
+                "token": "DOLPHIN",
+                "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/data/dolphin-emu/GC/USA/Card A",
+                "role": "memory-card",
+                "citation": "GCMemcardDirectory.cpp:53-61 at dolphin 2609"
+              }
+            },
+            {
+              "code": "file-membership-by-header",
+              "data": {
+                "token": "DOLPHIN",
+                "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/data/dolphin-emu/GC/USA/Card A",
+                "pattern": "*.gci",
+                "offset": "0",
+                "length": "4",
+                "game_code": "GALE",
+                "limits": [
+                  "other-games-loaded",
+                  "maker-code-not-compared"
+                ],
+                "citation": "GCMemcardDirectory.cpp:192, FileSearch.h:32-36, FileSearch.cpp:34-55, GCMemcardDirectory.cpp:209, GCMemcard.h:245-246, EXI_DeviceMemoryCard.cpp:173-181 at dolphin 2609"
+              }
+            },
+            {
+              "code": "redirect-outranked",
+              "data": {
+                "token": "DOLPHIN",
+                "via": "flag",
+                "name": "-C",
+                "argument": "Dolphin.Core.GCIFolderBPathOverride=<dir>",
+                "file": "Dolphin.ini",
+                "key": "[Core] SlotB"
+              }
+            },
+            {
+              "code": "redirect-outranked",
+              "data": {
+                "token": "DOLPHIN",
+                "via": "flag",
+                "name": "-C",
+                "argument": "Dolphin.Core.MemcardAPath=<file>",
+                "file": "Dolphin.ini",
+                "key": "[Core] SlotA"
+              }
+            },
+            {
+              "code": "redirect-outranked",
+              "data": {
+                "token": "DOLPHIN",
+                "via": "flag",
+                "name": "-C",
+                "argument": "Dolphin.Core.MemcardBPath=<file>",
+                "file": "Dolphin.ini",
+                "key": "[Core] SlotB"
+              }
+            }
+          ],
+          "redirects": [
+            {
+              "via": "flag",
+              "name": "-u",
+              "argument": "<dir>",
+              "moves": [
+                "saves",
+                "savestates",
+                "configuration",
+                "firmware",
+                "installed-content"
+              ]
+            },
+            {
+              "via": "variable",
+              "name": "DOLPHIN_EMU_USERPATH",
+              "argument": "<dir>",
+              "moves": [
+                "saves",
+                "savestates",
+                "configuration",
+                "firmware",
+                "installed-content"
+              ]
+            },
+            {
+              "via": "variable",
+              "name": "XDG_DATA_HOME",
+              "argument": "<dir>",
+              "moves": [
+                "saves",
+                "savestates",
+                "firmware",
+                "installed-content"
+              ]
+            },
+            {
+              "via": "flag",
+              "name": "-C",
+              "argument": "Dolphin.Core.GCIFolderAPathOverride=<dir>",
+              "moves": [
+                "saves"
+              ]
+            },
+            {
+              "via": "flag",
+              "name": "-C",
+              "argument": "Dolphin.Core.GCIFolderBPathOverride=<dir>",
+              "moves": [
+                "saves"
+              ]
+            },
+            {
+              "via": "flag",
+              "name": "-C",
+              "argument": "Dolphin.Core.MemcardAPath=<file>",
+              "moves": [
+                "saves"
+              ]
+            },
+            {
+              "via": "flag",
+              "name": "-C",
+              "argument": "Dolphin.Core.MemcardBPath=<file>",
+              "moves": [
+                "saves"
+              ]
+            },
+            {
+              "via": "flag",
+              "name": "-C",
+              "argument": "Dolphin.General.NANDRootPath=<dir>",
+              "moves": [
+                "saves",
+                "firmware",
+                "installed-content"
+              ]
+            },
+            {
+              "via": "flag",
+              "name": "-C",
+              "argument": "Dolphin.GBA.SavesPath=<dir>",
+              "moves": [
+                "saves"
+              ]
+            }
+          ],
+          "granularity": {
+            "value": "per-game-files",
+            "mode": "folder+none",
+            "readings": [
+              {
+                "key": "SlotA",
+                "value": "8",
+                "options_file": "/home/deck/.var/app/net.retrodeck.retrodeck/config/dolphin-emu/Dolphin.ini"
+              },
+              {
+                "key": "GCIFolderAPath",
+                "value": null,
+                "options_file": "/home/deck/.var/app/net.retrodeck.retrodeck/config/dolphin-emu/Dolphin.ini"
+              },
+              {
+                "key": "SlotB",
+                "value": "255",
+                "options_file": "/home/deck/.var/app/net.retrodeck.retrodeck/config/dolphin-emu/Dolphin.ini"
+              }
+            ],
+            "alternatives": [
+              {
+                "mode": "card+none",
+                "options": {
+                  "SlotA": "1"
+                },
+                "values": [
+                  "shared-file"
+                ],
+                "caveats": []
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "name": "dolphin-an-rvz-gamecube-disc-takes-its-region-from-its-country-code-and-a-fresh-card-has-no-members",
+      "rationale": "An RVZ image exposes the disc header alone (WIABlob.cpp:318-332), so the region code at 0x458 is not read; the country code P stands in, PAL by CountryCodeToRegion (Enums.cpp:213-280), and the answer is the EUR folder. No .gci carries the game code there yet, so the unit names no members: the folder is where the game's first save will land, and none of what is there is its.",
+      "input": {
+        "home": "/home/deck",
+        "files": {
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retrodeck/retrodeck.json": "{\"paths\": {\"rd_home_path\": \"/mnt/sd/retrodeck\", \"saves_path\": \"/mnt/sd/retrodeck/saves\"}}",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retroarch/retroarch.cfg": "savefile_directory = \"/mnt/sd/retrodeck/saves\"\nsort_savefiles_by_content_enable = \"false\"\nsort_savefiles_enable = \"false\"\nsystem_directory = \"/mnt/sd/retrodeck/bios\"\nglobal_core_options = \"true\"\nlibretro_directory = \"/app/cores\"\n",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/files/retrodeck/components/es-de/share/es-de/resources/systems/linux/es_systems.xml": "<?xml version=\"1.0\"?>\n<systemList>\n  <system>\n    <name>gc</name>\n    <fullname>Nintendo GameCube</fullname>\n    <path>%ROMPATH%/gc</path>\n    <extension>.rvz .RVZ</extension>\n    <command label=\"Dolphin (Standalone)\">%EMULATOR_DOLPHIN% -b -e %ROM%</command>\n    <platform>gc</platform>\n    <theme>gc</theme>\n  </system>\n  <system>\n    <name>wii</name>\n    <fullname>Nintendo Wii</fullname>\n    <path>%ROMPATH%/wii</path>\n    <extension>.rvz .RVZ</extension>\n    <command label=\"Dolphin (Standalone)\">%EMULATOR_DOLPHIN% -b -e %ROM%</command>\n    <platform>wii</platform>\n    <theme>wii</theme>\n  </system>\n</systemList>\n",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/dolphin-emu/Dolphin.ini": "[Core]\nSlotA = 8\nSlotB = 255\n",
+          "/mnt/sd/retrodeck/roms/gc/Melee.rvz": {
+            "size": 300000000
+          }
+        },
+        "dirs": [
+          "/mnt/sd/retrodeck/saves",
+          "/mnt/sd/retrodeck/bios",
+          "/mnt/sd/retrodeck/saves/gc/dolphin/US",
+          "/mnt/sd/retrodeck/saves/gc/dolphin/EU",
+          "/mnt/sd/retrodeck/saves/gc/dolphin/JP",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/ROMs"
+        ],
+        "symlinks": {
+          "/home/deck/.var/app/net.retrodeck.retrodeck/data/dolphin-emu/GC/USA": "/mnt/sd/retrodeck/saves/gc/dolphin/US",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/data/dolphin-emu/GC/EUR": "/mnt/sd/retrodeck/saves/gc/dolphin/EU",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/data/dolphin-emu/GC/JAP": "/mnt/sd/retrodeck/saves/gc/dolphin/JP"
+        },
+        "entry_savefile_query": {
+          "system": "gc",
+          "content_path": "/mnt/sd/retrodeck/roms/gc/Melee.rvz"
+        },
+        "dolphin_discs": {
+          "/mnt/sd/retrodeck/roms/gc/Melee.rvz": {
+            "container": "rvz",
+            "platform": "gc",
+            "game_id": "GALP01",
+            "revision": 0,
+            "region_code": null,
+            "title_id": null
+          }
+        }
+      },
+      "expected": {
+        "installations": [
+          {
+            "kind": "retrodeck",
+            "label": "RetroDECK",
+            "kinds": [
+              "retrodeck"
+            ],
+            "root": "/mnt/sd/retrodeck",
+            "health": []
+          }
+        ],
+        "entry_savefile_location": {
+          "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/data/dolphin-emu/GC/EUR/Card A",
+          "root_kind": "emulator_directory",
+          "needs": [],
+          "fallback_dir": null,
+          "physical_dir": null,
+          "file_set": {
+            "state": "declared",
+            "files": [],
+            "complete": false,
+            "groups": [
+              {
+                "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/data/dolphin-emu/GC/EUR/Card A",
+                "files": null,
+                "granularity": "per-game-files",
+                "role": "memory-card",
+                "size_fixed": false,
+                "unit": {
+                  "kind": "own-files",
+                  "members": [],
+                  "archive_folder": null
+                }
+              }
+            ]
+          },
+          "caveats": [
+            {
+              "code": "per-game-build-layer-unread",
+              "data": {
+                "token": "DOLPHIN",
+                "key": [
+                  "[Core] MemcardAPath",
+                  "[Core] MemcardBPath",
+                  "[Core] GCIFolderAPath",
+                  "[Core] GCIFolderBPath",
+                  "[Core] AgpCartAPath",
+                  "[Core] AgpCartBPath"
+                ],
+                "layer": "GlobalGame"
+              }
+            },
+            {
+              "code": "file-names-unestablished",
+              "data": {
+                "token": "DOLPHIN",
+                "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/data/dolphin-emu/GC/EUR/Card A",
+                "role": "memory-card",
+                "citation": "GCMemcardDirectory.cpp:53-61 at dolphin 2609"
+              }
+            },
+            {
+              "code": "file-membership-by-header",
+              "data": {
+                "token": "DOLPHIN",
+                "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/data/dolphin-emu/GC/EUR/Card A",
+                "pattern": "*.gci",
+                "offset": "0",
+                "length": "4",
+                "game_code": "GALP",
+                "limits": [
+                  "other-games-loaded",
+                  "maker-code-not-compared"
+                ],
+                "citation": "GCMemcardDirectory.cpp:192, FileSearch.h:32-36, FileSearch.cpp:34-55, GCMemcardDirectory.cpp:209, GCMemcard.h:245-246, EXI_DeviceMemoryCard.cpp:173-181 at dolphin 2609"
+              }
+            },
+            {
+              "code": "dead-symlink",
+              "data": {
+                "link": "/home/deck/.var/app/net.retrodeck.retrodeck/data/dolphin-emu/GC/EUR",
+                "target": "/mnt/sd/retrodeck/saves/gc/dolphin/EU",
+                "resolved": "/mnt/sd/retrodeck/saves/gc/dolphin/EU/Card A"
+              }
+            },
+            {
+              "code": "redirect-outranked",
+              "data": {
+                "token": "DOLPHIN",
+                "via": "flag",
+                "name": "-C",
+                "argument": "Dolphin.Core.GCIFolderBPathOverride=<dir>",
+                "file": "Dolphin.ini",
+                "key": "[Core] SlotB"
+              }
+            },
+            {
+              "code": "redirect-outranked",
+              "data": {
+                "token": "DOLPHIN",
+                "via": "flag",
+                "name": "-C",
+                "argument": "Dolphin.Core.MemcardAPath=<file>",
+                "file": "Dolphin.ini",
+                "key": "[Core] SlotA"
+              }
+            },
+            {
+              "code": "redirect-outranked",
+              "data": {
+                "token": "DOLPHIN",
+                "via": "flag",
+                "name": "-C",
+                "argument": "Dolphin.Core.MemcardBPath=<file>",
+                "file": "Dolphin.ini",
+                "key": "[Core] SlotB"
+              }
+            }
+          ],
+          "redirects": [
+            {
+              "via": "flag",
+              "name": "-u",
+              "argument": "<dir>",
+              "moves": [
+                "saves",
+                "savestates",
+                "configuration",
+                "firmware",
+                "installed-content"
+              ]
+            },
+            {
+              "via": "variable",
+              "name": "DOLPHIN_EMU_USERPATH",
+              "argument": "<dir>",
+              "moves": [
+                "saves",
+                "savestates",
+                "configuration",
+                "firmware",
+                "installed-content"
+              ]
+            },
+            {
+              "via": "variable",
+              "name": "XDG_DATA_HOME",
+              "argument": "<dir>",
+              "moves": [
+                "saves",
+                "savestates",
+                "firmware",
+                "installed-content"
+              ]
+            },
+            {
+              "via": "flag",
+              "name": "-C",
+              "argument": "Dolphin.Core.GCIFolderAPathOverride=<dir>",
+              "moves": [
+                "saves"
+              ]
+            },
+            {
+              "via": "flag",
+              "name": "-C",
+              "argument": "Dolphin.Core.GCIFolderBPathOverride=<dir>",
+              "moves": [
+                "saves"
+              ]
+            },
+            {
+              "via": "flag",
+              "name": "-C",
+              "argument": "Dolphin.Core.MemcardAPath=<file>",
+              "moves": [
+                "saves"
+              ]
+            },
+            {
+              "via": "flag",
+              "name": "-C",
+              "argument": "Dolphin.Core.MemcardBPath=<file>",
+              "moves": [
+                "saves"
+              ]
+            },
+            {
+              "via": "flag",
+              "name": "-C",
+              "argument": "Dolphin.General.NANDRootPath=<dir>",
+              "moves": [
+                "saves",
+                "firmware",
+                "installed-content"
+              ]
+            },
+            {
+              "via": "flag",
+              "name": "-C",
+              "argument": "Dolphin.GBA.SavesPath=<dir>",
+              "moves": [
+                "saves"
+              ]
+            }
+          ],
+          "granularity": {
+            "value": "per-game-files",
+            "mode": "folder+none",
+            "readings": [
+              {
+                "key": "SlotA",
+                "value": "8",
+                "options_file": "/home/deck/.var/app/net.retrodeck.retrodeck/config/dolphin-emu/Dolphin.ini"
+              },
+              {
+                "key": "GCIFolderAPath",
+                "value": null,
+                "options_file": "/home/deck/.var/app/net.retrodeck.retrodeck/config/dolphin-emu/Dolphin.ini"
+              },
+              {
+                "key": "SlotB",
+                "value": "255",
+                "options_file": "/home/deck/.var/app/net.retrodeck.retrodeck/config/dolphin-emu/Dolphin.ini"
+              }
+            ],
+            "alternatives": [
+              {
+                "mode": "card+none",
+                "options": {
+                  "SlotA": "1"
+                },
+                "values": [
+                  "shared-file"
+                ],
+                "caveats": []
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "name": "dolphin-a-gamecube-image-that-is-no-disc-keeps-both-holes",
+      "rationale": "The content path is a file no container reader takes, so nothing names the region or the game code: the answer is the one without a disc, both holes kept and no unit stated.",
+      "input": {
+        "home": "/home/deck",
+        "files": {
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retrodeck/retrodeck.json": "{\"paths\": {\"rd_home_path\": \"/mnt/sd/retrodeck\", \"saves_path\": \"/mnt/sd/retrodeck/saves\"}}",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retroarch/retroarch.cfg": "savefile_directory = \"/mnt/sd/retrodeck/saves\"\nsort_savefiles_by_content_enable = \"false\"\nsort_savefiles_enable = \"false\"\nsystem_directory = \"/mnt/sd/retrodeck/bios\"\nglobal_core_options = \"true\"\nlibretro_directory = \"/app/cores\"\n",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/files/retrodeck/components/es-de/share/es-de/resources/systems/linux/es_systems.xml": "<?xml version=\"1.0\"?>\n<systemList>\n  <system>\n    <name>gc</name>\n    <fullname>Nintendo GameCube</fullname>\n    <path>%ROMPATH%/gc</path>\n    <extension>.rvz .RVZ</extension>\n    <command label=\"Dolphin (Standalone)\">%EMULATOR_DOLPHIN% -b -e %ROM%</command>\n    <platform>gc</platform>\n    <theme>gc</theme>\n  </system>\n  <system>\n    <name>wii</name>\n    <fullname>Nintendo Wii</fullname>\n    <path>%ROMPATH%/wii</path>\n    <extension>.rvz .RVZ</extension>\n    <command label=\"Dolphin (Standalone)\">%EMULATOR_DOLPHIN% -b -e %ROM%</command>\n    <platform>wii</platform>\n    <theme>wii</theme>\n  </system>\n</systemList>\n",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/dolphin-emu/Dolphin.ini": "[Core]\nSlotA = 8\nSlotB = 255\n",
+          "/mnt/sd/retrodeck/roms/gc/Melee.rvz": {
+            "size": 12
+          }
+        },
+        "dirs": [
+          "/mnt/sd/retrodeck/saves",
+          "/mnt/sd/retrodeck/bios",
+          "/mnt/sd/retrodeck/saves/gc/dolphin/US",
+          "/mnt/sd/retrodeck/saves/gc/dolphin/EU",
+          "/mnt/sd/retrodeck/saves/gc/dolphin/JP",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/ROMs"
+        ],
+        "symlinks": {
+          "/home/deck/.var/app/net.retrodeck.retrodeck/data/dolphin-emu/GC/USA": "/mnt/sd/retrodeck/saves/gc/dolphin/US",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/data/dolphin-emu/GC/EUR": "/mnt/sd/retrodeck/saves/gc/dolphin/EU",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/data/dolphin-emu/GC/JAP": "/mnt/sd/retrodeck/saves/gc/dolphin/JP"
+        },
+        "entry_savefile_query": {
+          "system": "gc",
+          "content_path": "/mnt/sd/retrodeck/roms/gc/Melee.rvz"
+        },
+        "dolphin_discs": {
+          "/mnt/sd/retrodeck/roms/gc/Melee.rvz": "not-a-disc"
+        }
+      },
+      "expected": {
+        "installations": [
+          {
+            "kind": "retrodeck",
+            "label": "RetroDECK",
+            "kinds": [
+              "retrodeck"
+            ],
+            "root": "/mnt/sd/retrodeck",
+            "health": []
+          }
+        ],
+        "entry_savefile_location": {
+          "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/data/dolphin-emu/GC/<region>/Card A",
+          "root_kind": "emulator_directory",
+          "needs": [
+            "region",
+            "save_id"
+          ],
+          "fallback_dir": null,
+          "physical_dir": null,
+          "file_set": {
+            "state": "declared",
+            "files": [],
+            "complete": false,
+            "groups": [
+              {
+                "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/data/dolphin-emu/GC/USA/Card A",
+                "files": null,
+                "granularity": "per-game-files",
+                "role": "memory-card",
+                "size_fixed": false,
+                "unit": null
+              },
+              {
+                "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/data/dolphin-emu/GC/EUR/Card A",
+                "files": null,
+                "granularity": "per-game-files",
+                "role": "memory-card",
+                "size_fixed": false,
+                "unit": null
+              },
+              {
+                "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/data/dolphin-emu/GC/JAP/Card A",
+                "files": null,
+                "granularity": "per-game-files",
+                "role": "memory-card",
+                "size_fixed": false,
+                "unit": null
+              }
+            ]
+          },
+          "caveats": [
+            {
+              "code": "per-game-build-layer-unread",
+              "data": {
+                "token": "DOLPHIN",
+                "key": [
+                  "[Core] MemcardAPath",
+                  "[Core] MemcardBPath",
+                  "[Core] GCIFolderAPath",
+                  "[Core] GCIFolderBPath",
+                  "[Core] AgpCartAPath",
+                  "[Core] AgpCartBPath"
+                ],
+                "layer": "GlobalGame"
+              }
+            },
+            {
+              "code": "file-names-unestablished",
+              "data": {
+                "token": "DOLPHIN",
+                "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/data/dolphin-emu/GC/USA/Card A",
+                "role": "memory-card",
+                "citation": "GCMemcardDirectory.cpp:53-61 at dolphin 2609"
+              }
+            },
+            {
+              "code": "file-names-unestablished",
+              "data": {
+                "token": "DOLPHIN",
+                "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/data/dolphin-emu/GC/EUR/Card A",
+                "role": "memory-card",
+                "citation": "GCMemcardDirectory.cpp:53-61 at dolphin 2609"
+              }
+            },
+            {
+              "code": "file-names-unestablished",
+              "data": {
+                "token": "DOLPHIN",
+                "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/data/dolphin-emu/GC/JAP/Card A",
+                "role": "memory-card",
+                "citation": "GCMemcardDirectory.cpp:53-61 at dolphin 2609"
+              }
+            },
+            {
+              "code": "file-membership-by-header",
+              "data": {
+                "token": "DOLPHIN",
+                "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/data/dolphin-emu/GC/USA/Card A",
+                "pattern": "*.gci",
+                "offset": "0",
+                "length": "4",
+                "save_id": "the disc's game code: the first four characters of its game id, as the disc header states it",
+                "save_id_spelling": "game-code",
+                "limits": [
+                  "other-games-loaded",
+                  "maker-code-not-compared"
+                ],
+                "citation": "GCMemcardDirectory.cpp:192, FileSearch.h:32-36, FileSearch.cpp:34-55, GCMemcardDirectory.cpp:209, GCMemcard.h:245-246, EXI_DeviceMemoryCard.cpp:173-181 at dolphin 2609"
+              }
+            },
+            {
+              "code": "file-membership-by-header",
+              "data": {
+                "token": "DOLPHIN",
+                "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/data/dolphin-emu/GC/EUR/Card A",
+                "pattern": "*.gci",
+                "offset": "0",
+                "length": "4",
+                "save_id": "the disc's game code: the first four characters of its game id, as the disc header states it",
+                "save_id_spelling": "game-code",
+                "limits": [
+                  "other-games-loaded",
+                  "maker-code-not-compared"
+                ],
+                "citation": "GCMemcardDirectory.cpp:192, FileSearch.h:32-36, FileSearch.cpp:34-55, GCMemcardDirectory.cpp:209, GCMemcard.h:245-246, EXI_DeviceMemoryCard.cpp:173-181 at dolphin 2609"
+              }
+            },
+            {
+              "code": "file-membership-by-header",
+              "data": {
+                "token": "DOLPHIN",
+                "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/data/dolphin-emu/GC/JAP/Card A",
+                "pattern": "*.gci",
+                "offset": "0",
+                "length": "4",
+                "save_id": "the disc's game code: the first four characters of its game id, as the disc header states it",
+                "save_id_spelling": "game-code",
+                "limits": [
+                  "other-games-loaded",
+                  "maker-code-not-compared"
+                ],
+                "citation": "GCMemcardDirectory.cpp:192, FileSearch.h:32-36, FileSearch.cpp:34-55, GCMemcardDirectory.cpp:209, GCMemcard.h:245-246, EXI_DeviceMemoryCard.cpp:173-181 at dolphin 2609"
+              }
+            },
+            {
+              "code": "redirect-outranked",
+              "data": {
+                "token": "DOLPHIN",
+                "via": "flag",
+                "name": "-C",
+                "argument": "Dolphin.Core.GCIFolderBPathOverride=<dir>",
+                "file": "Dolphin.ini",
+                "key": "[Core] SlotB"
+              }
+            },
+            {
+              "code": "redirect-outranked",
+              "data": {
+                "token": "DOLPHIN",
+                "via": "flag",
+                "name": "-C",
+                "argument": "Dolphin.Core.MemcardAPath=<file>",
+                "file": "Dolphin.ini",
+                "key": "[Core] SlotA"
+              }
+            },
+            {
+              "code": "redirect-outranked",
+              "data": {
+                "token": "DOLPHIN",
+                "via": "flag",
+                "name": "-C",
+                "argument": "Dolphin.Core.MemcardBPath=<file>",
+                "file": "Dolphin.ini",
+                "key": "[Core] SlotB"
+              }
+            }
+          ],
+          "redirects": [
+            {
+              "via": "flag",
+              "name": "-u",
+              "argument": "<dir>",
+              "moves": [
+                "saves",
+                "savestates",
+                "configuration",
+                "firmware",
+                "installed-content"
+              ]
+            },
+            {
+              "via": "variable",
+              "name": "DOLPHIN_EMU_USERPATH",
+              "argument": "<dir>",
+              "moves": [
+                "saves",
+                "savestates",
+                "configuration",
+                "firmware",
+                "installed-content"
+              ]
+            },
+            {
+              "via": "variable",
+              "name": "XDG_DATA_HOME",
+              "argument": "<dir>",
+              "moves": [
+                "saves",
+                "savestates",
+                "firmware",
+                "installed-content"
+              ]
+            },
+            {
+              "via": "flag",
+              "name": "-C",
+              "argument": "Dolphin.Core.GCIFolderAPathOverride=<dir>",
+              "moves": [
+                "saves"
+              ]
+            },
+            {
+              "via": "flag",
+              "name": "-C",
+              "argument": "Dolphin.Core.GCIFolderBPathOverride=<dir>",
+              "moves": [
+                "saves"
+              ]
+            },
+            {
+              "via": "flag",
+              "name": "-C",
+              "argument": "Dolphin.Core.MemcardAPath=<file>",
+              "moves": [
+                "saves"
+              ]
+            },
+            {
+              "via": "flag",
+              "name": "-C",
+              "argument": "Dolphin.Core.MemcardBPath=<file>",
+              "moves": [
+                "saves"
+              ]
+            },
+            {
+              "via": "flag",
+              "name": "-C",
+              "argument": "Dolphin.General.NANDRootPath=<dir>",
+              "moves": [
+                "saves",
+                "firmware",
+                "installed-content"
+              ]
+            },
+            {
+              "via": "flag",
+              "name": "-C",
+              "argument": "Dolphin.GBA.SavesPath=<dir>",
+              "moves": [
+                "saves"
+              ]
+            }
+          ],
+          "granularity": {
+            "value": "per-game-files",
+            "mode": "folder+none",
+            "readings": [
+              {
+                "key": "SlotA",
+                "value": "8",
+                "options_file": "/home/deck/.var/app/net.retrodeck.retrodeck/config/dolphin-emu/Dolphin.ini"
+              },
+              {
+                "key": "GCIFolderAPath",
+                "value": null,
+                "options_file": "/home/deck/.var/app/net.retrodeck.retrodeck/config/dolphin-emu/Dolphin.ini"
+              },
+              {
+                "key": "SlotB",
+                "value": "255",
+                "options_file": "/home/deck/.var/app/net.retrodeck.retrodeck/config/dolphin-emu/Dolphin.ini"
+              }
+            ],
+            "alternatives": [
+              {
+                "mode": "card+none",
+                "options": {
+                  "SlotA": "1"
+                },
+                "values": [
+                  "shared-file"
+                ],
+                "caveats": []
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "name": "wii-a-disc-whose-ticket-names-its-title-answers-the-titles-own-folder",
+      "rationale": "The question names a Wii ISO, whose game partition's ticket states the title id 00010000/52534245 (VolumeWii.cpp:270-276 at dolphin 2609). The answer is that title's own folder in the NAND, title/00010000/52534245 — the folder data lies in — with no hole, stated on its group as the game's save whole, packed under the low word.",
+      "input": {
+        "home": "/home/deck",
+        "files": {
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retrodeck/retrodeck.json": "{\"paths\": {\"rd_home_path\": \"/mnt/sd/retrodeck\", \"saves_path\": \"/mnt/sd/retrodeck/saves\"}}",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retroarch/retroarch.cfg": "savefile_directory = \"/mnt/sd/retrodeck/saves\"\nsort_savefiles_by_content_enable = \"false\"\nsort_savefiles_enable = \"false\"\nsystem_directory = \"/mnt/sd/retrodeck/bios\"\nglobal_core_options = \"true\"\nlibretro_directory = \"/app/cores\"\n",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/files/retrodeck/components/es-de/share/es-de/resources/systems/linux/es_systems.xml": "<?xml version=\"1.0\"?>\n<systemList>\n  <system>\n    <name>gc</name>\n    <fullname>Nintendo GameCube</fullname>\n    <path>%ROMPATH%/gc</path>\n    <extension>.rvz .RVZ</extension>\n    <command label=\"Dolphin (Standalone)\">%EMULATOR_DOLPHIN% -b -e %ROM%</command>\n    <platform>gc</platform>\n    <theme>gc</theme>\n  </system>\n  <system>\n    <name>wii</name>\n    <fullname>Nintendo Wii</fullname>\n    <path>%ROMPATH%/wii</path>\n    <extension>.rvz .RVZ</extension>\n    <command label=\"Dolphin (Standalone)\">%EMULATOR_DOLPHIN% -b -e %ROM%</command>\n    <platform>wii</platform>\n    <theme>wii</theme>\n  </system>\n</systemList>\n",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/dolphin-emu/Dolphin.ini": "[Core]\nSlotA = 8\nSlotB = 255\n[General]\nNANDRootPath = /var/data/dolphin-emu/Wii/\n",
+          "/mnt/sd/retrodeck/roms/wii/Sports.iso": {
+            "size": 4699979776
+          }
+        },
+        "dirs": [
+          "/mnt/sd/retrodeck/saves",
+          "/mnt/sd/retrodeck/bios",
+          "/mnt/sd/retrodeck/saves/wii/dolphin/title",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/ROMs"
+        ],
+        "symlinks": {
+          "/home/deck/.var/app/net.retrodeck.retrodeck/data/dolphin-emu/Wii": "/mnt/sd/retrodeck/saves/wii/dolphin"
+        },
+        "entry_savefile_query": {
+          "system": "wii",
+          "content_path": "/mnt/sd/retrodeck/roms/wii/Sports.iso"
+        },
+        "dolphin_discs": {
+          "/mnt/sd/retrodeck/roms/wii/Sports.iso": {
+            "container": "plain",
+            "platform": "wii",
+            "game_id": "RSBE01",
+            "revision": 0,
+            "region_code": null,
+            "title_id": "0001000052534245"
+          }
+        }
+      },
+      "expected": {
+        "installations": [
+          {
+            "kind": "retrodeck",
+            "label": "RetroDECK",
+            "kinds": [
+              "retrodeck"
+            ],
+            "root": "/mnt/sd/retrodeck",
+            "health": []
+          }
+        ],
+        "entry_savefile_location": {
+          "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/data/dolphin-emu/Wii/title/00010000/52534245",
+          "root_kind": "emulator_directory",
+          "needs": [],
+          "fallback_dir": null,
+          "physical_dir": "/mnt/sd/retrodeck/saves/wii/dolphin/title/00010000/52534245",
+          "file_set": {
+            "state": "declared",
+            "files": [],
+            "complete": false,
+            "groups": [
+              {
+                "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/data/dolphin-emu/Wii/title/00010000/52534245",
+                "files": null,
+                "granularity": "per-game-directory",
+                "role": "battery",
+                "size_fixed": false,
+                "unit": {
+                  "kind": "own-folder",
+                  "members": null,
+                  "archive_folder": "52534245"
+                }
+              }
+            ]
+          },
+          "caveats": [
+            {
+              "code": "per-game-build-layer-unread",
+              "data": {
+                "token": "DOLPHIN",
+                "key": [
+                  "[Dolphin.General] NANDRootPath"
+                ],
+                "layer": "GlobalGame"
+              }
+            },
+            {
+              "code": "file-names-unestablished",
+              "data": {
+                "token": "DOLPHIN",
+                "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/data/dolphin-emu/Wii/title/00010000/52534245",
+                "role": "battery",
+                "citation": "NandPaths.cpp:63-71 and VolumeWii.cpp:270-276 at dolphin 2609"
+              }
+            },
+            {
+              "code": "redirect-outranked",
+              "data": {
+                "token": "DOLPHIN",
+                "via": "variable",
+                "name": "XDG_DATA_HOME",
+                "argument": "<dir>",
+                "file": "Dolphin.ini",
+                "key": "[General] NANDRootPath"
+              }
+            }
+          ],
+          "redirects": [
+            {
+              "via": "flag",
+              "name": "-u",
+              "argument": "<dir>",
+              "moves": [
+                "saves",
+                "savestates",
+                "configuration",
+                "firmware",
+                "installed-content"
+              ]
+            },
+            {
+              "via": "variable",
+              "name": "DOLPHIN_EMU_USERPATH",
+              "argument": "<dir>",
+              "moves": [
+                "saves",
+                "savestates",
+                "configuration",
+                "firmware",
+                "installed-content"
+              ]
+            },
+            {
+              "via": "variable",
+              "name": "XDG_DATA_HOME",
+              "argument": "<dir>",
+              "moves": [
+                "saves",
+                "savestates",
+                "firmware",
+                "installed-content"
+              ]
+            },
+            {
+              "via": "flag",
+              "name": "-C",
+              "argument": "Dolphin.Core.GCIFolderAPathOverride=<dir>",
+              "moves": [
+                "saves"
+              ]
+            },
+            {
+              "via": "flag",
+              "name": "-C",
+              "argument": "Dolphin.Core.GCIFolderBPathOverride=<dir>",
+              "moves": [
+                "saves"
+              ]
+            },
+            {
+              "via": "flag",
+              "name": "-C",
+              "argument": "Dolphin.Core.MemcardAPath=<file>",
+              "moves": [
+                "saves"
+              ]
+            },
+            {
+              "via": "flag",
+              "name": "-C",
+              "argument": "Dolphin.Core.MemcardBPath=<file>",
+              "moves": [
+                "saves"
+              ]
+            },
+            {
+              "via": "flag",
+              "name": "-C",
+              "argument": "Dolphin.General.NANDRootPath=<dir>",
+              "moves": [
+                "saves",
+                "firmware",
+                "installed-content"
+              ]
+            },
+            {
+              "via": "flag",
+              "name": "-C",
+              "argument": "Dolphin.GBA.SavesPath=<dir>",
+              "moves": [
+                "saves"
+              ]
+            }
+          ],
+          "granularity": {
+            "value": "per-game-directory",
+            "mode": "nand",
+            "readings": [
+              {
+                "key": "NANDRootPath",
+                "value": "/var/data/dolphin-emu/Wii/",
+                "options_file": "/home/deck/.var/app/net.retrodeck.retrodeck/config/dolphin-emu/Dolphin.ini"
+              }
+            ],
+            "alternatives": []
+          }
+        }
+      }
+    },
+    {
+      "name": "wii-an-rvz-disc-names-its-title-through-the-nands-one-directory-of-its-game-code",
+      "rationale": "An RVZ image keeps the partition compressed, so its ticket is not read; the game code RFNE names the low word 52464e45, and the NAND holds exactly one title directory under it, 00010004 — a disc that installs a channel — created when the emulator booted the disc. That names the title, and the answer is its folder.",
+      "input": {
+        "home": "/home/deck",
+        "files": {
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retrodeck/retrodeck.json": "{\"paths\": {\"rd_home_path\": \"/mnt/sd/retrodeck\", \"saves_path\": \"/mnt/sd/retrodeck/saves\"}}",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retroarch/retroarch.cfg": "savefile_directory = \"/mnt/sd/retrodeck/saves\"\nsort_savefiles_by_content_enable = \"false\"\nsort_savefiles_enable = \"false\"\nsystem_directory = \"/mnt/sd/retrodeck/bios\"\nglobal_core_options = \"true\"\nlibretro_directory = \"/app/cores\"\n",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/files/retrodeck/components/es-de/share/es-de/resources/systems/linux/es_systems.xml": "<?xml version=\"1.0\"?>\n<systemList>\n  <system>\n    <name>gc</name>\n    <fullname>Nintendo GameCube</fullname>\n    <path>%ROMPATH%/gc</path>\n    <extension>.rvz .RVZ</extension>\n    <command label=\"Dolphin (Standalone)\">%EMULATOR_DOLPHIN% -b -e %ROM%</command>\n    <platform>gc</platform>\n    <theme>gc</theme>\n  </system>\n  <system>\n    <name>wii</name>\n    <fullname>Nintendo Wii</fullname>\n    <path>%ROMPATH%/wii</path>\n    <extension>.rvz .RVZ</extension>\n    <command label=\"Dolphin (Standalone)\">%EMULATOR_DOLPHIN% -b -e %ROM%</command>\n    <platform>wii</platform>\n    <theme>wii</theme>\n  </system>\n</systemList>\n",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/dolphin-emu/Dolphin.ini": "[Core]\nSlotA = 8\nSlotB = 255\n[General]\nNANDRootPath = /var/data/dolphin-emu/Wii/\n",
+          "/mnt/sd/retrodeck/roms/wii/Fit.rvz": {
+            "size": 300000000
+          }
+        },
+        "dirs": [
+          "/mnt/sd/retrodeck/saves",
+          "/mnt/sd/retrodeck/bios",
+          "/mnt/sd/retrodeck/saves/wii/dolphin/title",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/ROMs",
+          "/mnt/sd/retrodeck/saves/wii/dolphin/title/00010004/52464e45/data"
+        ],
+        "symlinks": {
+          "/home/deck/.var/app/net.retrodeck.retrodeck/data/dolphin-emu/Wii": "/mnt/sd/retrodeck/saves/wii/dolphin"
+        },
+        "entry_savefile_query": {
+          "system": "wii",
+          "content_path": "/mnt/sd/retrodeck/roms/wii/Fit.rvz"
+        },
+        "dolphin_discs": {
+          "/mnt/sd/retrodeck/roms/wii/Fit.rvz": {
+            "container": "rvz",
+            "platform": "wii",
+            "game_id": "RFNE01",
+            "revision": 0,
+            "region_code": null,
+            "title_id": null
+          }
+        }
+      },
+      "expected": {
+        "installations": [
+          {
+            "kind": "retrodeck",
+            "label": "RetroDECK",
+            "kinds": [
+              "retrodeck"
+            ],
+            "root": "/mnt/sd/retrodeck",
+            "health": []
+          }
+        ],
+        "entry_savefile_location": {
+          "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/data/dolphin-emu/Wii/title/00010004/52464e45",
+          "root_kind": "emulator_directory",
+          "needs": [],
+          "fallback_dir": null,
+          "physical_dir": "/mnt/sd/retrodeck/saves/wii/dolphin/title/00010004/52464e45",
+          "file_set": {
+            "state": "declared",
+            "files": [],
+            "complete": false,
+            "groups": [
+              {
+                "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/data/dolphin-emu/Wii/title/00010004/52464e45",
+                "files": null,
+                "granularity": "per-game-directory",
+                "role": "battery",
+                "size_fixed": false,
+                "unit": {
+                  "kind": "own-folder",
+                  "members": null,
+                  "archive_folder": "52464e45"
+                }
+              }
+            ]
+          },
+          "caveats": [
+            {
+              "code": "per-game-build-layer-unread",
+              "data": {
+                "token": "DOLPHIN",
+                "key": [
+                  "[Dolphin.General] NANDRootPath"
+                ],
+                "layer": "GlobalGame"
+              }
+            },
+            {
+              "code": "file-names-unestablished",
+              "data": {
+                "token": "DOLPHIN",
+                "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/data/dolphin-emu/Wii/title/00010004/52464e45",
+                "role": "battery",
+                "citation": "NandPaths.cpp:63-71 and VolumeWii.cpp:270-276 at dolphin 2609"
+              }
+            },
+            {
+              "code": "redirect-outranked",
+              "data": {
+                "token": "DOLPHIN",
+                "via": "variable",
+                "name": "XDG_DATA_HOME",
+                "argument": "<dir>",
+                "file": "Dolphin.ini",
+                "key": "[General] NANDRootPath"
+              }
+            }
+          ],
+          "redirects": [
+            {
+              "via": "flag",
+              "name": "-u",
+              "argument": "<dir>",
+              "moves": [
+                "saves",
+                "savestates",
+                "configuration",
+                "firmware",
+                "installed-content"
+              ]
+            },
+            {
+              "via": "variable",
+              "name": "DOLPHIN_EMU_USERPATH",
+              "argument": "<dir>",
+              "moves": [
+                "saves",
+                "savestates",
+                "configuration",
+                "firmware",
+                "installed-content"
+              ]
+            },
+            {
+              "via": "variable",
+              "name": "XDG_DATA_HOME",
+              "argument": "<dir>",
+              "moves": [
+                "saves",
+                "savestates",
+                "firmware",
+                "installed-content"
+              ]
+            },
+            {
+              "via": "flag",
+              "name": "-C",
+              "argument": "Dolphin.Core.GCIFolderAPathOverride=<dir>",
+              "moves": [
+                "saves"
+              ]
+            },
+            {
+              "via": "flag",
+              "name": "-C",
+              "argument": "Dolphin.Core.GCIFolderBPathOverride=<dir>",
+              "moves": [
+                "saves"
+              ]
+            },
+            {
+              "via": "flag",
+              "name": "-C",
+              "argument": "Dolphin.Core.MemcardAPath=<file>",
+              "moves": [
+                "saves"
+              ]
+            },
+            {
+              "via": "flag",
+              "name": "-C",
+              "argument": "Dolphin.Core.MemcardBPath=<file>",
+              "moves": [
+                "saves"
+              ]
+            },
+            {
+              "via": "flag",
+              "name": "-C",
+              "argument": "Dolphin.General.NANDRootPath=<dir>",
+              "moves": [
+                "saves",
+                "firmware",
+                "installed-content"
+              ]
+            },
+            {
+              "via": "flag",
+              "name": "-C",
+              "argument": "Dolphin.GBA.SavesPath=<dir>",
+              "moves": [
+                "saves"
+              ]
+            }
+          ],
+          "granularity": {
+            "value": "per-game-directory",
+            "mode": "nand",
+            "readings": [
+              {
+                "key": "NANDRootPath",
+                "value": "/var/data/dolphin-emu/Wii/",
+                "options_file": "/home/deck/.var/app/net.retrodeck.retrodeck/config/dolphin-emu/Dolphin.ini"
+              }
+            ],
+            "alternatives": []
+          }
+        }
+      }
+    },
+    {
+      "name": "wii-an-rvz-disc-never-booted-here-takes-the-disc-title-category",
+      "rationale": "An RVZ image exposes no ticket and the NAND holds no title directory of its game code's low word — the device has never run the game, which is when a sync must place the save it downloads. The high word is then the category of disc titles, 00010000 (TitleType, Formats.h:33-41 at dolphin 2609), under which the emulator creates the title's data directory when it boots the disc; the sources mark it derived. The answer is title/00010000/52464e45, stated as the game's save whole.",
+      "input": {
+        "home": "/home/deck",
+        "files": {
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retrodeck/retrodeck.json": "{\"paths\": {\"rd_home_path\": \"/mnt/sd/retrodeck\", \"saves_path\": \"/mnt/sd/retrodeck/saves\"}}",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retroarch/retroarch.cfg": "savefile_directory = \"/mnt/sd/retrodeck/saves\"\nsort_savefiles_by_content_enable = \"false\"\nsort_savefiles_enable = \"false\"\nsystem_directory = \"/mnt/sd/retrodeck/bios\"\nglobal_core_options = \"true\"\nlibretro_directory = \"/app/cores\"\n",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/files/retrodeck/components/es-de/share/es-de/resources/systems/linux/es_systems.xml": "<?xml version=\"1.0\"?>\n<systemList>\n  <system>\n    <name>gc</name>\n    <fullname>Nintendo GameCube</fullname>\n    <path>%ROMPATH%/gc</path>\n    <extension>.rvz .RVZ</extension>\n    <command label=\"Dolphin (Standalone)\">%EMULATOR_DOLPHIN% -b -e %ROM%</command>\n    <platform>gc</platform>\n    <theme>gc</theme>\n  </system>\n  <system>\n    <name>wii</name>\n    <fullname>Nintendo Wii</fullname>\n    <path>%ROMPATH%/wii</path>\n    <extension>.rvz .RVZ</extension>\n    <command label=\"Dolphin (Standalone)\">%EMULATOR_DOLPHIN% -b -e %ROM%</command>\n    <platform>wii</platform>\n    <theme>wii</theme>\n  </system>\n</systemList>\n",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/dolphin-emu/Dolphin.ini": "[Core]\nSlotA = 8\nSlotB = 255\n[General]\nNANDRootPath = /var/data/dolphin-emu/Wii/\n",
+          "/mnt/sd/retrodeck/roms/wii/Fit.rvz": {
+            "size": 300000000
+          }
+        },
+        "dirs": [
+          "/mnt/sd/retrodeck/saves",
+          "/mnt/sd/retrodeck/bios",
+          "/mnt/sd/retrodeck/saves/wii/dolphin/title",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/ROMs"
+        ],
+        "symlinks": {
+          "/home/deck/.var/app/net.retrodeck.retrodeck/data/dolphin-emu/Wii": "/mnt/sd/retrodeck/saves/wii/dolphin"
+        },
+        "entry_savefile_query": {
+          "system": "wii",
+          "content_path": "/mnt/sd/retrodeck/roms/wii/Fit.rvz"
+        },
+        "dolphin_discs": {
+          "/mnt/sd/retrodeck/roms/wii/Fit.rvz": {
+            "container": "rvz",
+            "platform": "wii",
+            "game_id": "RFNE01",
+            "revision": 0,
+            "region_code": null,
+            "title_id": null
+          }
+        }
+      },
+      "expected": {
+        "installations": [
+          {
+            "kind": "retrodeck",
+            "label": "RetroDECK",
+            "kinds": [
+              "retrodeck"
+            ],
+            "root": "/mnt/sd/retrodeck",
+            "health": []
+          }
+        ],
+        "entry_savefile_location": {
+          "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/data/dolphin-emu/Wii/title/00010000/52464e45",
+          "root_kind": "emulator_directory",
+          "needs": [],
+          "fallback_dir": null,
+          "physical_dir": "/mnt/sd/retrodeck/saves/wii/dolphin/title/00010000/52464e45",
+          "file_set": {
+            "state": "declared",
+            "files": [],
+            "complete": false,
+            "groups": [
+              {
+                "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/data/dolphin-emu/Wii/title/00010000/52464e45",
+                "files": null,
+                "granularity": "per-game-directory",
+                "role": "battery",
+                "size_fixed": false,
+                "unit": {
+                  "kind": "own-folder",
+                  "members": null,
+                  "archive_folder": "52464e45"
+                }
+              }
+            ]
+          },
+          "caveats": [
+            {
+              "code": "per-game-build-layer-unread",
+              "data": {
+                "token": "DOLPHIN",
+                "key": [
+                  "[Dolphin.General] NANDRootPath"
+                ],
+                "layer": "GlobalGame"
+              }
+            },
+            {
+              "code": "file-names-unestablished",
+              "data": {
+                "token": "DOLPHIN",
+                "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/data/dolphin-emu/Wii/title/00010000/52464e45",
+                "role": "battery",
+                "citation": "NandPaths.cpp:63-71 and VolumeWii.cpp:270-276 at dolphin 2609"
+              }
+            },
+            {
+              "code": "redirect-outranked",
+              "data": {
+                "token": "DOLPHIN",
+                "via": "variable",
+                "name": "XDG_DATA_HOME",
+                "argument": "<dir>",
+                "file": "Dolphin.ini",
+                "key": "[General] NANDRootPath"
+              }
+            }
+          ],
+          "redirects": [
+            {
+              "via": "flag",
+              "name": "-u",
+              "argument": "<dir>",
+              "moves": [
+                "saves",
+                "savestates",
+                "configuration",
+                "firmware",
+                "installed-content"
+              ]
+            },
+            {
+              "via": "variable",
+              "name": "DOLPHIN_EMU_USERPATH",
+              "argument": "<dir>",
+              "moves": [
+                "saves",
+                "savestates",
+                "configuration",
+                "firmware",
+                "installed-content"
+              ]
+            },
+            {
+              "via": "variable",
+              "name": "XDG_DATA_HOME",
+              "argument": "<dir>",
+              "moves": [
+                "saves",
+                "savestates",
+                "firmware",
+                "installed-content"
+              ]
+            },
+            {
+              "via": "flag",
+              "name": "-C",
+              "argument": "Dolphin.Core.GCIFolderAPathOverride=<dir>",
+              "moves": [
+                "saves"
+              ]
+            },
+            {
+              "via": "flag",
+              "name": "-C",
+              "argument": "Dolphin.Core.GCIFolderBPathOverride=<dir>",
+              "moves": [
+                "saves"
+              ]
+            },
+            {
+              "via": "flag",
+              "name": "-C",
+              "argument": "Dolphin.Core.MemcardAPath=<file>",
+              "moves": [
+                "saves"
+              ]
+            },
+            {
+              "via": "flag",
+              "name": "-C",
+              "argument": "Dolphin.Core.MemcardBPath=<file>",
+              "moves": [
+                "saves"
+              ]
+            },
+            {
+              "via": "flag",
+              "name": "-C",
+              "argument": "Dolphin.General.NANDRootPath=<dir>",
+              "moves": [
+                "saves",
+                "firmware",
+                "installed-content"
+              ]
+            },
+            {
+              "via": "flag",
+              "name": "-C",
+              "argument": "Dolphin.GBA.SavesPath=<dir>",
+              "moves": [
+                "saves"
+              ]
+            }
+          ],
+          "granularity": {
+            "value": "per-game-directory",
+            "mode": "nand",
+            "readings": [
+              {
+                "key": "NANDRootPath",
+                "value": "/var/data/dolphin-emu/Wii/",
+                "options_file": "/home/deck/.var/app/net.retrodeck.retrodeck/config/dolphin-emu/Dolphin.ini"
               }
             ],
             "alternatives": []

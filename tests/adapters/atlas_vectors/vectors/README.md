@@ -145,6 +145,19 @@ carry. The file must not be one declared `unreadable`, and a declared file with 
 a vector that forgot the key cannot prove a boot nobody modeled; a path with no file at it — nothing, a directory, a
 dead link — answers missing, as it does for RPCS3.
 
+**`dolphin_discs`** — the path of a GameCube or Wii disc image `files` declares → what Dolphin reads of it through its
+container: `{"container": …, "platform": …, "game_id": …, "revision": …, "region_code": …, "title_id": …}`, every field
+stated, where `container` is the format the image opened as — `"plain"` (ISO, GCM, NKit), `"ciso"`, `"gcz"`, `"wbfs"`,
+`"wia"` or `"rvz"`; `platform` is `"gc"` or `"wii"`, by the disc magic; `game_id` is the six bytes at disc offset 0, one
+character per byte (latin-1), unfiltered; `revision` is the byte at 7; `region_code` is a GameCube disc's big-endian
+`u32` at 0x458, or `null` for a Wii disc or a container that does not expose it (WIA, RVZ); and `title_id` is a Wii
+disc's game partition ticket's title id as sixteen lowercase hex digits, or `null` for a GameCube disc or a container
+that does not expose the partition. Or the one state `"not-a-disc"`: a file no container reader takes, or whose header
+carries neither disc magic. It is modeled at the seam for the reason `ps3_files` is: the facts sit inside a disc image,
+or behind a container's compression, that no fixture should carry. The file must not be one declared `unreadable`, and a
+declared file with no entry here answers **unreadable**, so a vector that forgot the key cannot prove a disc nobody
+modeled; a path with no file at it answers missing.
+
 **`disc_identities`** — the path of a PlayStation disc image `files` declares (a `.cue`, `.bin`, `.img`, `.iso`, `.chd`
 or `.pbp`) → what reading its first data track yields:
 `{"license": …, "system_cnf": …, "boot_found": …, "edc_valid": …}`, where `license` is the start of sector 4's user
@@ -337,7 +350,10 @@ Two rules decide what belongs in a vector:
   writes at all for the active mode, and a port that answers `true` anywhere is answering something atlas does not
   claim; every entry of `file_set.groups` carries `size_fixed` — `true`, `false`, or `null` where the size was not
   established — and the validator refuses a group without it, because a port that leaves the key out has answered a
-  question about the file's size by silence;
+  question about the file's size by silence; every entry carries `unit` too — `null`, or the statement that the group's
+  directory is the asked game's own save, `{"kind": "own-folder", "members": null, "archive_folder": …}`, or that the
+  files `members` names in it are, `{"kind": "own-files", "members": […], "archive_folder": …}` — set only where a
+  reading established it, never read off the granularity;
 - **prose is not** — `sources`, caveat `message` and the `*provenance` fields are for humans and change freely, so they
   are not serialized and not asserted.
 

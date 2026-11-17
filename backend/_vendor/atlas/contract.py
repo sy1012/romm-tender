@@ -132,6 +132,13 @@ def _placement_core(placement: SavefilePlacement | SavestatePlacement) -> dict[s
                     "granularity": group.granularity,
                     "role": group.role,
                     "size_fixed": group.size_fixed,
+                    "unit": None
+                    if group.unit is None
+                    else {
+                        "kind": group.unit.kind,
+                        "members": None if group.unit.members is None else list(group.unit.members),
+                        "archive_folder": group.unit.archive_folder,
+                    },
                 }
                 for group in placement.file_set.groups
             ],

@@ -166,8 +166,9 @@ resolver gives today is a unit, and such an answer stays **not established**.
 a missing saves root, then a place not read, then what cannot be established yet (a hole, not established).
 
 **The hole is not always in a file name.** Flycast's Dreamcast cards need the game's `save_id` in the filename;
-Dolphin's GameCube memory cards need the game's `region` in the DIRECTORY. Either way Tender cannot complete the path,
-which is what the state is about.
+Dolphin's GameCube cards need the game's `region` in the DIRECTORY, which the resolver now reads from the disc image —
+where it cannot (no content path, an unreadable image), the hole stays. Either way an unfilled hole is what the state is
+about.
 
 **Nor is it always the game's.** A RetroArch save folder set as a relative path lies below the folder the game is
 started from, and the resolver answers it as `<cwd>/…` with the `cwd` hole. Tender names the resolver no starting

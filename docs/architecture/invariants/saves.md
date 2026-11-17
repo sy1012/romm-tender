@@ -81,12 +81,12 @@ and binds, and the other areas: [the register's index](index.md).
 - **Which files a game's save consists of is the EMULATOR's answer, read live, and six of its eight states refuse the
   sync — no probe, no state written; a place not read from the emulator's own settings is one of them** — test +
   prompt-only — `tests/adapters/test_atlas_saves.py` pins the states, every way the question cannot be put, and that no
-  answer it translates today is a save unit (`TestNoAnswerIsASaveUnitYet`), `tests/domain/test_save_answer.py` pins the
-  precedence that makes "exactly one" well defined, and `tests/services/saves/test_save_shape_gate.py` pins the absences
-  **each beside a control that asserts the same probe DOES happen for a syncable answer** — without those controls a
-  service that had stopped probing entirely would pass. The answered save directory is not sync state: it lives in its
-  own table (`answered_save_directories`) and may be recorded for a refusing answer, whose files are then followed when
-  that directory moves — a move, not a sync
+  answer becomes a save unit without the resolver's own statement (`TestOnlyTheResolversStatementMakesASaveUnit`),
+  `tests/domain/test_save_answer.py` pins the precedence that makes "exactly one" well defined, and
+  `tests/services/saves/test_save_shape_gate.py` pins the absences **each beside a control that asserts the same probe
+  DOES happen for a syncable answer** — without those controls a service that had stopped probing entirely would pass.
+  The answered save directory is not sync state: it lives in its own table (`answered_save_directories`) and may be
+  recorded for a refusing answer, whose files are then followed when that directory moves — a move, not a sync
   ([Following a Moved Save Directory](../save-file-sync-architecture.md#following-a-moved-save-directory)). The rule
   spans seven modules and no diff-scoped review sees it whole: `AtlasSaveLocationAdapter` reads the machine,
   `domain/save_answer.py` decides what the reading means, `RomInfoService.save_answer` turns it into names,

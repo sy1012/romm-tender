@@ -1152,10 +1152,14 @@ The per-state picture, and which systems land where on a stock RetroDECK, is in
 A save of several files — a Wii title's `data/` folder, a game's `.gci` files in Dolphin's shared GameCube card folder —
 is a **save unit** (`domain.save_answer.SaveUnit`): a root folder and which of its files are the save, every file below
 the root (`members=None`) or a named set directly in it. The answer's state is `per_game_unit`, and both what the root
-is and which files are members are the emulator's answer. **No answer the vendored resolver gives today is a unit**:
-only an explicit statement that a folder, or a member set, is the game's own makes one
-([ADR-0046](../adr/0046-a-save-of-several-files-syncs-as-one-staged-zip.md)), and `adapters/atlas_saves.py` translates
-none yet (`tests/adapters/test_atlas_saves.py::TestNoAnswerIsASaveUnitYet`).
+is and which files are members are the emulator's answer. **Only the resolver's own statement makes a unit**: a group
+whose `unit` the resolver sets (`SaveUnitStatement`, kind `own-folder` or `own-files`), in a placement with nothing left
+in `needs` ([ADR-0046](../adr/0046-a-save-of-several-files-syncs-as-one-staged-zip.md)). A granularity alone never does
+— RPCS3 answers `per-game-directory` with the parent of every title's folder. `adapters/atlas_saves.py`'s `_translate`
+maps the statement to a `SaveUnit` (root = the group's folder; its members and archive folder as stated), and
+`tests/adapters/test_atlas_saves.py::TestOnlyTheResolversStatementMakesASaveUnit` pins both directions. Today the
+statement comes from Dolphin's answers, read from the disc image: a Wii title's own folder `<NAND>/title/<hi>/<lo>`,
+laid out under `<lo>`, and a GameCube game's `.gci` files in the disc region's GCI folder, flat.
 
 **The staged zip.** A unit is carried as one file, `<rom stem>.zip`, in a staging folder of Tender's own,
 `<data root>/save-units/<rom id>/`. `RomInfoService` stages every unit answer it reads (`SaveUnits.stage`), so the

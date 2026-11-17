@@ -17,11 +17,11 @@ in [`_vendor/README.md`](../../backend/_vendor/README.md).
 **One manifest per tree.** `backend/_vendor/<package>/` is pinned by the `<package>.SHA256SUMS` beside it, and
 `scripts/check_vendored_trees.py` fails on a package directory that has none — the manifest is discovered, never named
 in the script, so vendoring a package without dropping one next to it breaks the build rather than leaving an unguarded
-tree beside a guarded one. The manifest is upstream's own release manifest where the copy is verbatim (`atlas`), or one
-generated from the tree where the copy carries a documented local patch (`vdf`); `_vendor/README.md` records which kind
-each one is, and both are asserted the same way. Where it is a wheel's manifest the licence sits **beside** the tree as
-`<package>.LICENSE`: the checked file set is an exact equality, so a licence inside the tree would be an extra file the
-gate has to except.
+tree beside a guarded one. The manifest is a release manifest where the copy is a verbatim build — for `atlas`, written
+over the wheel built here from the fork's pinned commit, in the shape of upstream's own — or one generated from the tree
+where the copy carries a documented local patch (`vdf`); `_vendor/README.md` records which kind each one is, and both
+are asserted the same way. Where it is a wheel's manifest the licence sits **beside** the tree as `<package>.LICENSE`:
+the checked file set is an exact equality, so a licence inside the tree would be an extra file the gate has to except.
 
 **Vendoring or bumping a package is a device-test trigger**, because no Python CI runs is the Python a device runs;
 [`_vendor/README.md`](../../backend/_vendor/README.md#the-runtime-a-vendored-copy-has-to-load-in) holds why. A green

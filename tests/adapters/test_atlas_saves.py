@@ -81,6 +81,8 @@ from _vendor.atlas.placement import (
     FILE_SET_DECLARED,
     FILE_SET_OBSERVED,
     FILE_SET_UNKNOWN,
+    SAVE_UNIT_FOLDER,
+    SAVE_UNIT_MEMBERS,
     TEMPLATE_CWD,
     TEMPLATE_REGION,
     TEMPLATE_SAVE_ID,
@@ -89,6 +91,7 @@ from _vendor.atlas.placement import (
     FileSet,
     Granularity,
     SavefilePlacement,
+    SaveUnitStatement,
 )
 
 from adapters.atlas_saves import AtlasSaveLocationAdapter, describe_core_probe_interpreter
@@ -106,6 +109,7 @@ from domain.save_answer import (
     UNESTABLISHED_DIRECTORY_KNOWN,
     UNESTABLISHED_NOT_ASKED,
     UNESTABLISHED_NOTHING,
+    SaveUnit,
     save_shape_message,
 )
 from domain.savestate_location import NoSavestates, SavestateLocation
@@ -188,8 +192,9 @@ def _states_placement(
 class _Entry:
     """A catalogue entry that answers with whatever the test handed it."""
 
-    def __init__(self, label: str, answer: Any, *, states: Any = None) -> None:
+    def __init__(self, label: str, answer: Any, *, states: Any = None, identity: str | None = None) -> None:
         self.label = label
+        self.emulator = identity
         self._answer = answer
         self._states = states
         self.asked: list[str | None] = []
@@ -290,8 +295,10 @@ def _adapter(installation: Any, traces: list[str]) -> AtlasSaveLocationAdapter:
     return AtlasSaveLocationAdapter(sources=_sources(lambda home, machine: detected, traces), log_debug=traces.append)
 
 
-def _ask(answer: Any, traces: list[str], *, label: str = "mGBA", emulator: str | None = "mGBA"):
-    entry = _Entry(label, answer)
+def _ask(
+    answer: Any, traces: list[str], *, label: str = "mGBA", emulator: str | None = "mGBA", identity: str | None = None
+):
+    entry = _Entry(label, answer, identity=identity)
     adapter = _adapter(_Installation((entry,)), traces)
     return adapter.resolve_save_answer(
         system="gba", content_path=_CONTENT, emulator_label=emulator, content_installed=True
@@ -884,8 +891,83 @@ class TestTheTwoShapesAnAnswerReaches:
         assert UNESTABLISHED_NOTHING != UNESTABLISHED_DIRECTORY_KNOWN
 
 
-class TestNoAnswerIsASaveUnitYet:
-    """Only an explicit statement that a folder is the game's own makes a save unit, and none is read yet."""
+class TestOnlyTheResolversStatementMakesASaveUnit:
+    """A save unit comes from the resolver saying a folder or file set is the game's own, never from a granularity."""
+
+    _WII_TITLE = "/nand/Wii/title/00010000/52534245"
+    _GCI_FOLDER = "/dolphin/GC/USA/Card A"
+
+    def test_a_folder_statement_is_a_folder_unit_laid_out_under_its_archive_folder(self, traces):
+        answer = _ask(
+            _placement(
+                files=(),
+                directory=self._WII_TITLE,
+                groups=(
+                    FileGroup(
+                        dir=self._WII_TITLE,
+                        files=None,
+                        granularity=GRANULARITY_PER_GAME_DIRECTORY,
+                        role=ROLE_BATTERY,
+                        unit=SaveUnitStatement(SAVE_UNIT_FOLDER, None, "52534245"),
+                    ),
+                ),
+                granularity=GRANULARITY_PER_GAME_DIRECTORY,
+            ),
+            traces,
+            label="Dolphin",
+            emulator="Dolphin",
+            identity="DOLPHIN",
+        )
+
+        assert answer.state == "per_game_unit"
+        assert answer.unit == SaveUnit(root=self._WII_TITLE, members=None, archive_folder="52534245")
+        assert answer.emulator_identity == "DOLPHIN"
+
+    def test_a_members_statement_is_a_member_set_with_no_archive_folder(self, traces):
+        answer = _ask(
+            _placement(
+                files=(),
+                directory=self._GCI_FOLDER,
+                groups=(
+                    FileGroup(
+                        dir=self._GCI_FOLDER,
+                        files=None,
+                        granularity=GRANULARITY_PER_GAME_DIRECTORY,
+                        role=ROLE_BATTERY,
+                        unit=SaveUnitStatement(SAVE_UNIT_MEMBERS, ("01-GALE-a.gci", "01-GALE-b.gci"), None),
+                    ),
+                ),
+                granularity=GRANULARITY_PER_GAME_DIRECTORY,
+            ),
+            traces,
+            label="Dolphin",
+            emulator="Dolphin",
+            identity="DOLPHIN",
+        )
+
+        assert answer.unit == SaveUnit(root=self._GCI_FOLDER, members=("01-GALE-a.gci", "01-GALE-b.gci"))
+
+    def test_a_statement_in_an_answer_that_still_has_a_hole_is_no_unit(self, traces):
+        answer = _ask(
+            _placement(
+                files=(),
+                needs=("region",),
+                groups=(
+                    FileGroup(
+                        dir=_SAVES,
+                        files=None,
+                        granularity=GRANULARITY_PER_GAME_DIRECTORY,
+                        role=ROLE_BATTERY,
+                        unit=SaveUnitStatement(SAVE_UNIT_FOLDER, None, "52534245"),
+                    ),
+                ),
+                granularity=GRANULARITY_PER_GAME_DIRECTORY,
+            ),
+            traces,
+        )
+
+        assert answer.unit is None
+        assert answer.state != "per_game_unit"
 
     def test_a_per_game_directory_answer_is_not_a_unit(self, traces):
         # RPCS3 answers this granularity with the PARENT of every title's
