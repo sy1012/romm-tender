@@ -28,15 +28,17 @@ When you open a RomM game in the Steam Library, you'll see the Tender panel belo
   for.
 - **Action buttons** — Download, Pause/Resume, Uninstall, Cancel, or Refresh Metadata depending on state
 
-Below the play row stand the panel's tabs — **GAME INFO**, **ACHIEVEMENTS**, **SAVES**, **BIOS** and **ARTWORK** — on
-Steam's own tab row, the one a Steam game's page has. **ACHIEVEMENTS** is there for a game RetroAchievements knows;
-**SAVES** is there with save sync on or off ([Save Sync](save-sync.md#with-save-sync-off)). **L1** and **R1** step to
-the previous and the next of the tabs shown from anywhere in Tender's part of the page, the play row included, going
-round from the last tab to the first. Moving focus onto a tab shows it, and a tab you come back to puts focus where it
-stood in it. The tab area is one screen tall and a tab's content scrolls inside it: moving down from the play row into
-the tabs scrolls the page so the tab row stands at the top, and moving back up to the play row scrolls it back. **B**
-steps back the same way a Steam game's page does: in a tab's content it moves focus up to the tab row, on the tab row it
-moves focus to the play row and scrolls the page back to the top, and on the play row it leaves the game's page.
+Below the play row stand the panel's tabs — **GAME INFO**, **ACHIEVEMENTS**, **SAVES**, **BIOS**, **UPDATES & DLC** and
+**ARTWORK** — on Steam's own tab row, the one a Steam game's page has. **ACHIEVEMENTS** is there for a game
+RetroAchievements knows; **SAVES** is there with save sync on or off ([Save Sync](save-sync.md#with-save-sync-off));
+**UPDATES & DLC** is there for a game whose emulator loads updates and DLC from a folder and that has some on RomM
+([A game's updates and DLC](#a-games-updates-and-dlc)). **L1** and **R1** step to the previous and the next of the tabs
+shown from anywhere in Tender's part of the page, the play row included, going round from the last tab to the first.
+Moving focus onto a tab shows it, and a tab you come back to puts focus where it stood in it. The tab area is one screen
+tall and a tab's content scrolls inside it: moving down from the play row into the tabs scrolls the page so the tab row
+stands at the top, and moving back up to the play row scrolls it back. **B** steps back the same way a Steam game's page
+does: in a tab's content it moves focus up to the tab row, on the tab row it moves focus to the play row and scrolls the
+page back to the top, and on the play row it leaves the game's page.
 
 ![Game detail page showing the Tender panel for an installed game](../assets/screenshot-game-detail.jpg)
 
@@ -343,12 +345,15 @@ much disk space the ROM needs. A download brings the files RomM files as the gam
 game's folder on RomM unless RomM recognises one as an update or DLC (it does for Switch games), and those in no
 category folder, such as a Wii U dump's — and leaves everything RomM files under another category on the server:
 manuals, walkthroughs, soundtracks, screenshots, cheats, patches, translations, hacks, mods, demos, prototypes, updates
-and DLC. To download:
+and DLC. A game's updates and DLC come down too where you tick them, for a game whose emulator loads them from a folder
+([below](#a-games-updates-and-dlc)). To download:
 
 1. Open the game's detail page in the Steam Library
 2. In the Tender panel, tap **Download**
-3. A progress bar shows download status with bytes transferred
-4. When complete, the status changes to "Installed" and the game is ready to play
+3. For a game with updates and DLC on RomM whose emulator loads them from a folder, choose which to bring
+   ([below](#a-games-updates-and-dlc))
+4. A progress bar shows download status with bytes transferred
+5. When complete, the status changes to "Installed" and the game is ready to play
 
 <!-- Screenshot: Game detail page during a download with progress bar -->
 
@@ -418,6 +423,45 @@ the old install the same way, just before it records the files you are using, un
 itself. This keeps a multi-version game to a single copy on disk. Your **save files are never touched** by this cleanup,
 so switching back and re-downloading the earlier version rejoins its saves. A version another Steam shortcut of the same
 game is on is left untouched ([The Switch-version control](#the-switch-version-control) says when a game has one).
+
+### A game's updates and DLC
+
+RomM keeps a Switch game's updates and DLC beside it, in the game's folder — in `update` and `dlc` folders, or directly
+beside the base game where RomM recognises them. Tender offers them only for a game whose emulator is known to load
+updates and DLC lying in a folder, with no step that installs them: today that is **Eden (AppImage)**. For every other
+game, they stay on RomM.
+
+**When you download such a game**, a dialog titled **Updates & DLC** lists every update and DLC file RomM holds for it,
+each with its size. The game itself always downloads; the list is what comes with it. The **newest update** and **every
+DLC file** come ticked, and older updates are listed unticked — Eden applies only the newest update anyway. Which update
+is newest: where a file's name carries a version tag such as `[v131072]`, the highest tag; otherwise the update RomM
+last saw modified; and where neither tells them apart, none is ticked and you choose. **Download** brings the game and
+the ticked files; **Cancel** cancels the download. The files land in the game's own folder, where RomM keeps them — for
+example `~/retrodeck/roms/switch/Game/update/Game [v131072].nsp`. A file that fails to download is left out, the game is
+installed all the same, and a notification says how many did not arrive.
+
+**The UPDATES & DLC tab.** On such a game's page, an **UPDATES & DLC** tab lists the same files, each with its size and
+whether it is **On this device** or **On RomM**. For an installed game you can tick files that are not on the device and
+press **Download _n_ files** to bring them, without touching the game itself; the download shows in the download queue
+as **Updates & DLC**. **Remove** beside a file on the device deletes it after you confirm — it stays on RomM, and you
+can download it again. Something already lying where a file would go is never written over: the download is refused and
+names the path. The tab is not there for a game whose emulator is not known to load updates and DLC from a folder, or
+for which RomM holds none.
+
+**Eden has to look in the game's folder.** Eden finds updates and DLC only in the folders it scans. The tab says so
+where Tender can tell it does not:
+
+- **The game's folder is not scanned.** Add the Switch ROM folder the tab names — with RetroDECK's own settings
+  `~/retrodeck/roms/switch` — as an **external content folder** in Eden's settings.
+- **Scanned only while the game starts.** Eden also scans its game folders, but only alongside starting a game, so
+  updates and DLC found there may not be applied when the game is started from Steam. Adding the Switch ROM folder as an
+  external content folder makes Eden read it when it starts, before the game boots.
+
+Eden reads `.nsp` and `.xci` packages from those folders. A compressed `.nsz` or `.xcz` update or DLC file is not read
+from a folder, and the dialog and the tab say so beside it: decompress it first, or keep the `.nsp`/`.xci` on RomM.
+
+Whether the game counts as installed, and whether its file is missing, depends on the game alone, never on its updates
+and DLC. Uninstalling the game removes them with it.
 
 ### When the game is already on your device
 
@@ -794,7 +838,8 @@ To remove a downloaded ROM file:
 3. The ROM file is deleted from disk
 4. The shortcut remains in your library so you can re-download later
 
-This only removes the ROM file — the Steam shortcut, artwork, and metadata are preserved.
+This only removes the ROM file — the Steam shortcut, artwork, and metadata are preserved. A game's updates and DLC
+downloaded into its folder go with it ([A game's updates and DLC](#a-games-updates-and-dlc)).
 
 Tender deletes only inside the ROM folder RetroDECK names for the game's system, whether RetroDECK is switched on or off
 — where that folder is a link to another drive, on that drive — so an uninstall needs RetroDECK: without it,

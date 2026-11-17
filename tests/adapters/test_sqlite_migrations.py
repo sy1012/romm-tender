@@ -94,14 +94,15 @@ def _set_user_version(db_path: str, version: int) -> None:
 # + 041_replace_applied_launch_options_with_shortcut_applied
 # + 042_add_rom_install_fetched_size + 043_key_firmware_store_by_platform_folder
 # + 044_key_platform_sync_state_by_platform_folder
-# + 045_key_downloaded_bios_by_platform_folder).
-_SHIPPED_VERSION = 45
+# + 045_key_downloaded_bios_by_platform_folder
+# + 046_add_rom_install_extra_content).
+_SHIPPED_VERSION = 46
 
 # Tables after every shipped migration: the v1 set plus 006's play-session outbox,
 # 012's per-platform completion stamp, 019's per-collection completion stamp,
 # 024's answered save directories, 027's artwork slot outcomes, 033's artwork
-# slot choices, 035's artwork slot hand-overs and 036's firmware store and links,
-# with 018 renaming the save-sync scalar table rom_save_states -> rom_save_sync_states.
+# slot choices, 035's artwork slot hand-overs, 036's firmware store and links and
+# 046's install extra content, with 018 renaming the save-sync scalar table rom_save_states -> rom_save_sync_states.
 _SHIPPED_TABLES = (_V1_TABLES - {"rom_save_states"}) | {
     "rom_save_sync_states",
     "rom_playtime_sessions",
@@ -113,6 +114,7 @@ _SHIPPED_TABLES = (_V1_TABLES - {"rom_save_states"}) | {
     "artwork_slot_handovers",
     "firmware_store",
     "firmware_links",
+    "rom_install_extra_content",
 }
 
 
@@ -2979,5 +2981,55 @@ class Test045KeyDownloadedBiosByPlatformFolder:
                     "INSERT INTO downloaded_bios (platform_folder, file_name, file_path, downloaded_at) "
                     "VALUES ('psx', 'scph5501.bin', '/bios/other.bin', 'now')"
                 )
+        finally:
+            conn.close()
+
+
+class Test046AddRomInstallExtraContent:
+    """046 — an install records the extra content downloaded into its game's folder."""
+
+    def test_the_table_arrives_empty_and_an_existing_install_keeps_its_row(self, tmp_path: Path):
+        db_path = str(tmp_path / "romm_sync.db")
+        apply_migrations(db_path, str(_only_migrations_through(tmp_path, 45)))
+        conn = sqlite3.connect(db_path, isolation_level=None)
+        try:
+            _insert_rom(conn, 1, 100)
+            conn.execute(
+                "INSERT INTO rom_installs (rom_id, file_path, rom_dir, platform_slug, system, installed_at) "
+                "VALUES (1, '/roms/switch/G/G.nsp', '/roms/switch/G', 'switch', 'switch', 'now')"
+            )
+        finally:
+            conn.close()
+
+        assert apply_migrations(db_path) == 46
+
+        assert _columns(db_path, "rom_install_extra_content") == {"rom_id", "file_id", "rel_path", "size_bytes"}
+        conn = sqlite3.connect(db_path, isolation_level=None)
+        try:
+            assert conn.execute("SELECT COUNT(*) FROM rom_install_extra_content").fetchone()[0] == 0
+            assert conn.execute("SELECT COUNT(*) FROM rom_installs").fetchone()[0] == 1
+        finally:
+            conn.close()
+
+    def test_a_removed_game_takes_its_rows_and_a_place_is_never_empty(self, tmp_path: Path):
+        db_path = str(tmp_path / "romm_sync.db")
+        apply_migrations(db_path)
+        conn = sqlite3.connect(db_path, isolation_level=None)
+        try:
+            conn.execute("PRAGMA foreign_keys = ON")
+            _insert_rom(conn, 1, 100)
+            conn.execute(
+                "INSERT INTO rom_install_extra_content (rom_id, file_id, rel_path, size_bytes) "
+                "VALUES (1, 12, 'update/U.nsp', 300)"
+            )
+            with pytest.raises(sqlite3.IntegrityError):
+                conn.execute(
+                    "INSERT INTO rom_install_extra_content (rom_id, file_id, rel_path, size_bytes) "
+                    "VALUES (1, 13, '', 300)"
+                )
+
+            conn.execute("DELETE FROM roms WHERE rom_id = 1")
+
+            assert conn.execute("SELECT COUNT(*) FROM rom_install_extra_content").fetchone()[0] == 0
         finally:
             conn.close()

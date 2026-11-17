@@ -1,7 +1,8 @@
 """RomRemovalService — installed-ROM file deletion and ``rom_installs`` cleanup.
 
 Physically deletes a ROM's files from disk and drops its ``rom_installs``
-record. Per [ADR-0007](docs/adr/0007-rom-retention-identity-anchor.md) an
+record, or deletes files of its extra content and forgets them on the record,
+leaving the game installed. Per [ADR-0007](docs/adr/0007-rom-retention-identity-anchor.md) an
 uninstall is *not* a purge: the ``roms`` identity row, playtime, saves, and
 metadata all survive — only the on-disk files and the install record go.
 Forgetting a download whose files are already gone is the same uninstall
@@ -20,7 +21,7 @@ from domain.retrodeck_folders import FolderRefused, folder_of
 from lib.background_tasks import BackgroundTasks
 from lib.errors import NamedRefused, NotInstalled, Refused
 from lib.partial_failure import PartialFailure
-from lib.path_safety import is_inside_folder
+from lib.path_safety import is_inside_folder, safe_join
 from models.prune import InstalledContentRemoval
 
 if TYPE_CHECKING:
@@ -363,6 +364,73 @@ class RomRemovalService:
             raise FilePresent(f"The recorded download exists: {present}", path=present)
         self._complete_removal(rom_id, "Forget download", started)
         return {"success": True, "message": "Download forgotten"}
+
+    async def remove_extra_content(self, rom_id: int | str, file_ids: list[int]) -> dict[str, Any]:
+        """Delete the files of the game's extra content *file_ids* name, for the ``remove_extra_content`` endpoint.
+
+        The game stays installed, and the files stay on RomM; the panel asks
+        before it calls this. Each file is removed under an identity-only claim
+        bounded by the game's own folder, then forgotten on the install. An id
+        the install records no file under is passed over. Answers
+        ``{success, removed, message}``.
+
+        Raises :class:`NotInstalled` for a game with no install,
+        ``already_downloading`` while the game downloads, ``in_progress``
+        while another removal holds it, and ``extra_content_removal_failed``
+        where a file could not be removed — the files removed before it stay
+        removed and forgotten.
+        """
+        async with self._rules.hold("remove_extra_content", update=True, migration=True, prune=True):
+            rom_id_int = int(rom_id)
+            queue = self._download_queue_cleanup
+            if queue is not None and rom_id_int in queue.active_download_rom_ids():
+                raise Refused("already_downloading", "This game is downloading; try again once it has finished")
+            install = self._admit_removal(rom_id_int, "This ROM is already being uninstalled")
+            wanted = frozenset(int(file_id) for file_id in file_ids or ())
+            removal = self._loop.run_in_executor(None, self._remove_extra_content_io, rom_id_int, install, wanted)
+            async with self._removal_claim(rom_id_int, "Remove extra content", "remove_extra_content", removal):
+                try:
+                    removed = await asyncio.shield(removal)
+                except (OSError, ValueError, RuntimeError) as e:
+                    self._logger.error(f"Failed to remove extra content of rom_id={rom_id_int}: {e}")
+                    raise Refused("extra_content_removal_failed", "Failed to remove the update or DLC files") from e
+            self._logger.info(f"Removed {removed} extra content file(s) of rom_id={rom_id_int}")
+            return {"success": True, "removed": removed, "message": f"Removed {removed} file(s)"}
+
+    def _remove_extra_content_io(self, rom_id: int, install: RomInstall, wanted: frozenset[int]) -> int:
+        """Remove each recorded file of extra content in *wanted* and forget it; answer how many were forgotten.
+
+        A recorded file no longer on disk is forgotten without a removal. The
+        bound is the game's own folder, which a file's place is joined under
+        through ``safe_join``; a directory at a file's place is refused.
+        """
+        rom_dir = install.rom_dir
+        if rom_dir is None:
+            return 0
+        removed = 0
+        for entry in install.extra_content:
+            if entry.file_id not in wanted:
+                continue
+            path = safe_join(rom_dir, entry.rel_path)
+            if self._rom_file_store.exists(path):
+                if self._rom_file_store.is_dir(path):
+                    raise ValueError(f"Expected a file of extra content, found a directory: {path}")
+                claim = self._rom_file_store.claim_source(path, rom_dir, digest=False)
+                outcome = self._rom_file_store.remove_claimed(path, rom_dir, claim)
+                if not outcome["success"]:
+                    raise RuntimeError(outcome["message"])
+            self._forget_extra_content(rom_id, entry.file_id)
+            removed += 1
+        return removed
+
+    def _forget_extra_content(self, rom_id: int, file_id: int) -> None:
+        """Forget one file of extra content on the install, in a short write UoW."""
+        with self._uow_factory() as uow:
+            install = uow.rom_installs.get(rom_id)
+            if install is None:
+                return
+            install.remove_extra_content(file_id)
+            uow.rom_installs.save(install)
 
     def _admit_removal(self, rom_id: int, in_progress_message: str) -> RomInstall:
         """Read the ROM's install record, or refuse to start a removal on it.

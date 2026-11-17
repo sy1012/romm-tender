@@ -137,6 +137,10 @@ vi.mock("../bigpicture/StopGameModal", () => ({
 vi.mock("../bigpicture/AdoptExistingModal", () => ({
   showAdoptExistingModal: vi.fn(),
 }));
+// The question a Download asks of a game with updates and DLC.
+vi.mock("../bigpicture/ExtraContentModal", () => ({
+  showExtraContentModal: vi.fn(),
+}));
 // The candidate list and the collision decision — spied for the same reason.
 vi.mock("../bigpicture/AdoptCandidateModal", () => ({
   showAdoptCandidateModal: vi.fn(),
@@ -152,6 +156,7 @@ vi.mock("../bigpicture/AdoptVanishedModal", () => ({
 }));
 
 import { getCachedGameDetail, invalidateCachedGameDetail } from "../utils/cachedGameDetailStore";
+import { showExtraContentModal } from "./ExtraContentModal";
 import { getGameDetail, subscribeGameDetail } from "../utils/gameDetailStore";
 import { setRommConnectionState, reportServerReachable, getRommConnectionState } from "../utils/connectionState";
 import { setLaunchOptionsConfirmed } from "../utils/steamShortcuts";
@@ -6718,5 +6723,109 @@ describe("CustomPlayButton — a download whose file is missing (#2188 D23)", ()
     );
     expect(await findByText("File missing")).toBeInTheDocument();
     expect((await within(container).findByText("Download again")).closest("button")).not.toBeDisabled();
+  });
+});
+
+describe("CustomPlayButton — a game's updates and DLC", () => {
+  const OFFERED = {
+    success: true as const,
+    offered: true,
+    installed: false,
+    files: [
+      {
+        file_id: 14,
+        file_name: "Game DLC.nsp",
+        rel_path: "dlc/Game DLC.nsp",
+        category: "dlc" as const,
+        size_bytes: 10,
+        on_device: false,
+        ticked: true,
+        read_from_folders: true,
+      },
+    ],
+    game_folder_scanned: true,
+    only_beside_launch: false,
+    rom_folder: "/roms/switch",
+  };
+
+  beforeEach(() => {
+    vi.mocked(getCachedGameDetail).mockReset();
+    vi.mocked(backend.startDownload).mockReset();
+    vi.mocked(backend.startDownload).mockResolvedValue({ success: true, message: "" });
+    vi.mocked(backend.getExtraContent).mockReset();
+    vi.mocked(showExtraContentModal).mockReset();
+  });
+
+  async function pressDownload() {
+    mockCachedDetail({ rom_id: 42, installed: false });
+    const utils = render(<CustomPlayButton appId={100} />);
+    const downloadBtn = await utils.findByText("Download");
+    await act(async () => {
+      downloadBtn.click();
+    });
+    return utils;
+  }
+
+  it("asks which to bring first, and a Cancel starts nothing", async () => {
+    vi.mocked(backend.getExtraContent).mockResolvedValue(OFFERED);
+    vi.mocked(showExtraContentModal).mockResolvedValue(null);
+
+    const { findByText } = await pressDownload();
+
+    await waitFor(() => expect(showExtraContentModal).toHaveBeenCalled());
+    expect(backend.startDownload).not.toHaveBeenCalled();
+    expect(await findByText("Download")).toBeInTheDocument();
+  });
+
+  it("starts the download with the files the user ticked", async () => {
+    vi.mocked(backend.getExtraContent).mockResolvedValue(OFFERED);
+    vi.mocked(showExtraContentModal).mockResolvedValue([14]);
+
+    await pressDownload();
+
+    await waitFor(() => expect(backend.startDownload).toHaveBeenCalledWith(42, false, null, null, false, null, [14]));
+  });
+
+  it("asks nothing and downloads the game alone where none is offered", async () => {
+    vi.mocked(backend.getExtraContent).mockResolvedValue({ ...OFFERED, offered: false, files: [] });
+
+    await pressDownload();
+
+    await waitFor(() => expect(backend.startDownload).toHaveBeenCalledWith(42, false, null, null, false));
+    expect(showExtraContentModal).not.toHaveBeenCalled();
+  });
+
+  it("leaves an installed game's Play alone while its extra content downloads", async () => {
+    mockCachedDetail({ rom_id: 42, installed: true });
+    const { findByText, queryByLabelText } = render(<CustomPlayButton appId={100} />);
+    expect(await findByText("Play")).toBeInTheDocument();
+
+    act(() => {
+      emitHostEvent<DownloadProgressEvent>("download_progress", {
+        rom_id: 42,
+        rom_name: "Test ROM",
+        platform_name: "Switch",
+        file_name: "Updates & DLC",
+        status: "downloading",
+        progress: 0.5,
+        bytes_downloaded: 5,
+        total_bytes: 10,
+        extra_content_only: true,
+      });
+      emitHostEvent<DownloadProgressEvent>("download_progress", {
+        rom_id: 42,
+        rom_name: "Test ROM",
+        platform_name: "Switch",
+        file_name: "Updates & DLC",
+        status: "cancelled",
+        progress: 0.5,
+        bytes_downloaded: 5,
+        total_bytes: 10,
+        extra_content_only: true,
+      });
+    });
+
+    expect(await findByText("Play")).toBeInTheDocument();
+    expect(queryByLabelText("Cancel download")).toBeNull();
   });
 });

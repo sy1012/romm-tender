@@ -15,6 +15,7 @@ import { AchievementsTab } from "./AchievementsTab";
 import type { AchievementsLoad } from "../utils/achievements";
 import { ArtworkTab } from "./ArtworkTab";
 import { BiosTab, type BiosTabState } from "./BiosTab";
+import { ExtraContentTab } from "./ExtraContentTab";
 import { GameInfoTab } from "./GameInfoTab";
 import { SavesTab } from "./SavesTab";
 import { SlotSetupWizard } from "./SlotSetupWizard";
@@ -23,6 +24,8 @@ import { SyncOffSaves } from "./saves/SyncOffSaves";
 import type { PanelState, RomBinding } from "./panelState";
 import { announceSaveSync } from "../utils/saveSyncEvents";
 import { noSaveLine, notDownloadedStatement, refusalHint, refusesDownloadedGame } from "../utils/saveSyncStatement";
+import { showsExtraContent, type ExtraContentState } from "../utils/extraContent";
+import { EXTRA_CONTENT_TAB_TITLE } from "../utils/extraContentWording";
 
 interface TabContentContext {
   readonly appId: number;
@@ -30,6 +33,7 @@ interface TabContentContext {
   readonly state: PanelState;
   readonly achievements: AchievementsLoad;
   readonly bios: BiosTabState;
+  readonly extraContent: ExtraContentState;
 }
 
 /** The mark beside the SAVES tab's title of a game whose saves cannot sync, while save sync is on (#2149 D1, #2527 D3). */
@@ -49,7 +53,8 @@ function savesWarningMark(): ReactElement {
  * RetroAchievements knows (an `ra_id`); SAVES and BIOS are there for every game
  * from the moment the page opens — SAVES with save sync on or off, BIOS
  * though its answer is read after the page stands, which the tab says while it
- * waits.
+ * waits. UPDATES & DLC is there only where the game's emulator is stated to load
+ * updates and DLC from folders and RomM holds some for the game.
  */
 export function buildPanelTabs(ctx: TabContentContext): Tab[] {
   const { state } = ctx;
@@ -80,20 +85,35 @@ export function buildPanelTabs(ctx: TabContentContext): Tab[] {
         />
       ),
     },
-    {
-      id: "artwork",
-      title: "ARTWORK",
-      // Keyed by the ROM, so a version switch builds the pane for the version now showing.
+  );
+  const extra = ctx.extraContent.answer;
+  if (showsExtraContent(extra)) {
+    tabs.push({
+      id: "extras",
+      title: EXTRA_CONTENT_TAB_TITLE,
       content: (
-        <ArtworkTab
-          key={`tab-artwork-${ctx.binding.romId}`}
-          appId={ctx.appId}
+        <ExtraContentTab
+          key={`tab-extras-${ctx.binding.romId}`}
           romId={ctx.binding.romId}
-          romName={state.romName}
+          answer={extra}
+          onChanged={ctx.extraContent.reload}
         />
       ),
-    },
-  );
+    });
+  }
+  tabs.push({
+    id: "artwork",
+    title: "ARTWORK",
+    // Keyed by the ROM, so a version switch builds the pane for the version now showing.
+    content: (
+      <ArtworkTab
+        key={`tab-artwork-${ctx.binding.romId}`}
+        appId={ctx.appId}
+        romId={ctx.binding.romId}
+        romName={state.romName}
+      />
+    ),
+  });
   return tabs;
 }
 

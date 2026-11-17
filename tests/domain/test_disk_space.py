@@ -100,6 +100,27 @@ class TestDiskSpaceVerdict:
         assert verdict.needed_mb == 600
 
 
+class TestExtraContentBroughtAfterTheGame:
+    def test_it_is_counted_once_beside_the_game(self):
+        mb = 1024 * 1024
+        verdict = disk_space_verdict(
+            file_size=1000 * mb, free_space=10_000 * mb, reserved_bytes=0, multi_file=True, extra_bytes=300 * mb
+        )
+
+        # The game twice (zip and unpacked), the extra content once, and the headroom.
+        assert verdict.needed_bytes == (2000 + 300 + 100) * mb
+
+    def test_it_can_refuse_a_download_the_game_alone_would_fit(self):
+        mb = 1024 * 1024
+        alone = disk_space_verdict(file_size=500 * mb, free_space=700 * mb, reserved_bytes=0, multi_file=False)
+        with_it = disk_space_verdict(
+            file_size=500 * mb, free_space=700 * mb, reserved_bytes=0, multi_file=False, extra_bytes=200 * mb
+        )
+
+        assert alone.fits is True
+        assert with_it.fits is False
+
+
 class TestASingleZipThatWillBeUnpacked:
     def test_its_listed_contents_are_counted_with_it(self):
         verdict = disk_space_verdict(

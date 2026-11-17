@@ -19,6 +19,7 @@ from _factories import (
 )
 from _spawns import record_spawns
 from fakes.fake_core_info_provider import FakeCoreInfoProvider
+from fakes.fake_extra_content_reader import FakeExtraContentReader
 from fakes.fake_platform_core_reader import FakePlatformCoreReader
 from fakes.fake_platform_systems import RETRODECK_SOURCE, FakePlatformSystems
 from fakes.fake_retrodeck_folders import FakeRetroDeckFolders
@@ -51,6 +52,8 @@ from services.downloads import (
     DownloadTransferConfig,
     DownloadUnpacker,
     DownloadUnpackerConfig,
+    ExtraContentOffer,
+    ExtraContentOfferConfig,
 )
 from services.downloads._names import safe_extract_dir_name
 from services.downloads._state import DownloadControl
@@ -185,6 +188,9 @@ class DownloadsHarness:
     adoption service; a test that simulates a non-m3u platform (Switch/Xbox
     360) flips it to False. ``accepted_extensions`` answers the unpacker's
     ``system_extensions`` seam, every system's accept-list alike.
+    ``extra_content`` is the resolver's reading of extra content in folders
+    the offer asks, and ``install_recorder`` the recorder every part writes
+    an install through.
     """
 
     service: DownloadService
@@ -201,6 +207,8 @@ class DownloadsHarness:
     loop: asyncio.AbstractEventLoop
     download_file_store: Any
     retrodeck_folders: FakeRetroDeckFolders
+    extra_content: FakeExtraContentReader
+    install_recorder: RomInstallRecorder
     m3u_supported: bool = True
     accepted_extensions: frozenset[str] = frozenset()
 
@@ -336,8 +344,25 @@ async def make_downloads(emit, logger) -> MakeDownloads:
                 queue=queue,
                 unpacker=unpacker,
                 romm_api=romm_api,
+                install_recorder=install_recorder,
+                download_file_store=download_store,
+                uow_factory=FakeUnitOfWorkFactory(uow),
                 loop=download_loop,
                 emit=download_emit,
+                logger=logger,
+            ),
+        )
+        extra_content = FakeExtraContentReader()
+        offer = ExtraContentOffer(
+            config=ExtraContentOfferConfig(
+                uow_factory=FakeUnitOfWorkFactory(uow),
+                romm_api=romm_api,
+                platform_systems=shared_platform_systems if platform_systems is None else platform_systems,
+                retrodeck_folders=download_folders,
+                extra_content=extra_content,
+                active_core=active_core,
+                download_file_store=download_store,
+                loop=running,
                 logger=logger,
             ),
         )
@@ -359,6 +384,7 @@ async def make_downloads(emit, logger) -> MakeDownloads:
                 # time, by which point the removal service is constructed below.
                 rom_remover=(lambda: harness.removal.remove_rom_unchecked) if rom_remover is None else rom_remover,
                 conflict_rules=conflict_rules,
+                extra_content_offer=offer,
             ),
         )
         removal = RomRemovalService(
@@ -391,6 +417,8 @@ async def make_downloads(emit, logger) -> MakeDownloads:
             loop=download_loop,
             download_file_store=download_store,
             retrodeck_folders=download_folders,
+            extra_content=extra_content,
+            install_recorder=install_recorder,
         )
         return harness
 
@@ -7027,7 +7055,7 @@ class TestResumeSupersede:
         # No stored replace answer on this entry, so the resume carries False —
         # the exemption is scoped to the download that was actually admitted.
         downloads.service._begin_download.assert_awaited_once_with(
-            2, resume=True, replace_existing=False, confirmed_paths=None
+            2, resume=True, replace_existing=False, extra_file_ids=(), confirmed_paths=None
         )
 
     @pytest.mark.asyncio
@@ -8377,3 +8405,448 @@ class TestTheSizeTheGamePageShows:
             patcher.stop()
 
         assert answer == {"size_bytes": None}
+
+
+# ── Extra content: a game's update and DLC files ───────────────────────────
+
+
+def _switch_game() -> dict[str, Any]:
+    """A game RomM keeps with two updates and a DLC file in category folders beside it."""
+    return _folder_game(
+        _rom_file(11, "Game [base].nsp", "game", 1000),
+        _rom_file(12, "update/Game [v65536].nsp", "update", 300),
+        _rom_file(13, "update/Game [v131072].nsp", "update", 310),
+        _rom_file(14, "dlc/Game [DLC1].nsp", "dlc", 50),
+        multiple=True,
+    )
+
+
+def _content_by_id(fail: frozenset[int] = frozenset()):
+    """A ``download_rom_content`` that writes each file's id as its bytes, and fails for an id in *fail*."""
+    asked: list[Any] = []
+
+    def fake_download(_rom_id, _filename, dest, progress=None, *, resume=False, on_meta=None, file_ids=None):
+        asked.append(file_ids)
+        file_id = file_ids[0] if file_ids else 0
+        with open(dest, "wb") as f:
+            f.write(f"file-{file_id}".encode())
+        if file_id in fail:
+            raise OSError("connection reset")
+        if progress is not None:
+            progress(10, 10)
+
+    return fake_download, asked
+
+
+class TestADownloadBringsTheTickedExtraContent:
+    """A download brings the extra content the user ticked into the game's folder, after the game."""
+
+    @pytest.fixture
+    def roms(self, tmp_path):
+        roms = tmp_path / "retrodeck" / "roms"
+        (roms / "gc").mkdir(parents=True)
+        return roms
+
+    @pytest.fixture
+    def downloads(self, make_downloads, roms, tmp_path):
+        return make_downloads(
+            retrodeck_folders=FakeRetroDeckFolders(roms=str(roms), bios=str(tmp_path / "bios")),
+            removal_folders=FakeRetroDeckFolders(roms=str(roms)),
+        )
+
+    @staticmethod
+    async def _run(downloads, roms, ticked: list[int], fail: frozenset[int] = frozenset()) -> list[Any]:
+        from unittest.mock import patch
+
+        from domain.extra_content import chosen_extra_content
+
+        detail = _switch_game()
+        fake_download, asked = _content_by_id(fail)
+        _seed_rom(downloads.uow, 1, platform_slug="gc")
+        downloads.queue.enqueue(1, {"rom_id": 1, "status": "downloading", "progress": 0})
+        with patch.object(downloads.romm_api, "download_rom_content", side_effect=fake_download):
+            await downloads.transfer.run(
+                1,
+                detail,
+                str(roms / "gc" / "Game"),
+                "gc",
+                "Game",
+                _admitted(downloads, 1),
+                platform_name="Switch",
+                extra_content=chosen_extra_content(detail, ticked),
+            )
+        return asked
+
+    async def test_each_ticked_file_lands_at_its_place_in_the_game_s_folder_and_is_recorded(self, downloads, roms):
+        asked = await self._run(downloads, roms, [13, 14])
+
+        assert asked == [(11,), (13,), (14,)]
+        installed = downloads.uow.rom_installs.get(1)
+        assert installed is not None
+        assert installed.rom_dir is not None
+        folder = Path(installed.rom_dir)
+        assert (folder / "update" / "Game [v131072].nsp").read_bytes() == b"file-13"
+        assert (folder / "dlc" / "Game [DLC1].nsp").read_bytes() == b"file-14"
+        assert not (folder / "update" / "Game [v65536].nsp").exists()
+        assert [(e.file_id, e.rel_path) for e in installed.extra_content] == [
+            (13, "update/Game [v131072].nsp"),
+            (14, "dlc/Game [DLC1].nsp"),
+        ]
+        # The game itself is what it always was.
+        assert Path(installed.file_path).read_bytes() == b"file-11"
+
+    async def test_the_completion_says_nothing_of_extra_content_that_all_arrived(self, downloads, roms, emit):
+        await self._run(downloads, roms, [14])
+
+        complete = [c.args[1] for c in emit.await_args_list if c.args[0] == "download_complete"]
+        assert len(complete) == 1
+        assert "extra_content_missing" not in complete[0]
+        assert "extra_content_only" not in complete[0]
+
+    async def test_a_file_that_fails_is_left_out_and_counted_and_the_game_stays_installed(self, downloads, roms, emit):
+        await self._run(downloads, roms, [13, 14], fail=frozenset({13}))
+
+        installed = downloads.uow.rom_installs.get(1)
+        assert installed is not None
+        assert installed.rom_dir is not None
+        folder = Path(installed.rom_dir)
+        assert [e.file_id for e in installed.extra_content] == [14]
+        assert not list(folder.rglob("*.tmp"))
+        assert not (folder / "update" / "Game [v131072].nsp").exists()
+        complete = [c.args[1] for c in emit.await_args_list if c.args[0] == "download_complete"]
+        assert complete[0]["extra_content_missing"] == 1
+        assert downloads.queue.entries[1]["status"] == "completed"
+
+    async def test_nothing_ticked_fetches_only_the_game(self, downloads, roms):
+        asked = await self._run(downloads, roms, [])
+
+        assert asked == [(11,)]
+        installed = downloads.uow.rom_installs.get(1)
+        assert installed is not None
+        assert installed.extra_content == ()
+
+
+class TestStartingADownloadWithExtraContent:
+    async def test_an_id_that_is_none_of_the_game_s_extra_content_refuses_and_gives_the_claim_back(
+        self, make_downloads, tmp_path
+    ):
+        downloads = make_downloads(retrodeck_folders=FakeRetroDeckFolders(roms=str(tmp_path / "roms")))
+        _seed_rom(downloads.uow, 1, platform_slug="gc")
+        downloads.romm_api.get_rom.return_value = _switch_game()
+
+        with pytest.raises(DomainRefused) as refused:
+            await downloads.service.start_download(1, False, None, None, False, None, [11])
+
+        assert refused.value.reason == "unknown_extra_content"
+        assert refused.value.details == {"file_ids": [11]}
+        assert 1 not in downloads.state.in_progress
+        assert 1 not in downloads.queue.entries
+
+
+class TestDownloadingExtraContentOfAnInstalledGame:
+    """``download_extra_content`` brings files into an installed game's folder without touching the game."""
+
+    @pytest.fixture
+    def game_dir(self, tmp_path):
+        folder = tmp_path / "roms" / "switch" / "Game"
+        folder.mkdir(parents=True)
+        (folder / "Game [base].nsp").write_bytes(b"base")
+        return folder
+
+    @pytest.fixture
+    def downloads(self, make_downloads, tmp_path, game_dir):
+        downloads = make_downloads(retrodeck_folders=FakeRetroDeckFolders(roms=str(tmp_path / "roms")))
+        _seed_install(
+            downloads.uow, 1, file_path=str(game_dir / "Game [base].nsp"), rom_dir=str(game_dir), system="switch"
+        )
+        downloads.romm_api.get_rom.return_value = _switch_game()
+        return downloads
+
+    @staticmethod
+    async def _download(downloads, file_ids: list[int], fail: frozenset[int] = frozenset()) -> list[Any]:
+        from unittest.mock import patch
+
+        fake_download, asked = _content_by_id(fail)
+        with patch.object(downloads.romm_api, "download_rom_content", side_effect=fake_download):
+            result = await downloads.service.download_extra_content(1, file_ids)
+            task = downloads.service.task_for_rom(1)
+            assert task is not None
+            await task
+        assert result == {"success": True, "message": "Download started"}
+        return asked
+
+    async def test_the_files_land_in_the_game_s_folder_and_the_game_is_untouched(self, downloads, game_dir, emit):
+        asked = await self._download(downloads, [12, 14])
+
+        assert asked == [(12,), (14,)]
+        assert (game_dir / "update" / "Game [v65536].nsp").read_bytes() == b"file-12"
+        assert (game_dir / "dlc" / "Game [DLC1].nsp").read_bytes() == b"file-14"
+        assert (game_dir / "Game [base].nsp").read_bytes() == b"base"
+        installed = downloads.uow.rom_installs.get(1)
+        assert installed is not None
+        assert installed.file_path == str(game_dir / "Game [base].nsp")
+        assert sorted(e.file_id for e in installed.extra_content) == [12, 14]
+        complete = [c.args[1] for c in emit.await_args_list if c.args[0] == "download_complete"]
+        assert complete[0]["extra_content_only"] is True
+        assert complete[0]["file_path"] == str(game_dir / "Game [base].nsp")
+
+    async def test_its_queue_entry_and_frames_say_it_is_extra_content_alone(self, downloads, emit):
+        await self._download(downloads, [14])
+
+        entry = downloads.queue.entries[1]
+        assert entry["extra_content_only"] is True
+        assert entry["file_name"] == "Updates & DLC"
+        assert entry["status"] == "completed"
+        frames = [c.args[1] for c in emit.await_args_list if c.args[0] == "download_progress"]
+        assert frames
+        assert all(frame.get("extra_content_only") is True for frame in frames)
+        assert 1 not in downloads.state.in_progress
+
+    async def test_a_file_already_recorded_is_not_fetched_again(self, downloads):
+        await self._download(downloads, [14])
+
+        with pytest.raises(Refused) as refused:
+            await downloads.service.download_extra_content(1, [14])
+
+        assert refused.value.reason == "nothing_to_download"
+        assert 1 not in downloads.state.in_progress
+
+    async def test_something_lying_at_a_file_s_place_is_not_written_over(self, downloads, game_dir):
+        (game_dir / "dlc").mkdir()
+        (game_dir / "dlc" / "Game [DLC1].nsp").write_bytes(b"the user's own")
+
+        with pytest.raises(Refused) as refused:
+            await downloads.service.download_extra_content(1, [14])
+
+        assert refused.value.reason == "extra_content_occupied"
+        assert refused.value.details["path"] == str(game_dir / "dlc" / "Game [DLC1].nsp")
+        assert (game_dir / "dlc" / "Game [DLC1].nsp").read_bytes() == b"the user's own"
+        assert 1 not in downloads.state.in_progress
+
+    async def test_a_game_that_is_not_installed_is_refused(self, make_downloads, tmp_path):
+        downloads = make_downloads(retrodeck_folders=FakeRetroDeckFolders(roms=str(tmp_path / "roms")))
+        _seed_rom(downloads.uow, 1, platform_slug="switch")
+
+        with pytest.raises(NotInstalled):
+            await downloads.service.download_extra_content(1, [14])
+
+    async def test_a_game_that_is_downloading_is_refused(self, downloads):
+        downloads.state.claim(1)
+
+        with pytest.raises(Refused) as refused:
+            await downloads.service.download_extra_content(1, [14])
+
+        assert refused.value.reason == "already_downloading"
+
+    async def test_a_file_that_fails_leaves_no_partial_and_the_download_still_completes(
+        self, downloads, game_dir, emit
+    ):
+        await self._download(downloads, [12, 14], fail=frozenset({12}))
+
+        assert not list(game_dir.rglob("*.tmp"))
+        installed = downloads.uow.rom_installs.get(1)
+        assert installed is not None
+        assert [e.file_id for e in installed.extra_content] == [14]
+        complete = [c.args[1] for c in emit.await_args_list if c.args[0] == "download_complete"]
+        assert complete[0]["extra_content_missing"] == 1
+
+    async def test_a_cancel_keeps_what_arrived_and_ends_cancelled(self, downloads, game_dir, emit):
+        from unittest.mock import patch
+
+        def cancelling_download(_rom_id, _filename, dest, progress=None, *, resume=False, on_meta=None, file_ids=None):
+            with open(dest, "wb") as f:
+                f.write(b"partial")
+            if file_ids == (14,):
+                downloads.state.control_tokens[1].cancelled = True
+                assert progress is not None
+                progress(1, 10)
+            with open(dest, "ab") as f:
+                f.write(b"-whole")
+
+        with patch.object(downloads.romm_api, "download_rom_content", side_effect=cancelling_download):
+            await downloads.service.download_extra_content(1, [12, 14])
+            task = downloads.service.task_for_rom(1)
+            assert task is not None
+            with pytest.raises(asyncio.CancelledError):
+                await task
+
+        assert (game_dir / "update" / "Game [v65536].nsp").exists()
+        assert not (game_dir / "dlc").exists() or not list((game_dir / "dlc").iterdir())
+        installed = downloads.uow.rom_installs.get(1)
+        assert installed is not None
+        assert [e.file_id for e in installed.extra_content] == [12]
+        frames = [c.args[1] for c in emit.await_args_list if c.args[0] == "download_progress"]
+        assert frames[-1]["status"] == "cancelled"
+        assert frames[-1]["extra_content_only"] is True
+        assert 1 not in downloads.queue.entries
+
+
+class TestRemovingExtraContent:
+    """``remove_extra_content`` deletes files of an installed game's extra content and forgets them."""
+
+    @pytest.fixture
+    def game_dir(self, tmp_path):
+        folder = tmp_path / "roms" / "switch" / "Game"
+        (folder / "dlc").mkdir(parents=True)
+        (folder / "Game [base].nsp").write_bytes(b"base")
+        (folder / "dlc" / "Game [DLC1].nsp").write_bytes(b"dlc")
+        return folder
+
+    @pytest.fixture
+    def downloads(self, make_downloads, tmp_path, game_dir):
+        roms = FakeRetroDeckFolders(roms=str(tmp_path / "roms"))
+        downloads = make_downloads(retrodeck_folders=roms, removal_folders=roms)
+        _seed_install(
+            downloads.uow, 1, file_path=str(game_dir / "Game [base].nsp"), rom_dir=str(game_dir), system="switch"
+        )
+        with downloads.uow:
+            install = downloads.uow.rom_installs.get(1)
+            assert install is not None
+            install.add_extra_content(14, "dlc/Game [DLC1].nsp", 3)
+            downloads.uow.rom_installs.save(install)
+        return downloads
+
+    async def test_the_file_goes_and_is_forgotten_and_the_game_stays(self, downloads, game_dir):
+        result = await downloads.removal.remove_extra_content(1, [14])
+
+        assert result == {"success": True, "removed": 1, "message": "Removed 1 file(s)"}
+        assert not (game_dir / "dlc" / "Game [DLC1].nsp").exists()
+        assert (game_dir / "Game [base].nsp").read_bytes() == b"base"
+        installed = downloads.uow.rom_installs.get(1)
+        assert installed is not None
+        assert installed.extra_content == ()
+
+    async def test_a_recorded_file_already_gone_is_forgotten(self, downloads, game_dir):
+        (game_dir / "dlc" / "Game [DLC1].nsp").unlink()
+
+        result = await downloads.removal.remove_extra_content(1, [14])
+
+        assert result["removed"] == 1
+        installed = downloads.uow.rom_installs.get(1)
+        assert installed is not None
+        assert installed.extra_content == ()
+
+    async def test_an_id_nothing_is_recorded_under_removes_nothing(self, downloads, game_dir):
+        result = await downloads.removal.remove_extra_content(1, [99])
+
+        assert result["removed"] == 0
+        assert (game_dir / "dlc" / "Game [DLC1].nsp").exists()
+
+    async def test_it_is_refused_while_the_game_downloads(self, downloads, game_dir):
+        downloads.state.claim(1)
+
+        with pytest.raises(Refused) as refused:
+            await downloads.removal.remove_extra_content(1, [14])
+
+        assert refused.value.reason == "already_downloading"
+        assert (game_dir / "dlc" / "Game [DLC1].nsp").exists()
+
+    async def test_a_game_that_is_not_installed_is_refused(self, make_downloads):
+        downloads = make_downloads()
+
+        with pytest.raises(NotInstalled):
+            await downloads.removal.remove_extra_content(1, [14])
+
+    async def test_an_uninstall_takes_the_extra_content_with_the_game(self, downloads, game_dir):
+        await downloads.removal.remove_rom(1)
+
+        assert not game_dir.exists()
+        assert downloads.uow.rom_installs.get(1) is None
+
+
+class TestTheExtraContentOffer:
+    """``get_extra_content`` offers a game's extra content only where the resolver states its emulator loads it."""
+
+    @pytest.fixture
+    def downloads(self, make_downloads, tmp_path):
+        downloads = make_downloads(retrodeck_folders=FakeRetroDeckFolders(roms=str(tmp_path / "roms")))
+        downloads.romm_api.get_rom.return_value = _switch_game()
+        return downloads
+
+    async def test_where_it_is_not_stated_nothing_is_offered_and_romm_is_not_asked(self, downloads):
+        _seed_rom(downloads.uow, 1, platform_slug="switch")
+
+        answer = await downloads.service.get_extra_content(1)
+
+        assert answer == {
+            "success": True,
+            "offered": False,
+            "installed": False,
+            "files": [],
+            "game_folder_scanned": None,
+            "only_beside_launch": False,
+            "rom_folder": None,
+        }
+        downloads.romm_api.get_rom.assert_not_called()
+
+    async def test_a_game_not_downloaded_lists_every_file_ticked_by_the_rule_and_asks_about_its_future_folder(
+        self, downloads, tmp_path
+    ):
+        from domain.extra_content import ExtraContentFolders
+
+        _seed_rom(downloads.uow, 1, platform_slug="switch")
+        downloads.extra_content.answer = ExtraContentFolders(
+            offered=True, game_folder_scanned=False, extensions=(".nsp", ".xci")
+        )
+
+        answer = await downloads.service.get_extra_content(1)
+
+        assert answer["offered"] is True
+        assert answer["installed"] is False
+        assert answer["game_folder_scanned"] is False
+        assert answer["rom_folder"] == str(tmp_path / "roms" / "switch")
+        assert [(f["file_id"], f["category"], f["ticked"], f["on_device"]) for f in answer["files"]] == [
+            (12, "update", False, False),
+            (13, "update", True, False),
+            (14, "dlc", True, False),
+        ]
+        assert all(f["read_from_folders"] is True for f in answer["files"])
+        asked_paths = [path for _system, _label, path in downloads.extra_content.asked]
+        assert asked_paths == [None, str(tmp_path / "roms" / "switch" / "Game")]
+
+    async def test_an_installed_game_says_which_files_lie_in_its_folder(self, downloads, tmp_path):
+        from domain.extra_content import ExtraContentFolders
+
+        game_dir = tmp_path / "roms" / "switch" / "Game"
+        (game_dir / "dlc").mkdir(parents=True)
+        (game_dir / "dlc" / "Game [DLC1].nsp").write_bytes(b"dlc")
+        _seed_install(downloads.uow, 1, file_path=str(game_dir / "base.nsp"), rom_dir=str(game_dir), system="switch")
+        with downloads.uow:
+            install = downloads.uow.rom_installs.get(1)
+            assert install is not None
+            install.add_extra_content(14, "dlc/Game [DLC1].nsp", 50)
+            install.add_extra_content(13, "update/Game [v131072].nsp", 310)
+            downloads.uow.rom_installs.save(install)
+        downloads.extra_content.answer = ExtraContentFolders(
+            offered=True, game_folder_scanned=True, only_beside_launch=True, extensions=(".nsp",)
+        )
+
+        answer = await downloads.service.get_extra_content(1)
+
+        on_device = {f["file_id"]: f["on_device"] for f in answer["files"]}
+        # 13 is recorded but no longer lies in the folder.
+        assert on_device == {12: False, 13: False, 14: True}
+        assert answer["installed"] is True
+        assert answer["only_beside_launch"] is True
+        assert downloads.extra_content.asked == [("switch", None, str(game_dir))]
+
+    async def test_a_compressed_package_is_said_not_to_be_read_from_a_folder(self, downloads):
+        from domain.extra_content import ExtraContentFolders
+
+        _seed_rom(downloads.uow, 1, platform_slug="switch")
+        downloads.romm_api.get_rom.return_value = _folder_game(
+            _rom_file(11, "Game.nsp", "game", 1000),
+            _rom_file(12, "update/Game [v65536].nsz", "update", 300),
+            multiple=True,
+        )
+        downloads.extra_content.answer = ExtraContentFolders(offered=True, extensions=(".nsp", ".xci"))
+
+        answer = await downloads.service.get_extra_content(1)
+
+        assert [(f["file_id"], f["read_from_folders"]) for f in answer["files"]] == [(12, False)]
+
+    async def test_a_game_tender_does_not_know_is_refused(self, downloads):
+        with pytest.raises(Refused) as refused:
+            await downloads.service.get_extra_content(404)
+
+        assert refused.value.reason == "not_found"

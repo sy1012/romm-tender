@@ -9,15 +9,20 @@ class FakeDownloadQueueCleanup:
     Records ``evict`` calls in ``evicted`` (a list of rom_ids in call
     order) and counts ``clear()`` invocations in ``cleared``. Tests
     inspect either attribute to assert eviction behaviour without
-    standing up a full DownloadService.
+    standing up a full DownloadService. ``downloading`` holds the rom ids
+    ``active_download_rom_ids`` answers.
     """
 
     def __init__(self) -> None:
         self.evicted: list[int] = []
         self.cleared: int = 0
+        self.downloading: set[int] = set()
 
     def evict(self, rom_id: int) -> None:
         self.evicted.append(int(rom_id))
 
     def clear(self) -> None:
         self.cleared += 1
+
+    def active_download_rom_ids(self) -> set[int]:
+        return set(self.downloading)

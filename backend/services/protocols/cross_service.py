@@ -21,6 +21,7 @@ if TYPE_CHECKING:
     from domain.emulator_choice import ResolvedEmulator
     from domain.emulator_commands import EmulatorOption, LaunchingEmulator
     from domain.emulator_sources import SourcesReading
+    from domain.extra_content import ExtraContentFile
     from domain.rom_install import RomInstall
     from domain.save_answer import SaveAnswer
     from domain.update_release import LatestRelease
@@ -119,6 +120,10 @@ class RomInstallRecorder(Protocol):
         *cleanup* removes the just-placed artifact when the RomM data fails the
         aggregate's invariant and nothing is persisted.
         """
+        ...
+
+    def do_record_extra_content(self, rom_id: int, file: ExtraContentFile) -> bool:
+        """Record *file* of the game's extra content on its install; ``False`` where no install with a folder stands."""
         ...
 
 

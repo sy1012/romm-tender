@@ -3,14 +3,14 @@
 Who reads the resolver's answer and its vocabulary, where its installations are detected, and the RetroDECK folders
 taken from it. How an entry reads and binds, and the other areas: [the register's index](index.md).
 
-- **The resolver's answer is read only in the adapter that asks for it — `adapters/atlas_catalogue.py`,
-  `atlas_firmware.py`, `atlas_launch.py`, `atlas_platforms.py`, `atlas_saves.py`, `emulator_sources.py` and
-  `retrodeck_folders.py`: only they import the resolver, and only names in `atlas.__all__`** — check + test +
-  prompt-only
+- **The resolver's answer is read only in the adapter that asks for it — the reading modules: only they import the
+  resolver, and only names in `atlas.__all__`** — check + test + prompt-only
 
-  Outside them no backend module and no panel code names one of the resolver's codes, a distinctive value of any other
-  closed vocabulary it exports or one of its distinctive answer field names; and every caveat, health-issue, unresolved
-  and reason code the vendored resolver states is classified by one of them or stands on the list of codes nothing
+  The reading modules are `adapters/atlas_catalogue.py`, `atlas_extra_content.py`, `atlas_firmware.py`,
+  `atlas_launch.py`, `atlas_platforms.py`, `atlas_saves.py`, `emulator_sources.py` and `retrodeck_folders.py`. Outside
+  them no backend module and no panel code names one of the resolver's codes, a distinctive value of any other closed
+  vocabulary it exports or one of its distinctive answer field names; and every caveat, health-issue, unresolved and
+  reason code the vendored resolver states is classified by one of them or stands on the list of codes nothing
   classifies today. Only infrastructure and homonyms are excepted: by name, each with its reason,
   `adapters/atlas_zstd.py` imports the resolver to hand it the zstd codec and `adapters/emulator_sources.py` holds
   `RealMachine` (`IMPORT_GRANTS`, `INTERNALS_GRANTED`); `tests/` is excepted as a whole, because tests build the

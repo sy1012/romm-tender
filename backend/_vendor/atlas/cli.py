@@ -36,6 +36,7 @@ from .contract import (
     identification_contract,
     installation_answers_contract,
     installation_contract,
+    extra_content_contract,
     launch_command_contract,
     launchable_contract,
     mod_answer_contract,
@@ -127,6 +128,10 @@ _QUESTIONS: dict[str, tuple[_Ask, _Serialize]] = {
     "launch-command": (
         lambda target, args: target.launch_command(args.system, args.content, label=args.label),
         launch_command_contract,
+    ),
+    "extra-content-folders": (
+        lambda target, args: target.extra_content_folders(args.system, label=args.label, content_path=args.content),
+        extra_content_contract,
     ),
     "firmware-for-core": (
         lambda target, args: target.firmware_for_core(
@@ -356,6 +361,15 @@ def build_parser() -> argparse.ArgumentParser:
         "--content", required=True, type=_absolute_argument, help="absolute path of the content file"
     )
     command.add_argument("--label", help="the catalogue entry's label; default: the frontend's own choice")
+
+    extra = commands.add_parser(
+        "extra-content-folders",
+        parents=[common, selecting],
+        help="whether the entry's emulator loads a game's updates and add-ons from folders, and which",
+    )
+    extra.add_argument("--system", required=True, help=_SYSTEM_ID_HELP)
+    extra.add_argument("--content", type=_absolute_argument, help="absolute path of the content file")
+    extra.add_argument("--label", help="the catalogue entry's label; default: the frontend's own choice")
 
     for_core = commands.add_parser(
         "firmware-for-core",

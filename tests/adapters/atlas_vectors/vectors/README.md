@@ -258,36 +258,41 @@ A path in both lists is a contradiction, not a mode-000 shorthand, and is refuse
 Each expectation is paired with the input key that asks it. Several may appear in one vector; each pair must be complete
 — a query with no expectation asks nothing, an expectation with no query is checked by nobody.
 
-| input key                | expected key                  | the question                                                |
-| ------------------------ | ----------------------------- | ----------------------------------------------------------- |
-| `savefile_query`         | `savefile_location`           | where does this savefile live                               |
-| `entry_savefile_query`   | `entry_savefile_location`     | the same placement, asked _through_ a catalogue entry       |
-| `savestate_query`        | `savestate_location`          | where does this savestate live                              |
-| `entry_savestate_query`  | `entry_savestate_location`    | the same placement, asked _through_ a catalogue entry       |
-| `screenshot_query`       | `screenshot_location`         | where does RetroArch write screenshots for this content     |
-| `texture_query`          | `texture_pack_location`       | where does this emulator read texture packs                 |
-| `entry_texture_query`    | `entry_texture_pack_location` | the same, asked _through_ a catalogue entry                 |
-| `mod_query`              | `mod_location`                | where does this emulator read mods                          |
-| `entry_mod_query`        | `entry_mod_location`          | the same, asked _through_ a catalogue entry                 |
-| `soft_patch_query`       | `soft_patch_candidates`       | which patch files this content would be patched with        |
-| `catalogue_query`        | `catalogue`                   | which emulators can launch this system                      |
-| `systems_query`          | `systems`                     | which systems does the frontend declare                     |
-| `platform_systems_query` | `systems_for_platform`        | which systems here answer to a public platform id           |
-| `platform_ids_query`     | `platform_ids`                | which public platform ids belong to this system             |
-| `launchable_query`       | `launchable`                  | does this file launch as this system's content, and why not |
-| `rom_location_query`     | `rom_location`                | where do this system's ROMs live                            |
-| `rom_locations_query`    | `rom_locations`               | where do the ROMs of every listed system live               |
-| `launch_command_query`   | `launch_command`              | the command the frontend would run for this file            |
-| `roots_query`            | `roots`                       | where each root folder is, and what decided it              |
-| `firmware_query`         | `firmware`                    | `kind` is `core`, `system` or `inventory`                   |
-| `identify_query`         | `identification`              | what is this content, by `md5` / `sha1` / `size`            |
-| `aggregate_query`        | `aggregate`                   | one question put to **every** detected installation         |
+| input key                | expected key                  | the question                                                     |
+| ------------------------ | ----------------------------- | ---------------------------------------------------------------- |
+| `savefile_query`         | `savefile_location`           | where does this savefile live                                    |
+| `entry_savefile_query`   | `entry_savefile_location`     | the same placement, asked _through_ a catalogue entry            |
+| `savestate_query`        | `savestate_location`          | where does this savestate live                                   |
+| `entry_savestate_query`  | `entry_savestate_location`    | the same placement, asked _through_ a catalogue entry            |
+| `screenshot_query`       | `screenshot_location`         | where does RetroArch write screenshots for this content          |
+| `texture_query`          | `texture_pack_location`       | where does this emulator read texture packs                      |
+| `entry_texture_query`    | `entry_texture_pack_location` | the same, asked _through_ a catalogue entry                      |
+| `mod_query`              | `mod_location`                | where does this emulator read mods                               |
+| `entry_mod_query`        | `entry_mod_location`          | the same, asked _through_ a catalogue entry                      |
+| `soft_patch_query`       | `soft_patch_candidates`       | which patch files this content would be patched with             |
+| `catalogue_query`        | `catalogue`                   | which emulators can launch this system                           |
+| `systems_query`          | `systems`                     | which systems does the frontend declare                          |
+| `platform_systems_query` | `systems_for_platform`        | which systems here answer to a public platform id                |
+| `platform_ids_query`     | `platform_ids`                | which public platform ids belong to this system                  |
+| `launchable_query`       | `launchable`                  | does this file launch as this system's content, and why not      |
+| `rom_location_query`     | `rom_location`                | where do this system's ROMs live                                 |
+| `rom_locations_query`    | `rom_locations`               | where do the ROMs of every listed system live                    |
+| `launch_command_query`   | `launch_command`              | the command the frontend would run for this file                 |
+| `extra_content_query`    | `extra_content_folders`       | does this entry's emulator load updates and add-ons from folders |
+| `roots_query`            | `roots`                       | where each root folder is, and what decided it                   |
+| `firmware_query`         | `firmware`                    | `kind` is `core`, `system` or `inventory`                        |
+| `identify_query`         | `identification`              | what is this content, by `md5` / `sha1` / `size`                 |
+| `aggregate_query`        | `aggregate`                   | one question put to **every** detected installation              |
 
 `soft_patch_query` is the one family whose `content_path` is required rather than optional: the content is that
 question's subject — the patch files are named after it — so a vector asking it without one asks about no file at all.
 
 `launch_command_query` carries `system` and an absolute `content_path`, as the question requires, and may name the
 catalogue entry by its `label`; without one the frontend's own choice answers.
+
+`extra_content_query` carries `system` and may name the catalogue entry by its `label`, as `launch_command_query` does,
+and an absolute `content_path`: given one, the answer also says whether the content's own folder — the content itself,
+where it is a folder — is one the emulator scans, and `content_folder_scanned` stays `null` without one.
 
 `rom_location_query` carries `system` and no path: content plays no part in where a system's ROMs live.
 

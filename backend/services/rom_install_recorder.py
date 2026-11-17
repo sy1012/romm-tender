@@ -25,6 +25,7 @@ from domain.rom_install import RomInstall
 if TYPE_CHECKING:
     from collections.abc import Callable
 
+    from domain.extra_content import ExtraContentFile
     from services.protocols import Clock, UnitOfWorkFactory
 
 
@@ -86,6 +87,20 @@ class RomInstallRecorder:
         with self._uow_factory() as uow:
             uow.rom_installs.save(install)
         return file_path, None
+
+    def do_record_extra_content(self, rom_id: int, file: ExtraContentFile) -> bool:
+        """Record *file* of the game's extra content on its install, in a short write UoW.
+
+        Answers whether it was recorded: ``False`` where the game has no install
+        record any more, or none with a folder of its own.
+        """
+        with self._uow_factory() as uow:
+            install = uow.rom_installs.get(int(rom_id))
+            if install is None or install.rom_dir is None:
+                return False
+            install.add_extra_content(file.file_id, file.rel_path, file.size_bytes)
+            uow.rom_installs.save(install)
+        return True
 
 
 def _stated(size: int) -> int | None:

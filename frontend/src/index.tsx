@@ -99,6 +99,7 @@ import { setNotificationsUnavailable } from "./utils/notificationsHealth";
 import { QUICK_ACCESS_MISSING_TOAST, recordStartupMiss } from "./utils/startupMissNotice";
 import { TOAST_READINESS_DEADLINE_MS, waitUntilSteamServicesInitialized } from "./utils/steamReadyForToasts";
 import { detach } from "./utils/detach";
+import { downloadCompleteToasts } from "./utils/extraContentWording";
 import type {
   SyncProgress,
   DownloadProgressEvent,
@@ -1168,7 +1169,7 @@ const tender = definePanel(() => {
       total_bytes: prev?.total_bytes ?? 0,
       resumable: data.resumable ?? prev?.resumable ?? false,
     });
-    showToast(`Downloaded ${data.rom_name}`);
+    for (const toast of downloadCompleteToasts(data)) showToast(toast);
     detach(applyInstallState());
   });
 

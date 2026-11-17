@@ -1939,9 +1939,11 @@ so the façade builds none of them:
   failed.
 - `_names.py` holds the safe file and folder names and the partial file's size, as functions both the façade and the
   transfer call.
+- `ExtraContentOffer` (`extra_content.py`) answers what a game's extra content is and whether it is offered ("Extra
+  content", below).
 - `DownloadService` (`service.py`) is the one surface the endpoints and the other services call: admission (the
   occupancy gate, the sibling supersede, the disk-space pre-flight), control (cancel, pause, resume), the installed-ROM
-  read and the shutdown.
+  read, the extra content's admission and offer, and the shutdown.
 
 The progress frame, the queue's answer and the reservation arithmetic are pure functions in `domain/download_frames.py`
 and `domain/disk_space.py`.
@@ -1965,6 +1967,40 @@ forward proxy is sent the whole URL, while RomM or a proxy in front of it is sen
 unpack takes the left-out files back out of the folder, with every folder that held nothing else, and drops their lines
 from the playlist RomM generated into the zip — removing it where no line is left; a `.m3u` that is one of the ROM's own
 files is kept as it is ([#2732](https://github.com/danielcopper/romm-tender/issues/2732) D4).
+
+**Extra content: a game's update and DLC files** ([ADR-0048](../adr/0048-extra-content-lands-in-the-games-folder.md)). A
+download leaves the `update` and `dlc` categories on the server unless the user ticks them; what it then brings is the
+game's _extra content_ (GLOSSARY.md → Extra content). `domain/extra_content.py` lists it — every `update` and `dlc` file
+of a game RomM holds as a folder that has an id and a place inside the game's folder; a game RomM holds as one file has
+none — and decides what a download's question ticks before the user answers: every DLC file and the newest update. **The
+newest update** is the one whose file name carries the highest version tag (`[v<number>]`, the title version the Switch
+dumping tools write, matched in any case); where no update's name carries one, the one with the latest RomM modification
+time (`last_modified`, else `updated_at`); where neither tells them apart, a single update is the newest and of several
+none is, so none is ticked. Extra content is **offered** only where the resolver states the emulator entry the game
+starts with loads it from folders (`extra_content_folders`, read by `adapters/atlas_extra_content.py` through the game's
+answering source, with the entry `ActiveCoreReader` resolves); a `null` there is "not established" and offers nothing,
+without RomM being asked. The offer (`get_extra_content`) asks about the game's folder — the install's `rom_dir`, or the
+folder a download would create — and answers whether it is scanned, whether only beside the launch (the resolver's
+`extra-content-scanned-beside-launch` and no listed folder registered before the launch; with such a folder listed too,
+which folder holds the game is not stated and nothing is said), and, per file, whether the emulator reads its extension
+from a folder.
+
+Each file is fetched **on its own**, naming its one id (`?file_ids=<id>`, which RomM serves as the file itself), into
+`<rom_dir>/<rel_path>` joined through `safe_join`, by way of a `.tmp` beside it that is removed on every way out but its
+rename into place, and recorded on the install (`RomInstall.add_extra_content`, through `RomInstallRecorder`) once in
+place. A start that names extra content (`start_download`'s `extra_file_ids`) weighs it in the free-space check
+(`extra_bytes`, counted once), carries the ids across a pause, and fetches it after the game's install has committed: a
+file that fails is left out and counted (`download_complete`'s `extra_content_missing`), and a cancel then keeps the
+game and what arrived. `download_extra_content` brings extra content into an installed game's folder without touching
+the game: its own task under the same claim, semaphore and reservation as a download, refused while the game downloads,
+for a file the install records already (`nothing_to_download`), and where anything lies at a file's place
+(`extra_content_occupied`) — such a file is not the install's, and may be the user's own copy. Its queue entry and every
+frame and event say `extra_content_only`, so the game's play button leaves them alone; it is never resumable, and a
+cancel keeps what arrived. `remove_extra_content` (`RomRemovalService`) removes recorded files under an identity-only
+claim bounded by `rom_dir` and forgets them on the install, refused while the game downloads; the panel asks first (the
+confirm leg of backup-or-confirm — RomM keeps every such file). An uninstall removes `rom_dir` whole, extra content with
+it, and the install record's rows go with the record; the removed-game cleanup measures, bundles and removes `rom_dir`
+whole too. Whether a game is installed, and whether its file is missing, reads the game's own file alone.
 
 **Every size Tender shows or checks is the sum of the files fetched** (`download_size_bytes`): the free-space check and
 the progress of a start, the unpack's size check (the zip's own central directory, which holds only what was asked for),

@@ -19,6 +19,7 @@ if TYPE_CHECKING:
 
     from domain.emulator_pick import StoredPick
     from domain.emulator_sources import ArrangedSource, SourceReport, SourcesReading
+    from domain.extra_content import ExtraContentFolders
     from domain.firmware_wants import FirmwareCatalogue, SourceCatalogues
     from domain.launchability import Launchability
     from domain.platform_system import PlatformIds, PlatformSystem
@@ -393,6 +394,25 @@ class StartCommandReader(Protocol):
         read_only: tuple[str, ...] = (),
         reading: SourcesReading | None = None,
     ) -> StartAnswer: ...
+
+
+class ExtraContentReader(Protocol):
+    """Whether a game's emulator loads its extra content from folders, as the resolver states it.
+
+    The composition root satisfies this with ``AtlasExtraContentAdapter``.
+    ``extra_content_folders`` asks the source answering *system* about the
+    entry *label* names (``None``: the frontend's first) and, given
+    *content_path*, about the game's own folder there.
+    """
+
+    def extra_content_folders(
+        self,
+        system: str,
+        *,
+        label: str | None,
+        content_path: str | None,
+        reading: SourcesReading | None = None,
+    ) -> ExtraContentFolders: ...
 
 
 class PlatformCoreReader(Protocol):

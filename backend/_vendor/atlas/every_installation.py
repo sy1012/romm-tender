@@ -50,6 +50,7 @@ from .firmware import FirmwareAnswer, FirmwareIdentification
 from .installations import (
     CatalogueAnswer,
     Health,
+    ExtraContentAnswer,
     Installation,
     LaunchabilityAnswer,
     LaunchCommandAnswer,
@@ -303,6 +304,19 @@ class EveryInstallation:
         if not os.path.isabs(content_path):
             raise ValueError(f"content_path must be an absolute path, got {content_path!r}")
         return self._ask(lambda installation: installation.launch_command(system, content_path, label=label))
+
+    def extra_content_folders(
+        self, system: str, *, label: str | None = None, content_path: str | None = None
+    ) -> tuple[InstallationAnswer[ExtraContentAnswer], ...]:
+        """Whether each installation's entry loads a game's updates and add-ons from folders, and which.
+
+        A relative *content_path* raises here, as each installation refuses it.
+        """
+        if content_path is not None and not os.path.isabs(content_path):
+            raise ValueError(f"content_path must be an absolute path, got {content_path!r}")
+        return self._ask(
+            lambda installation: installation.extra_content_folders(system, label=label, content_path=content_path)
+        )
 
     def firmware_for_core(
         self,

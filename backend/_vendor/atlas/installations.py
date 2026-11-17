@@ -20018,6 +20018,74 @@ class LaunchCommandAnswer:
     """
 
 
+
+# The entry's emulator states nothing atlas reads about loading a game's
+# updates and add-on content from files lying in folders: whether it does is
+# not established. ``data`` names the ``installation`` and, where one was
+# chosen, the ``entry``'s label.
+CAVEAT_EXTRA_CONTENT_FOLDERS_UNSTATED = "extra-content-folders-unstated"
+# Some folders the answer lists are scanned by a thread the emulator runs
+# beside the launch, and it does not wait for that scan before it boots the
+# game: whether what lies there is registered in time is not established.
+# ``data`` carries those ``folders``.
+CAVEAT_EXTRA_CONTENT_SCANNED_BESIDE_LAUNCH = "extra-content-scanned-beside-launch"
+# The folder the asked content lies in — the content itself, where it is a
+# folder — is in none of the folders the emulator scans for extra content, so
+# an update or add-on put beside it is not loaded. ``data`` names that
+# ``folder``.
+CAVEAT_CONTENT_OUTSIDE_EXTRA_CONTENT_FOLDERS = "content-outside-extra-content-folders"
+
+
+@dataclass(frozen=True, slots=True)
+class ExtraContentFolder:
+    """One folder an emulator scans for a game's updates and add-on content, and how."""
+
+    path: str
+    """The folder, as a host path."""
+    subfolders_scanned: bool
+    """Whether files in its subfolders are read too, at any depth — ``false`` reads only the files directly in it."""
+    registered_before_launch: bool | None
+    """Whether what the folder holds is registered before the game starts — ``true`` where the emulator scans it at
+    its own start, ``null`` where the scan runs beside the launch and nothing establishes which finishes first.
+    """
+    extensions: tuple[str, ...]
+    """The file extensions, lowercase with their dot, the scan reads extra content from — compared
+    case-insensitively; a file under any other extension is not read, whatever it holds.
+    """
+
+
+@dataclass(frozen=True, slots=True)
+class ExtraContentAnswer:
+    """Whether an entry's emulator loads a game's updates and add-on content from files in folders, and which.
+
+    Some emulators register the updates and add-ons they find in packages lying
+    in folders, with no step that installs them; the rest want them installed.
+    ``loads_from_folders`` says which of the two the entry's emulator is,
+    ``folders`` where it looks on this machine, and ``content_folder_scanned``
+    whether the asked content's own folder is one of them.
+    """
+
+    entry: EmulatorEntry | None = None
+    """The catalogue entry the answer is about — the one a label names, or the frontend's first; ``null`` where none
+    was chosen.
+    """
+    loads_from_folders: bool | None = None
+    """``true`` where the entry's emulator registers updates and add-on content from files in folders without
+    installing them, ``false`` where it does not, ``null`` where that is not established — never ``false`` out of
+    ignorance. ``true`` is the emulator's behaviour, not a promise that a folder is configured: read ``folders``.
+    """
+    folders: tuple[ExtraContentFolder, ...] = ()
+    """The folders the emulator scans, as its settings on this machine name them — empty where it scans none, or
+    where ``loads_from_folders`` is not ``true``.
+    """
+    content_folder_scanned: bool | None = None
+    """Whether a package lying in the asked content's own folder — the content itself, where it is a folder — is in
+    a folder the emulator scans: ``null`` where no content was asked about or that is not established.
+    """
+    sources: tuple[str, ...] = ()
+    caveats: tuple[Caveat, ...] = ()
+    """Every degradation of this answer, stated structurally so a client branches on the code rather than on prose."""
+
 # Flatpak's per-app overrides are GKeyFile INI, and only the environment they
 # assign is read here — the [Environment] group's KEY=VALUE lines and the
 # [Context] group's unset-environment list. Value semantics follow
@@ -21910,6 +21978,11 @@ def _catalogue_with_caveats(answer: CatalogueAnswer, caveats: tuple[Caveat, ...]
     return cast(CatalogueAnswer, _dc_replace(answer, caveats=caveats))
 
 
+def _extra_content_with_caveats(answer: ExtraContentAnswer, caveats: tuple[Caveat, ...]) -> ExtraContentAnswer:
+    """*answer* with *caveats* as its caveat list — ``dataclasses.replace`` behind a concrete signature."""
+    return cast(ExtraContentAnswer, _dc_replace(answer, caveats=caveats))
+
+
 def _launchable_with_caveats(
     answer: LaunchabilityAnswer, caveats: tuple[Caveat, ...]
 ) -> LaunchabilityAnswer:
@@ -23340,6 +23413,31 @@ class _CatalogueQueries:
             answer, (*answer.caveats, *arrangement_caveats(self.kind, observed_version=version))
         )
 
+    @one_question
+    def extra_content_folders(
+        self, system: str, *, label: str | None = None, content_path: str | None = None
+    ) -> ExtraContentAnswer:
+        """Whether *system*'s entry loads a game's updates and add-on content from files in folders, and from which.
+
+        The entry is chosen the way :meth:`launch_command` chooses it: the one
+        *label* names, or the frontend's first. Only an emulator whose own
+        reading of this is stated answers ``loads_from_folders`` true or
+        false — a standalone Eden AppImage, today; every other entry answers
+        ``null`` with ``extra-content-folders-unstated``, which is a statement
+        about atlas and never a "no".
+
+        Given *content_path* — absolute, or this raises ``ValueError`` — the
+        answer also says whether the content's own folder is one the emulator
+        scans, which is where a caller that keeps a game's updates and
+        add-ons beside it puts them.
+        """
+        if content_path is not None and not os.path.isabs(content_path):
+            raise ValueError(f"content_path must be an absolute path, got {content_path!r}")
+        answer, version = self._extra_content_answer(system, content_path, label)
+        return _extra_content_with_caveats(
+            answer, (*answer.caveats, *arrangement_caveats(self.kind, observed_version=version))
+        )
+
     # The public questions above are the whole catalogue surface, and a
     # handle overrides the ``_…_answer`` methods below instead: what it
     # *answers* is its own, how the answer states its arrangement's evidence
@@ -23407,6 +23505,29 @@ class _CatalogueQueries:
             {"installation": self.kind},
         )
         return LaunchCommandAnswer(chosen, None, answer.sources, (*answer.caveats, unevaluated)), version
+
+    def _extra_content_answer(
+        self, system: str, content_path: str | None, label: str | None
+    ) -> tuple[ExtraContentAnswer, str | None]:
+        # The entry is chosen as the launch command chooses it; what its
+        # emulator does with folders is stated only where a handle reads it.
+        answer, version = self._catalogue_answer(system, content_path=content_path)
+        chosen = _chosen_entry(answer.entries, label, system)
+        if isinstance(chosen, Caveat):
+            return ExtraContentAnswer(sources=answer.sources, caveats=(*answer.caveats, chosen)), version
+        data: dict[str, DataValue] = {"installation": self.kind}
+        if chosen is not None:
+            data["entry"] = chosen.label
+        unstated = Caveat(
+            CAVEAT_EXTRA_CONTENT_FOLDERS_UNSTATED,
+            "whether this entry's emulator loads a game's updates and add-ons from files in folders is not "
+            "established — atlas reads it for no emulator of this arrangement",
+            data,
+        )
+        return (
+            ExtraContentAnswer(entry=chosen, sources=answer.sources, caveats=(*answer.caveats, unstated)),
+            version,
+        )
 
     def _rom_location_answer(self, system: str) -> tuple[RomPlacement, str | None]:
         # Same refusal as the two above, for the same reason: where a system's
@@ -29203,6 +29324,20 @@ def _eden_folder_names(directory: str, citation: str, *, title_named: bool) -> C
     )
 
 
+def _placed_folder(path: str, launch_folder: str | None) -> str | None:
+    """*path* as a host folder — a relative one below *launch_folder*, ``None`` where there is none to be below."""
+    if os.path.isabs(path):
+        return os.path.normpath(path)
+    return None if launch_folder is None else os.path.normpath(os.path.join(launch_folder, path))
+
+
+def _extra_folder_covers(folder: ExtraContentFolder, own: str) -> bool:
+    """Whether a file lying directly in *own* is read by a scan of *folder* — compared as spelled, both normalised."""
+    if own == folder.path:
+        return True
+    return folder.subfolders_scanned and own.startswith(folder.path.rstrip(os.sep) + os.sep)
+
+
 class EdenAppImage(_FirmwareQueries, _CatalogueQueries):
     """Eden, the Switch emulator, run as a standalone AppImage.
 
@@ -29231,6 +29366,10 @@ class EdenAppImage(_FirmwareQueries, _CatalogueQueries):
     active user is established from ``profiles.dat`` and ``current_user``;
     either missing stays a hole (``save_id``, ``profile_id``). Firmware and
     keys are not read: the entry's firmware answer is ``unsupported``.
+
+    Eden loads a game's updates and add-ons from packages lying in folders,
+    with no install step: :meth:`extra_content_folders` names the folders its
+    settings make it scan (:mod:`atlas.eden` says which and when).
     """
 
     kind = EDEN_APPIMAGE_KIND
@@ -29582,6 +29721,105 @@ class EdenAppImage(_FirmwareQueries, _CatalogueQueries):
             ),
             version,
         )
+
+    # ── Updates and add-ons in folders ────────────────────────────────
+
+    def _launch_folder(self) -> str | None:
+        """The working folder every launch shares — the AppImages' one folder — or ``None`` where they differ."""
+        folders = {os.path.dirname(candidate) for candidate in self._candidates()}
+        return folders.pop() if len(folders) == 1 else None
+
+    def _extra_folders(self, tree: _EdenTree) -> tuple[tuple[ExtraContentFolder, ...], bool, tuple[str, ...]]:
+        """The folders Eden scans for updates and add-ons, whether one could not be placed, and how each was read.
+
+        A relative folder is relative to the process's working directory,
+        which the launch makes the AppImage's folder; where that is not one
+        folder, the relative one is not placed.
+        """
+        launch_folder = self._launch_folder()
+        from_game_dirs = eden.ext_content_from_game_dirs(tree.values)
+        # (configured path, subfolders scanned, registered before launch)
+        configured: list[tuple[str, bool, bool | None]] = [
+            (path, True, True) for path in eden.external_content_dirs(tree.values)
+        ]
+        if from_game_dirs:
+            configured.extend(
+                (row.path, row.deep_scan, None)
+                for row in eden.game_dirs(tree.values)
+                if row.path and row.path not in eden.VIRTUAL_GAME_DIRS
+            )
+        found: list[ExtraContentFolder] = []
+        unplaced = False
+        for path, deep, before in configured:
+            placed = _placed_folder(path, launch_folder)
+            if placed is None:
+                unplaced = True
+                continue
+            found.append(ExtraContentFolder(placed, deep, before, eden.EXTRA_CONTENT_EXTENSIONS))
+        sources = (
+            f"[Paths] external_content_dirs of {tree.config_file}: scanned when Eden starts, every subfolder "
+            "included, for .nsp and .xci packages (qt_config.cpp:234-242; main_window.cpp:421, :553; "
+            f"filesystem.cpp:725-754; registered_cache.cpp:1311-1368 at {eden.EDEN_BUILD})",
+            (
+                "[Data%20Storage] ext_content_from_game_dirs is on, so the game folders of [Paths] gamedirs are "
+                "scanned for the same packages, a folder's subfolders only where its deep_scan is set — by the game "
+                "list's worker thread, which Eden does not wait for before it boots the game it was handed "
+                "(game_list_worker.cpp:341-452, :383-386; game_list.cpp:1069-1093; main_window.cpp:572, :695-696)"
+                if from_game_dirs
+                else "[Data%20Storage] ext_content_from_game_dirs is off, so the game folders are not scanned for "
+                "updates or add-ons (game_list_worker.cpp:383-386)"
+            ),
+        )
+        return tuple(dict.fromkeys(found)), unplaced, sources
+
+    def _extra_content_answer(
+        self, system: str, content_path: str | None, label: str | None
+    ) -> tuple[ExtraContentAnswer, str | None]:
+        answer, version = self._catalogue_answer(system)
+        chosen = _chosen_entry(answer.entries, label, system)
+        if not isinstance(chosen, EmulatorEntry):
+            return super()._extra_content_answer(system, content_path, label)
+        tree = self._tree()
+        if tree is None:
+            # Which settings file the launch reads is not established; the
+            # ambiguity is among the answer's caveats already.
+            return ExtraContentAnswer(chosen, True, (), None, answer.sources, answer.caveats), version
+        folders, unplaced, read = self._extra_folders(tree)
+        sources = (*answer.sources, *tree.sources, *read)
+        caveats = list(answer.caveats)
+        beside = tuple(folder.path for folder in folders if folder.registered_before_launch is None)
+        if beside:
+            caveats.append(
+                Caveat(
+                    CAVEAT_EXTRA_CONTENT_SCANNED_BESIDE_LAUNCH,
+                    "Eden scans its game folders for updates and add-ons on a thread it does not wait for before "
+                    "booting the game it was handed, so whether a package there is registered in time is not "
+                    "established (game_list.cpp:1069-1093; main_window.cpp:572, :695-696)",
+                    {"folders": beside},
+                )
+            )
+        scanned: bool | None = None
+        if content_path is not None:
+            own = os.path.normpath(
+                content_path
+                if self._machine.path_kind(content_path) == KIND_DIRECTORY
+                else os.path.dirname(content_path)
+            )
+            if any(_extra_folder_covers(folder, own) for folder in folders):
+                scanned = True
+            elif not unplaced:
+                # A relative folder goes unplaced only where the AppImages sit
+                # in different folders, which the answer's ambiguity states.
+                scanned = False
+                caveats.append(
+                    Caveat(
+                        CAVEAT_CONTENT_OUTSIDE_EXTRA_CONTENT_FOLDERS,
+                        f"{own} is in none of the folders Eden scans for updates and add-ons, so a package put "
+                        "there is not loaded",
+                        {"folder": own},
+                    )
+                )
+        return ExtraContentAnswer(chosen, True, folders, scanned, sources, tuple(caveats)), version
 
     # ── Root ──────────────────────────────────────────────────────────
 
@@ -29952,6 +30190,10 @@ class Installation(Protocol):
     def launch_command(
         self, system: str, content_path: str, *, label: str | None = None
     ) -> LaunchCommandAnswer: ...
+
+    def extra_content_folders(
+        self, system: str, *, label: str | None = None, content_path: str | None = None
+    ) -> ExtraContentAnswer: ...
 
     def rom_location(self, system: str) -> RomPlacement: ...
 

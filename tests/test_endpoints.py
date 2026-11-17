@@ -293,6 +293,9 @@ _MIGRATION_RULE_WHITELIST: set[str] = {
     "get_installed_rom",
     # Reads RomM's ROM detail and answers the size a download would fetch.
     "get_download_size",
+    # Reads the resolver's answer about extra content in folders and RomM's
+    # update and DLC files of a game; it writes nothing.
+    "get_extra_content",
     # Probes that change no RetroDECK state: a local-only drift hash check, a
     # version-free reachability heartbeat and a fire-and-forget save-status
     # refresh. None mutate RetroDECK state, so they are never refused during a

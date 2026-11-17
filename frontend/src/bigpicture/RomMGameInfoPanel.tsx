@@ -2,7 +2,7 @@
  * RomMGameInfoPanel — the RomM panel injected below the PlaySection on game
  * detail pages.
  *
- * The shell around the GAME INFO / ACHIEVEMENTS / SAVES / BIOS / ARTWORK panes:
+ * The shell around the GAME INFO / ACHIEVEMENTS / SAVES / BIOS / UPDATES & DLC / ARTWORK panes:
  * it owns the panel's ROM identity, its event lane, the tab selection, what the
  * ACHIEVEMENTS and BIOS panes hold across a tab switch, and the whole-panel
  * replacements (stranded panel, version mismatch, corrupt-settings
@@ -11,8 +11,9 @@
  * The panel body itself takes no ROM-level actions — download, play, uninstall,
  * version and core selection live in the RomMPlaySection gear menu. The panes
  * below it are not all passive: the SAVES pane switches slots and rolls back
- * versions, and the BIOS pane downloads, replaces and deletes BIOS files for the
- * game's platform.
+ * versions, the BIOS pane downloads, replaces and deletes BIOS files for the
+ * game's platform, and the UPDATES & DLC pane downloads and removes the game's
+ * update and DLC files.
  *
  * CSS classes prefixed with `romm-panel-` are injected separately by styleInjector.
  */
@@ -20,6 +21,7 @@
 import { useState, useEffect, useRef, useCallback, FC } from "react";
 import { useAchievements } from "../utils/achievements";
 import { useBiosTab } from "./BiosTab";
+import { useExtraContent } from "../utils/extraContent";
 import { GamePageTabs } from "./GamePageTabs";
 import { bindRomInState, loadData, openingTab, type PanelReadSeqs, type PanelState } from "./panelState";
 import {
@@ -179,6 +181,7 @@ export const RomMGameInfoPanel: FC<RomMGameInfoPanelProps> = ({ appId }) => {
     if (localSavesShown && shownRomId !== null && ctx !== null) detach(rereadLocalSavesOnTabOpen(ctx));
   }, [localSavesShown, shownRomId, shownInstalled]);
   const achievements = useAchievements(state.romId, state.raId, state.activeTab === "achievements");
+  const extraContent = useExtraContent(state.romId, state.installed);
   const bios = useBiosTab({
     biosStatus: state.biosStatus,
     platformName: state.platformName,
@@ -248,7 +251,14 @@ export const RomMGameInfoPanel: FC<RomMGameInfoPanelProps> = ({ appId }) => {
   return (
     <div data-romm="true">
       <GamePageTabs
-        tabs={buildPanelTabs({ appId, binding: bindRomInState(state.romId, setState), state, achievements, bios })}
+        tabs={buildPanelTabs({
+          appId,
+          binding: bindRomInState(state.romId, setState),
+          state,
+          achievements,
+          bios,
+          extraContent,
+        })}
         activeTab={state.activeTab}
         onShowTab={(tabId) => setState((prev) => ({ ...prev, activeTab: tabId }))}
       />

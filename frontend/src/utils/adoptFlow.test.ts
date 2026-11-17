@@ -678,3 +678,35 @@ describe("runDownloadWithAdoption — a single zip and its folder both in the wa
     expect(vi.mocked(backend.adoptExistingRom).mock.calls).toEqual([[ROM_ID, "/roms/saturn/Game", null]]);
   });
 });
+
+describe("runDownloadWithAdoption — the update and DLC files the user ticked", () => {
+  it("are carried by the first request", async () => {
+    vi.mocked(backend.startDownload).mockResolvedValue({ success: true, message: "Download started" });
+    const { flow } = makeFlow({ extraFileIds: [13, 14] });
+
+    await expect(runDownloadWithAdoption(flow)).resolves.toBe("download_started");
+
+    expect(backend.startDownload).toHaveBeenCalledWith(ROM_ID, false, null, null, false, null, [13, 14]);
+  });
+
+  it("are carried by the re-send that answers the occupied target, beside the paths the user confirmed", async () => {
+    vi.mocked(backend.startDownload)
+      .mockResolvedValueOnce(OCCUPIED)
+      .mockResolvedValueOnce({ success: true, message: "Download started" });
+    const { flow, dialogs } = makeFlow({ extraFileIds: [] });
+    dialogs.showExisting.mockResolvedValue("replace");
+
+    await expect(runDownloadWithAdoption(flow)).resolves.toBe("download_started");
+
+    expect(backend.startDownload).toHaveBeenLastCalledWith(ROM_ID, true, null, null, false, ["/roms/n64/game.z64"], []);
+  });
+
+  it("are not sent where none was asked about", async () => {
+    vi.mocked(backend.startDownload).mockResolvedValue({ success: true, message: "Download started" });
+    const { flow } = makeFlow();
+
+    await runDownloadWithAdoption(flow);
+
+    expect(backend.startDownload).toHaveBeenCalledWith(ROM_ID, false, null, null, false);
+  });
+});

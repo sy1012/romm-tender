@@ -35,7 +35,7 @@ from __future__ import annotations
 
 import struct
 from collections.abc import Mapping
-from typing import Final
+from typing import Final, NamedTuple
 
 EDEN_BUILD: Final = "eden-emu/eden v0.2.1 (58c1e20e)"
 
@@ -206,3 +206,154 @@ def active_user_slot(index: int, user_count: int) -> int | None:
         return None
     current = min(max(index, 0), MAX_USERS - 1)
     return current if current < user_count else 0
+
+
+# ── Where Eden finds a game's updates and add-ons without installing them ──
+#
+# Eden registers the updates and add-on content it finds in Switch packages
+# lying in folders, beside what is installed to its NAND. Two lists of folders
+# feed it, both read from ``[Paths]`` of the settings file
+# (``QtConfig::ReadPathValues``, ``src/qt_common/config/qt_config.cpp:192-245``):
+#
+# - ``external_content_dirs``: opened when Eden starts, before a game named on
+#   its command line boots (``MainWindow::MainWindow``,
+#   ``src/yuzu/main_window.cpp:421`` reads the settings and :553 creates the
+#   filesystem factories; ``FileSystemController::CreateFactories``,
+#   ``src/core/hle/service/filesystem/filesystem.cpp:725-754``), and scanned
+#   then, every subfolder included (``ExternalContentProvider``,
+#   ``src/core/file_sys/registered_cache.cpp:1311-1368``).
+# - the game folders, ``gamedirs``: scanned for the same packages only where
+#   ``[Data%20Storage] ext_content_from_game_dirs`` is on, its default
+#   (``settings.h:767-768``; ``GameListWorker::ScanFileSystem``,
+#   ``src/yuzu/game/game_list_worker.cpp:341-452``, :383-386), a folder's
+#   subfolders only where its ``deep_scan`` is set (:446-451). The scan is the
+#   game list's, run on a worker thread (``GameList::PopulateAsync``,
+#   ``src/yuzu/game/game_list.cpp:1069-1093``) that Eden starts at :572 and
+#   does not wait for before booting the game the command line names (:695-696).
+
+SECTION_PATHS: Final = "Paths"
+KEY_GAME_DIRS: Final = "gamedirs"
+KEY_EXTERNAL_CONTENT_DIRS: Final = "external_content_dirs"
+KEY_EXT_CONTENT_FROM_GAME_DIRS: Final = "ext_content_from_game_dirs"
+# The game-list rows that stand for installed content rather than a folder
+# (qt_config.cpp:215-224; GameListWorker::run, game_list_worker.cpp:467-479).
+VIRTUAL_GAME_DIRS: Final = frozenset({"SDMC", "UserNAND", "SysNAND"})
+# The package extensions both scans register extras from: the external scan
+# by the lowered extension (registered_cache.cpp:1347-1361), the game-list
+# scan by its supported extensions compared case-insensitively
+# (game_list.cpp:1116-1118, game_list_worker.cpp:149-152, :353) and then the
+# loader's own reading of the file as an XCI or an NSP (:359-386).
+EXTRA_CONTENT_EXTENSIONS: Final = (".nsp", ".xci")
+
+
+class GameDir(NamedTuple):
+    """One row of Eden's game list as it reads it: the folder, and whether its subfolders are scanned."""
+
+    path: str
+    deep_scan: bool
+
+
+def simpleini_long(value: str | None, default: int) -> int:
+    """``CSimpleIniA::GetLongValue``: decimal, or hex after ``0x``, the whole value — else *default*.
+
+    SimpleIni is not in Eden's tree (it is fetched at build time), so this is
+    the library's documented reading rather than one read at Eden's revision.
+    """
+    if not value:
+        return default
+    text, base = value, 10
+    if len(value) > 1 and value[0] == "0" and value[1] in "xX":
+        text, base = value[2:], 16
+        if not text:
+            return default
+    stripped = text.lstrip(" \t\n\v\f\r")
+    body = stripped[1:] if stripped[:1] in ("+", "-") else stripped
+    digits = "0123456789abcdefABCDEF"[: 10 if base == 10 else 22]
+    if not body or any(ch not in digits for ch in body):
+        return default
+    return int(stripped, base)
+
+
+def _array_size(values: Mapping[tuple[str, str], str], section: str, array: str) -> int:
+    """``Config::BeginArray``: the ``<array>\\size`` long value, 0 where absent (config.cpp:1051-1057)."""
+    return simpleini_long(values.get((_lower(section), _lower(f"{array}\\size"))), 0)
+
+
+def _array_key(array: str, index: int, key: str) -> str:
+    """``Config::GetFullKey`` inside an array: ``<array>\\<index + 1>\\<key>`` (config.cpp:1032-1049, :1081-1095)."""
+    return f"{array}\\{index + 1}\\{key}"
+
+
+def read_boolean_setting(
+    values: Mapping[tuple[str, str], str], section: str, key: str, default: bool
+) -> bool:
+    """``Config::ReadBooleanSetting`` with a default: *default* where ``<key>\\default`` is true, else the value.
+
+    config.cpp:717-730 — both reads through ``GetBoolValue``, the companion's
+    own default false.
+    """
+    if simpleini_bool(ini_string(values, section, key + "\\default"), False):
+        return default
+    return simpleini_bool(ini_string(values, section, key), default)
+
+
+def game_dirs(values: Mapping[tuple[str, str], str]) -> tuple[GameDir, ...]:
+    """Eden's game list as ``QtConfig::ReadPathValues`` builds it (qt_config.cpp:192-227).
+
+    Every row of ``[Paths] gamedirs``, its ``path`` with each ``"`` dropped
+    and its ``deep_scan`` read with the default false. With no row at all
+    Eden puts its three installed-content rows in and carries an old
+    ``gameListRootDir`` over (with ``gameListDeepScan``) where one is set to
+    anything but ``.``.
+    """
+    rows: list[GameDir] = []
+    for index in range(_array_size(values, SECTION_PATHS, KEY_GAME_DIRS)):
+        path = ini_string(values, SECTION_PATHS, _array_key(KEY_GAME_DIRS, index, "path")) or ""
+        deep = read_boolean_setting(values, SECTION_PATHS, _array_key(KEY_GAME_DIRS, index, "deep_scan"), False)
+        rows.append(GameDir(path, deep))
+    if rows:
+        return tuple(rows)
+    rows = [GameDir(name, False) for name in ("SDMC", "UserNAND", "SysNAND")]
+    # ReadStringSetting with a default: the default where ``\default`` is
+    # true (its own default true), else the value with ``"`` dropped and
+    # ``//`` made ``/`` (config.cpp:803-825).
+    if simpleini_bool(ini_string(values, SECTION_PATHS, "gameListRootDir\\default"), True):
+        root = "."
+    else:
+        raw = values.get((_lower(SECTION_PATHS), _lower("gameListRootDir")))
+        root = "." if raw is None else raw.replace('"', "").replace("//", "/")
+    if root != ".":
+        rows.append(GameDir(root, read_boolean_setting(values, SECTION_PATHS, "gameListDeepScan", False)))
+    return tuple(rows)
+
+
+def external_content_dirs(values: Mapping[tuple[str, str], str]) -> tuple[str, ...]:
+    """``[Paths] external_content_dirs``: each row's ``path``, ``"`` dropped, empty rows skipped.
+
+    qt_config.cpp:234-242.
+    """
+    found: list[str] = []
+    for index in range(_array_size(values, SECTION_PATHS, KEY_EXTERNAL_CONTENT_DIRS)):
+        path = ini_string(values, SECTION_PATHS, _array_key(KEY_EXTERNAL_CONTENT_DIRS, index, "path"))
+        if path:
+            found.append(path)
+    return tuple(found)
+
+
+def ext_content_from_game_dirs(values: Mapping[tuple[str, str], str]) -> bool:
+    """``[Data%20Storage] ext_content_from_game_dirs`` as Eden loads it, default true.
+
+    A generic setting (``Config::ReadSettingGeneric``, config.cpp:912-937):
+    its ``\\default`` companion read through ``ReadBooleanSetting`` with the
+    default true; where that is false, the value read as a string with the
+    default ``true`` (config.cpp:803-825) and taken as true only where it is
+    exactly ``true`` (``Setting::LoadString``, ``settings_setting.h:186-208``)
+    — an empty one keeps the default.
+    """
+    key = KEY_EXT_CONTENT_FROM_GAME_DIRS
+    if read_boolean_setting(values, SECTION_DATA_STORAGE, key + "\\default", True):
+        return True
+    # The companion read false, so the string read takes the value itself.
+    raw = values.get((_lower(SECTION_DATA_STORAGE), _lower(key)))
+    text = "true" if raw is None else raw.replace('"', "").replace("//", "/")
+    return True if not text else text == "true"

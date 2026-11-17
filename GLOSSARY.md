@@ -523,6 +523,19 @@ user decides ([why](docs/architecture/database-design.md#a-download-whose-file-i
 _Avoid_: **stale install** — the record is not stale, its file is missing. **prune** — nothing removes the row on its
 own.
 
+### Extra content (updates & DLC)
+
+A game's **extra content** is the update and DLC files RomM holds beside it — RomM's `update` and `dlc` categories — for
+a game RomM holds as a folder. A download brings it into the game's own folder only where the user ticks it, and only
+where the resolver states the game's emulator loads updates and add-ons from folders (it is then **offered**); the
+install record remembers which files arrived. The panel calls it **Updates & DLC**. Code says `extra_content`; the
+resolver's `extra_content_folders` answers the same thing from the emulator's side
+([ADR-0048](docs/adr/0048-extra-content-lands-in-the-games-folder.md)).
+
+_Avoid_: **extras** — the download notes use the word loosely for every category a download leaves on RomM (manuals,
+soundtracks and the rest), which extra content is not. **add-ons** for Tender's side — the resolver's word, kept for the
+resolver's answer.
+
 ### No file on RomM
 
 A ROM RomM still lists but holds **no file** for: RomM's `has_file_on_disk` is false, either because the file left its

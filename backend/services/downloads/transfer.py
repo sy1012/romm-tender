@@ -1,8 +1,10 @@
 """DownloadTransfer — one admitted download's task, from its turn in the queue to its end.
 
 The task waits for a transfer slot, streams the ROM into its partial file, has
-the unpacker turn the finished transfer into an install, and reports how it
-ended: completed, paused, cancelled or failed. Whatever way it ends, it gives
+the unpacker turn the finished transfer into an install, brings the extra
+content the user ticked into the game's folder, and reports how it ended:
+completed, paused, cancelled or failed. A download of an installed game's
+extra content alone is a task of its own kind here, which brings only that. Whatever way it ends, it gives
 back what the download's admission registered in the state box, unless a newer
 attempt for the same ROM registered its own since.
 """
@@ -18,16 +20,29 @@ from typing import TYPE_CHECKING
 from domain.disk_space import NotEnoughSpaceToUnpack
 from domain.download_frames import failed_frame
 from domain.rom_files import TMP_EXT, ZIP_TMP_EXT, lands_as_folder
+from lib.path_safety import safe_join
 from services.downloads._fetch import DownloadFetch, plan_fetch
 from services.downloads._names import extract_dir_name_for
 
 if TYPE_CHECKING:
     import logging
+    from collections.abc import Callable
 
-    from services.downloads._state import DownloadsStateBox
+    from domain.extra_content import ExtraContentFile
+    from services.downloads._state import DownloadControl, DownloadsStateBox
     from services.downloads.queue import DownloadQueue
     from services.downloads.unpack import DownloadUnpacker
-    from services.protocols import EventEmitter, RommRomReader
+    from services.protocols import (
+        DownloadFileStore,
+        EventEmitter,
+        RomInstallRecorder,
+        RommRomReader,
+        UnitOfWorkFactory,
+    )
+
+# What a download of extra content alone is called in the queue, where a game's
+# own download shows its file name.
+EXTRA_CONTENT_QUEUE_NAME = "Updates & DLC"
 
 
 @dataclass(frozen=True)
@@ -36,13 +51,18 @@ class DownloadTransferConfig:
 
     ``state`` is the state box the façade shares, ``queue`` holds and reports the
     download's entry and ``unpacker`` turns the finished transfer into an
-    install.
+    install. ``install_recorder`` records each file of extra content once it is
+    in place, ``download_file_store`` places it, and ``uow_factory`` reads the
+    folder of the install it goes into.
     """
 
     state: DownloadsStateBox
     queue: DownloadQueue
     unpacker: DownloadUnpacker
     romm_api: RommRomReader
+    install_recorder: RomInstallRecorder
+    download_file_store: DownloadFileStore
+    uow_factory: UnitOfWorkFactory
     loop: asyncio.AbstractEventLoop
     emit: EventEmitter
     logger: logging.Logger
@@ -56,6 +76,9 @@ class DownloadTransfer:
         self._queue = config.queue
         self._unpacker = config.unpacker
         self._romm_api = config.romm_api
+        self._install_recorder = config.install_recorder
+        self._download_file_store = config.download_file_store
+        self._uow_factory = config.uow_factory
         self._loop = config.loop
         self._emit = config.emit
         self._logger = config.logger
@@ -109,25 +132,32 @@ class DownloadTransfer:
             rel_path=rel_path,
         )
 
-    async def _finalize_download_complete(self, rom_id, final_path, rom_name, platform_name):
+    async def _finalize_download_complete(
+        self, rom_id, final_path, rom_name, platform_name, *, extra_content_missing=0, extra_content_only=False
+    ):
         """Mark the queue entry completed and emit ``download_complete``.
 
         The shortcut is not touched: its launch options are its appId whether or
         not the game is installed, and the next start asks with the new install.
         Called from the normal success path and from the cancel handler when the
-        install committed before the cancel landed (#1049).
+        install committed before the cancel landed (#1049). The event says how
+        many files of the extra content asked for did not arrive
+        (``extra_content_missing``), and that the download brought extra
+        content alone (``extra_content_only``), each only where it is so.
         """
         entry = self._queue.mark_completed(rom_id)
-        await self._emit(
-            "download_complete",
-            {
-                "rom_id": rom_id,
-                "rom_name": rom_name,
-                "platform_name": platform_name,
-                "file_path": final_path,
-                "resumable": entry.get("resumable", False),
-            },
-        )
+        event = {
+            "rom_id": rom_id,
+            "rom_name": rom_name,
+            "platform_name": platform_name,
+            "file_path": final_path,
+            "resumable": entry.get("resumable", False),
+        }
+        if extra_content_missing:
+            event["extra_content_missing"] = extra_content_missing
+        if extra_content_only:
+            event["extra_content_only"] = True
+        await self._emit("download_complete", event)
         self._logger.info(f"Download complete: {rom_name} -> {final_path}")
 
     async def _reconcile_post_io(self, post_io_future):
@@ -152,7 +182,17 @@ class DownloadTransfer:
         return (None, False)
 
     async def run(
-        self, rom_id, rom_detail, target_path, system, file_name, control, *, platform_name: str, resume=False
+        self,
+        rom_id,
+        rom_detail,
+        target_path,
+        system,
+        file_name,
+        control,
+        *,
+        platform_name: str,
+        resume=False,
+        extra_content: tuple[ExtraContentFile, ...] = (),
     ):
         """Run one admitted download to its end, and give back what its admission registered.
 
@@ -164,7 +204,9 @@ class DownloadTransfer:
         (``RomSchema``) carries no ``platform_name``, and its
         ``platform_display_name`` is the custom name a user set wherever one is
         set. On *resume* the transfer appends to the partial file instead of
-        restarting it.
+        restarting it. *extra_content* is brought into the game's folder once
+        the game is installed (:meth:`_fetch_extra_content`); a cancel then
+        keeps the game and what arrived of it.
         """
         rom_name = rom_detail.get("name", file_name)
         fetch = plan_fetch(rom_detail, file_name, self._romm_api)
@@ -190,6 +232,8 @@ class DownloadTransfer:
         # handler can reconcile a race-committed install (#1049). Stays ``None``
         # while waiting on the concurrency semaphore or during the transfer.
         post_io_future: asyncio.Future[tuple[str | None, str | None]] | None = None
+        # The extra content in place so far, for a cancel that lands while it arrives.
+        brought: list[int] = []
 
         try:
             self._logger.info(f"Download starting: {rom_name} (rom_id={rom_id}, multi={has_multiple}) -> {target_path}")
@@ -253,7 +297,16 @@ class DownloadTransfer:
                     # — the guard narrows the type for the launch-command build below.
                     raise ValueError(post_io_error or "install record produced no launch path")
 
-                await self._finalize_download_complete(rom_id, final_path, rom_name, platform_name)
+                await self._fetch_extra_content(
+                    rom_id, rom_name, platform_name, file_name, extra_content, control, brought
+                )
+                await self._finalize_download_complete(
+                    rom_id,
+                    final_path,
+                    rom_name,
+                    platform_name,
+                    extra_content_missing=len(extra_content) - len(brought),
+                )
 
         except asyncio.CancelledError:
             # The cancel/pause may have raced a committing install. Executor
@@ -262,7 +315,13 @@ class DownloadTransfer:
             committed_path, committed = await self._reconcile_post_io(post_io_future)
             if committed:
                 # The ROM IS installed — surface completed, don't tear it down.
-                await self._finalize_download_complete(rom_id, committed_path, rom_name, platform_name)
+                await self._finalize_download_complete(
+                    rom_id,
+                    committed_path,
+                    rom_name,
+                    platform_name,
+                    extra_content_missing=len(extra_content) - len(brought),
+                )
                 self._logger.info(f"Download cancelled after install committed; surfaced as complete: {rom_name}")
             elif control.paused:
                 # PAUSE: keep the partial ``.tmp`` so the transfer can resume from
@@ -287,6 +346,140 @@ class DownloadTransfer:
         finally:
             self._state.release(rom_id, control)
             self._queue.prune()
+
+    async def run_extra_content(
+        self,
+        rom_id: int,
+        rom_name: str,
+        platform_name: str,
+        file_path: str,
+        extra_content: tuple[ExtraContentFile, ...],
+        control: DownloadControl,
+    ) -> None:
+        """Bring *extra_content* into an installed game's folder, and give back what its admission registered.
+
+        The game's own files are not touched. It ends completed whatever share
+        of the files arrived, saying how many did not; a cancel keeps what
+        arrived and ends cancelled. Every frame and event says it is a download
+        of extra content alone.
+        """
+        brought: list[int] = []
+        try:
+            if self._state.semaphore.locked():
+                await self._queue.report_queued(
+                    rom_id,
+                    rom_name,
+                    platform_name,
+                    EXTRA_CONTENT_QUEUE_NAME,
+                    total_bytes=sum(entry.size_bytes for entry in extra_content),
+                )
+            async with self._state.semaphore:
+                self._queue.mark_downloading(rom_id)
+                await self._fetch_extra_content(
+                    rom_id, rom_name, platform_name, EXTRA_CONTENT_QUEUE_NAME, extra_content, control, brought
+                )
+                await self._finalize_download_complete(
+                    rom_id,
+                    file_path,
+                    rom_name,
+                    platform_name,
+                    extra_content_missing=len(extra_content) - len(brought),
+                    extra_content_only=True,
+                )
+        except asyncio.CancelledError:
+            self._queue.mark_cancelled(rom_id)
+            await self._queue.report_cancelled(rom_id, rom_name, platform_name, EXTRA_CONTENT_QUEUE_NAME)
+            self._logger.info(f"Extra content download cancelled: {rom_name} ({len(brought)} arrived)")
+            raise
+        except Exception as e:
+            self._queue.mark_failed(rom_id, str(e))
+            self._logger.error(f"Extra content download failed for {rom_name}: {e}")
+            await self._emit(
+                "download_failed", failed_frame(rom_id, rom_name, platform_name, str(e), extra_content_only=True)
+            )
+        finally:
+            self._state.release(rom_id, control)
+            self._queue.prune()
+
+    async def _fetch_extra_content(
+        self,
+        rom_id: int,
+        rom_name: str,
+        platform_name: str,
+        file_name: str,
+        extra_content: tuple[ExtraContentFile, ...],
+        control: DownloadControl,
+        brought: list[int],
+    ) -> None:
+        """Fetch each of *extra_content* into the installed game's folder, one file at a time.
+
+        The id of each file that arrived is appended to *brought*.
+        A file that fails is logged and left out, and the next one is fetched;
+        a cancel stops at the file under way, whose partial is removed. The
+        queue entry counts the extra content's bytes from zero.
+        """
+        if not extra_content:
+            return
+        # Never raises but by a cancel: the game is installed by now, and a
+        # failure here must not reach the handler that tears a failed download down.
+        try:
+            rom_dir = await self._loop.run_in_executor(None, self._install_folder_io, rom_id)
+        except Exception as e:
+            self._logger.error(f"Extra content of rom {rom_id} not fetched: its install could not be read: {e}")
+            return
+        if rom_dir is None:
+            self._logger.error(f"Extra content of rom {rom_id} not fetched: the game keeps no folder of its own")
+            return
+        total = sum(entry.size_bytes for entry in extra_content)
+        self._queue.report_extra_content(rom_id, rom_name, platform_name, file_name, total_bytes=total)
+        progress = self._queue.make_progress_callback(rom_id, rom_name, platform_name, file_name, control)
+        offset = 0
+        for entry in extra_content:
+            try:
+                await self._loop.run_in_executor(
+                    None, self._place_extra_content_io, rom_id, rom_dir, entry, _offset(progress, offset, total)
+                )
+                brought.append(entry.file_id)
+            except asyncio.CancelledError:
+                raise
+            except Exception as e:
+                self._logger.error(f"Extra content {entry.file_name} of rom {rom_id} not fetched: {e}")
+            offset += entry.size_bytes
+
+    def _install_folder_io(self, rom_id: int) -> str | None:
+        """The folder of *rom_id*'s install, or ``None`` where it has none."""
+        with self._uow_factory() as uow:
+            install = uow.rom_installs.get(int(rom_id))
+        return install.rom_dir if install is not None else None
+
+    def _place_extra_content_io(
+        self, rom_id: int, rom_dir: str, entry: ExtraContentFile, progress: Callable[[int, int], None]
+    ) -> None:
+        """Fetch *entry* to its place inside *rom_dir* and record it on the install.
+
+        Its place is RomM's, joined under *rom_dir* through ``safe_join``. A
+        file already lying there is never written over: it raises
+        ``FileExistsError``. The partial file goes on every way out but its
+        rename into place.
+        """
+        target = safe_join(rom_dir, entry.rel_path)
+        if self._download_file_store.exists(target):
+            raise FileExistsError(f"Something already lies at {target}")
+        self._download_file_store.make_dirs(os.path.dirname(target))
+        partial_path = target + TMP_EXT
+        try:
+            self._romm_api.download_rom_content(
+                rom_id, entry.file_name, partial_path, progress, file_ids=(entry.file_id,)
+            )
+            self._download_file_store.rename(partial_path, target)
+        except BaseException:
+            if self._download_file_store.exists(partial_path):
+                self._download_file_store.remove_file(partial_path)
+            raise
+        if not self._install_recorder.do_record_extra_content(rom_id, entry):
+            self._logger.error(
+                f"Extra content {entry.file_name} of rom {rom_id} placed with no install to record it on"
+            )
 
     def _cleanup_failed_download(self, error, target_path, has_multiple, extract_dir_name, final_path) -> None:
         """Remove what a failed download left behind (``DownloadUnpacker.remove_partial_download``)."""
@@ -333,3 +526,12 @@ def _place_in_folder_at(fetch: DownloadFetch, file_name: str) -> str:
     if single is None:
         return file_name
     return single.rel_path or single.file_name or file_name
+
+
+def _offset(progress: Callable[[int, int], None], offset: int, total: int) -> Callable[[int, int], None]:
+    """*progress* for one file of extra content, counted after the *offset* bytes of the files before it, of *total*."""
+
+    def report(done: int, _of: int) -> None:
+        progress(offset + done, total)
+
+    return report

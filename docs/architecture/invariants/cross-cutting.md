@@ -189,22 +189,25 @@ an image set in Steam is the third: Steam's copy of the image the user set is cl
 copy may exist nowhere else, so the picker asks once more — Replace or Cancel — and Cancel changes nothing
 ([#2381](https://github.com/danielcopper/romm-tender/issues/2381) D13;
 `frontend/src/bigpicture/ArtworkPickerModal.test.tsx`, "asks once more before it replaces an image set in Steam, and
-answers to replace it" and "Cancel on the second question replaces nothing"). The icon is not asked about: Tender
-repoints the shortcut and the file the user set stays where it was. That reasoning about the adopt dialog covers the
-**ROM** only: an adoption's Overwrite also replaces save and savestate files, and those take the **backup** leg through
-the same `SaveBackup.back_up_save_file` — every argument ADR-0028 gives for not backing up a ROM (gigabytes, no sensible
-retention, re-fetchable from RomM) inverts for a save, and a savestate is synced nowhere at all. It is the first caller
-to hand that funnel a directory outside the saves root: it takes the directory it is given, so a savestate's backup
-lands in `<states>/.romm-backup/`. A BIOS file at an emulator's place is changed only by a "Replace…" the user confirmed
-on its row. It takes the **backup** leg too, by a path of its own rather than that funnel: once Tender's copy has passed
-RomM's checksum, the file moves to `<data>/backups/bios/<date and time>/<original absolute path>`, where it stays until
-the user deletes it. Where the link then cannot be placed, it moves back only while its place is still free, never over
-anything that lies there by then, and stays in the backup folder otherwise
-([#2191](https://github.com/danielcopper/romm-tender/issues/2191) D5, D17, D33, D34). The backup leg is also taken by a
-file lying in the firmware store without a record of Tender's whose checksum is not RomM's, before a download takes its
-name (D25). Both go through `FirmwareStore.do_back_up` and are pinned by `tests/services/test_firmware_store.py`
-(`TestReplacingAWrongFile`, `TestAStoreFileWithoutARecord`). Following a moved save directory
-(`services/saves/save_directory.py`) takes the same **backup** leg on a collision — detail:
+answers to replace it" and "Cancel on the second question replaces nothing"). Removing a file of a game's extra content
+(`remove_extra_content`) takes the **confirm** leg: the UPDATES & DLC tab asks first and says the file stays on RomM,
+from which it can be downloaded again (`frontend/src/bigpicture/ExtraContentTab.test.tsx`, "asks before it removes a
+file"); a download of extra content never writes over anything lying at a file's place (`extra_content_occupied`). The
+icon is not asked about: Tender repoints the shortcut and the file the user set stays where it was. That reasoning about
+the adopt dialog covers the **ROM** only: an adoption's Overwrite also replaces save and savestate files, and those take
+the **backup** leg through the same `SaveBackup.back_up_save_file` — every argument ADR-0028 gives for not backing up a
+ROM (gigabytes, no sensible retention, re-fetchable from RomM) inverts for a save, and a savestate is synced nowhere at
+all. It is the first caller to hand that funnel a directory outside the saves root: it takes the directory it is given,
+so a savestate's backup lands in `<states>/.romm-backup/`. A BIOS file at an emulator's place is changed only by a
+"Replace…" the user confirmed on its row. It takes the **backup** leg too, by a path of its own rather than that funnel:
+once Tender's copy has passed RomM's checksum, the file moves to
+`<data>/backups/bios/<date and time>/<original absolute path>`, where it stays until the user deletes it. Where the link
+then cannot be placed, it moves back only while its place is still free, never over anything that lies there by then,
+and stays in the backup folder otherwise ([#2191](https://github.com/danielcopper/romm-tender/issues/2191) D5, D17, D33,
+D34). The backup leg is also taken by a file lying in the firmware store without a record of Tender's whose checksum is
+not RomM's, before a download takes its name (D25). Both go through `FirmwareStore.do_back_up` and are pinned by
+`tests/services/test_firmware_store.py` (`TestReplacingAWrongFile`, `TestAStoreFileWithoutARecord`). Following a moved
+save directory (`services/saves/save_directory.py`) takes the same **backup** leg on a collision — detail:
 [Following a Moved Save Directory](../save-file-sync-architecture.md#following-a-moved-save-directory). The installer
 replaces the user's database and settings on two paths, and they are held to the rule differently. A **rollback by
 hand** (`install.sh --rollback`) takes the **backup** leg: it stops the unit and copies the database files and

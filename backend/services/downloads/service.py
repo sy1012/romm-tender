@@ -16,6 +16,7 @@ from typing import TYPE_CHECKING, Any
 
 from domain.disk_space import disk_space_verdict
 from domain.emulator_sources import RETRODECK
+from domain.extra_content import chosen_extra_content
 from domain.retrodeck_folders import GAME_DOWNLOAD, FolderRefused
 from domain.rom_candidates import DIR, FILE
 from domain.rom_file import NO_FILE_ON_ROMM_MESSAGE, NoFileOnRomm, has_file_on_romm
@@ -23,18 +24,22 @@ from domain.served_shape import listed_unpacked_bytes, served_shapes
 from domain.sibling_supersede import supersede_siblings
 from lib.background_tasks import BackgroundTasks
 from lib.errors import NotInstalled, Refused
+from lib.path_safety import PathTraversalError, safe_join
 from services.downloads._fetch import plan_fetch
 from services.downloads._names import partial_tmp_size, safe_extract_dir_name, safe_local_file_name
 from services.downloads._state import DownloadControl
+from services.downloads.transfer import EXTRA_CONTENT_QUEUE_NAME
 
 if TYPE_CHECKING:
     import asyncio
     import logging
 
+    from domain.extra_content import ExtraContentFile
     from domain.platform_system import PlatformSystem
     from lib.partial_failure import PartialFailure
     from models.state import InstalledRomEntry
     from services.downloads._state import DownloadsStateBox
+    from services.downloads.extra_content import ExtraContentOffer
     from services.downloads.queue import DownloadQueue
     from services.downloads.transfer import DownloadTransfer
     from services.downloads.unpack import DownloadUnpacker
@@ -63,7 +68,8 @@ class DownloadServiceConfig:
     ``transfer.run``, and the unpacker answers whether a
     whole download already sits on disk and removes a paused one's partial.
     ``target_gate`` is the pre-flight that refuses to write over content Tender
-    did not put there (ADR-0028). ``conflict_rules`` are what a start or resume
+    did not put there (ADR-0028). ``extra_content_offer`` answers what a game's
+    extra content is and which of it is offered. ``conflict_rules`` are what a start or resume
     checks at its entry, and what a download's task is held through.
     """
 
@@ -84,6 +90,7 @@ class DownloadServiceConfig:
     # root binds it after both exist.
     rom_remover: RomRemoverProvider
     conflict_rules: ConflictRules
+    extra_content_offer: ExtraContentOffer
 
 
 class DownloadService:
@@ -110,6 +117,7 @@ class DownloadService:
         self._uow_factory = config.uow_factory
         self._rom_remover = config.rom_remover
         self._rules = config.conflict_rules
+        self._extra_content_offer = config.extra_content_offer
         self._tasks = BackgroundTasks(logger=config.logger)
 
     async def shutdown(self) -> None:
@@ -132,6 +140,7 @@ class DownloadService:
         collision_choice=None,
         page_saw_candidate=False,
         confirmed_paths=None,
+        extra_file_ids=None,
     ):
         """Start a download, refusing when this game is already on disk.
 
@@ -140,6 +149,9 @@ class DownloadService:
         or replace — passes the same prologue: the ``already_downloading`` guard,
         the path-safety coercion, the occupancy gate, the supersede, the disk
         pre-flight. ``DownloadTargetGateFn`` owns what each of them means.
+        *extra_file_ids* names the game's extra content the download brings
+        into the game's folder once the game is installed; an id that is none
+        of it refuses the download (``unknown_extra_content``).
 
         Checked against the ``start_download`` endpoint's conflict rules first.
         A started download's task holds an operation until it ends.
@@ -157,7 +169,13 @@ class DownloadService:
                 "confirmed_paths": confirmed_paths,
             }
             answer["page_saw_candidate"] = page_saw_candidate
-            result = await self._begin_download(rom_id, resume=False, replace_existing=bool(replace_existing), **answer)
+            result = await self._begin_download(
+                rom_id,
+                resume=False,
+                replace_existing=bool(replace_existing),
+                extra_file_ids=tuple(extra_file_ids or ()),
+                **answer,
+            )
             await self._hold_until_started_task_done(result, rom_id, "start_download")
             return result
 
@@ -223,7 +241,9 @@ class DownloadService:
             self._queue.evict_if_paused(sibling_id)
         return list(displaced.removed)
 
-    async def _begin_download(self, rom_id, *, resume: bool, replace_existing=False, **answer):
+    async def _begin_download(
+        self, rom_id, *, resume: bool, replace_existing=False, extra_file_ids: tuple[int, ...] = (), **answer
+    ):
         """Shared core of ``start_download`` and ``resume_download``.
 
         *answer* passes the adopt dialog's answers, and what the game page reported, through to the gate unread.
@@ -243,7 +263,7 @@ class DownloadService:
         self._state.claim(rom_id)
         try:
             return await self._start_claimed_download(
-                rom_id, resume=resume, replace_existing=replace_existing, **answer
+                rom_id, resume=resume, replace_existing=replace_existing, extra_file_ids=extra_file_ids, **answer
             )
         except BaseException:
             self._state.drop_claim(rom_id)
@@ -253,13 +273,16 @@ class DownloadService:
         """The platform's system in RetroDECK, which a download lands in. Blocking: it may read RomM's listing."""
         return self._platform_systems.platform_system(platform_slug, source=RETRODECK)
 
-    async def _start_claimed_download(self, rom_id, *, resume: bool, replace_existing: bool, **answer):
+    async def _start_claimed_download(
+        self, rom_id, *, resume: bool, replace_existing: bool, extra_file_ids: tuple[int, ...], **answer
+    ):
         """:meth:`_begin_download` once the ROM's in-progress claim is held."""
         rom_detail = await self._loop.run_in_executor(None, self._romm_api.get_rom, rom_id)
         # The live answer decides, never the stored column: a rescan since the
         # last sync may have brought the file back or taken it away.
         if not has_file_on_romm(rom_detail):
             raise NoFileOnRomm(NO_FILE_ON_ROMM_MESSAGE)
+        extra_content = chosen_extra_content(rom_detail, extra_file_ids) if extra_file_ids else ()
 
         platform_slug = rom_detail.get("platform_slug", "")
         platform = await self._loop.run_in_executor(None, self._download_platform_io, platform_slug)
@@ -339,6 +362,7 @@ class DownloadService:
                 multi_file=fetch.zipped,
                 already_on_disk=already_on_disk,
                 unpacked_size=listed_unpacked_bytes(rom_detail),
+                extra_bytes=sum(entry.size_bytes for entry in extra_content),
             )
         except OSError as e:
             self._logger.error(f"Failed to prepare download for ROM {rom_id}: {e}")
@@ -362,7 +386,15 @@ class DownloadService:
         control = DownloadControl()
         task = self._tasks.spawn(
             self._transfer.run(
-                rom_id, rom_detail, target_path, system, file_name, control, platform_name=platform_name, resume=resume
+                rom_id,
+                rom_detail,
+                target_path,
+                system,
+                file_name,
+                control,
+                platform_name=platform_name,
+                resume=resume,
+                extra_content=extra_content,
             ),
             f"download of rom {rom_id}",
         )
@@ -398,6 +430,8 @@ class DownloadService:
             # What this download found on disk when it was admitted, which its
             # reservation already left out (``bytes_reserved_by_others``).
             "_on_disk_at_start": already_on_disk,
+            # The extra content the user ticked, carried across a pause.
+            "_extra_file_ids": [entry.file_id for entry in extra_content],
         }
         # The entry and the registrations go in one synchronous step, the entry
         # first, so nothing sees one without the other. The reservation lets
@@ -406,6 +440,113 @@ class DownloadService:
         self._queue.enqueue(rom_id, entry)
         self._state.admit(rom_id, task=task, reserved=verdict.needed_bytes, control=control)
         return {"success": True, "message": "Download started"}
+
+    async def get_extra_content(self, rom_id) -> dict[str, Any]:
+        """``ExtraContentOffer.get_extra_content``."""
+        return await self._extra_content_offer.get_extra_content(rom_id)
+
+    async def download_extra_content(self, rom_id, file_ids) -> dict[str, Any]:
+        """Bring the extra content *file_ids* name into an installed game's folder, leaving the game's own files alone.
+
+        A file already recorded on the install is not fetched again. Refuses
+        ``already_downloading`` while this game downloads, ``not_installed``
+        for a game with no install, ``unknown_extra_content`` for an id that is
+        none of the game's extra content, ``nothing_to_download`` where every
+        file asked for is recorded already, ``extra_content_occupied`` where
+        something already lies at a file's place, and ``insufficient_space``.
+
+        Checked against the ``download_extra_content`` endpoint's conflict
+        rules first. A started download's task holds an operation until it ends.
+        """
+        async with self._rules.hold("download_extra_content", update=True, migration=True, prune=True):
+            rom_id = int(rom_id)
+            if rom_id in self._state.in_progress:
+                raise Refused("already_downloading", "Already downloading")
+            self._state.claim(rom_id)
+            try:
+                result = await self._start_extra_content(rom_id, tuple(int(file_id) for file_id in file_ids or ()))
+            except BaseException:
+                self._state.drop_claim(rom_id)
+                raise
+            await self._hold_until_started_task_done(result, rom_id, "download_extra_content")
+            return result
+
+    async def _start_extra_content(self, rom_id: int, file_ids: tuple[int, ...]) -> dict[str, Any]:
+        """:meth:`download_extra_content` once the ROM's in-progress claim is held."""
+        with self._uow_factory() as uow:
+            install = uow.rom_installs.get(rom_id)
+        if install is None:
+            raise NotInstalled("ROM not installed")
+        rom_dir = install.rom_dir
+        if rom_dir is None:
+            raise Refused("unknown_extra_content", "A game kept as one file keeps no updates or DLC")
+        rom_detail = await self._loop.run_in_executor(None, self._romm_api.get_rom, rom_id)
+        recorded = {entry.file_id for entry in install.extra_content}
+        wanted = tuple(entry for entry in chosen_extra_content(rom_detail, file_ids) if entry.file_id not in recorded)
+        if not wanted:
+            raise Refused("nothing_to_download", "Every file asked for is on this device already")
+        total = sum(entry.size_bytes for entry in wanted)
+        try:
+            await self._loop.run_in_executor(None, self._check_extra_content_places_io, rom_dir, wanted)
+            verdict = disk_space_verdict(
+                file_size=total,
+                free_space=self._download_file_store.disk_free(rom_dir),
+                reserved_bytes=self._state.bytes_reserved_by_others(rom_id, self._queue.entries),
+                multi_file=False,
+            )
+        except OSError as e:
+            self._logger.error(f"Failed to prepare the extra content download for ROM {rom_id}: {e}")
+            raise Refused("download_start_failed", _START_FAILED_MESSAGE) from e
+        if not verdict.fits:
+            raise Refused(
+                "insufficient_space",
+                f"Not enough disk space ({verdict.free_mb}MB free, need {verdict.needed_mb}MB)",
+            )
+        platform = await self._loop.run_in_executor(None, self._download_platform_io, install.platform_slug)
+        rom_name = rom_detail.get("name", "")
+        control = DownloadControl()
+        task = self._tasks.spawn(
+            self._transfer.run_extra_content(
+                rom_id, rom_name, platform.platform_name, install.file_path, wanted, control
+            ),
+            f"extra content download of rom {rom_id}",
+        )
+        entry = {
+            "rom_id": rom_id,
+            "rom_name": rom_name,
+            "platform_name": platform.platform_name,
+            "file_name": EXTRA_CONTENT_QUEUE_NAME,
+            "status": "queued",
+            "progress": 0,
+            "bytes_downloaded": 0,
+            "total_bytes": total,
+            "resumable": False,
+            "extra_content_only": True,
+            "_on_disk_at_start": 0,
+        }
+        self._queue.enqueue(rom_id, entry)
+        self._state.admit(rom_id, task=task, reserved=verdict.needed_bytes, control=control)
+        return {"success": True, "message": "Download started"}
+
+    def _check_extra_content_places_io(self, rom_dir: str, wanted: tuple[ExtraContentFile, ...]) -> None:
+        """Refuse ``extra_content_occupied`` where something already lies at a wanted file's place.
+
+        A file there that the install does not record is not Tender's to
+        replace: it may be the user's own copy, and exist nowhere else.
+        """
+        for entry in wanted:
+            try:
+                place = safe_join(rom_dir, entry.rel_path)
+            except PathTraversalError as e:
+                raise Refused(
+                    "path_traversal", f"RomM names a place outside the game's folder: {entry.rel_path}"
+                ) from e
+            if self._download_file_store.exists(place):
+                raise Refused(
+                    "extra_content_occupied",
+                    f"Something already lies at {place}; move it away to download this file",
+                    path=place,
+                )
 
     async def get_download_size(self, rom_id) -> dict[str, Any]:
         """What a download of this ROM would fetch, in bytes, read from RomM's ROM detail now (#2732 D1).
@@ -536,7 +677,11 @@ class DownloadService:
                 raise Refused("superseded", "Another version is now active")
             replace_existing = bool(entry.get("_replace_existing"))
             result = await self._begin_download(
-                rom_id, resume=True, replace_existing=replace_existing, confirmed_paths=entry.get("_confirmed_paths")
+                rom_id,
+                resume=True,
+                replace_existing=replace_existing,
+                extra_file_ids=tuple(entry.get("_extra_file_ids") or ()),
+                confirmed_paths=entry.get("_confirmed_paths"),
             )
             await self._hold_until_started_task_done(result, rom_id, "resume_download")
             return result

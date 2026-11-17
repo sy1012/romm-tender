@@ -111,6 +111,11 @@ export interface DownloadWithAdoption {
   pageSawCandidate: boolean;
   /** Prefix for this flow's debug log lines. */
   logContext: string;
+  /**
+   * The update and DLC files the user ticked before the press went ahead, which
+   * every request of this press carries. Omitted where none was asked about.
+   */
+  extraFileIds?: number[];
   dialogs: AdoptionDialogs;
   hooks: AdoptionFlowHooks;
 }
@@ -154,9 +159,11 @@ async function download(
       collisionChoice,
       !replaceExisting && flow.pageSawCandidate,
     ] as const;
-    const result = await (confirmedPaths === undefined
-      ? startDownload(...answers)
-      : startDownload(...answers, confirmedPaths));
+    const result = await (flow.extraFileIds !== undefined
+      ? startDownload(...answers, confirmedPaths ?? null, flow.extraFileIds)
+      : confirmedPaths === undefined
+        ? startDownload(...answers)
+        : startDownload(...answers, confirmedPaths));
     if (isRenameCollisions(result)) {
       // Carrying the discarded candidate's saves would land on names that are
       // taken. Nothing has been removed or moved; the one answer covers the
