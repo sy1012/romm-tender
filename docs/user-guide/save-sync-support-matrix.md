@@ -104,7 +104,7 @@ carries the game's save folders in PPSSPP's `PSP/SAVEDATA` — the ones named st
 not a save and is left alone, and so is every other game's folder: restoring replaces only the folders that were this
 game's save, and refuses rather than write over anything else. A compressed image (`.cso`, `.chd`) or an EBOOT (`.pbp`)
 is not read, so nothing is synced for it. A PlayStation Network release may save under the ID of its disc release;
-Tender syncs the folders under the game's own ID. This has not yet been observed on a device.
+Tender syncs the folders under the game's own ID. Upload and restore have both been observed on a Steam Deck.
 
 The systems whose default core has been **watched writing a save on a stock RetroDECK install** are Game Boy / Color /
 Advance, N64, Saturn, Neo Geo Pocket (Color) and Pokémon Mini. The rest of the ✅ rows follow the same standard `.srm`
@@ -186,7 +186,7 @@ states still work locally). See the full table for specifics.
     | `neogeocd` | ❌ | Shared save (the core has a per-content mode) |
     | `neogeocdjp` | ❌ | Shared save (the core has a per-content mode) |
     | `ps2` | ❌ | Shared memory card by default (LRPS2), always (PCEE2); per-game `<game>.ps2` available as an LRPS2 core option |
-    | `psp` | ✅ | PPSSPP (Standalone): the game's save folders (named by its ID) as one zip — `.iso` only; not yet observed on a device |
+    | `psp` | ✅ | PPSSPP (Standalone): the game's save folders (named by its ID) as one zip — `.iso` only |
     | `pv1000` | ❌ | Saves are stored separately by the emulator (MAME) |
     | `scummvm` | ❌ | Not synced |
     | `scv` | ❌ | Saves are stored separately by the emulator (MAME) |
