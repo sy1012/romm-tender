@@ -360,8 +360,9 @@ than one Eden AppImage and none is set, it starts none of them: the card lists e
 the one to use here. Eden's keys and firmware are yours to set up in Eden: start Eden once and install them before
 starting a game through Tender. Eden loads a Switch game's updates and DLC from the folders it scans, so Tender can
 download them beside the game ([A game's updates and DLC](managing-games.md#a-games-updates-and-dlc)); for Eden to find
-them before a game started from Steam boots, add the Switch ROM folder — with RetroDECK's own settings
-`~/retrodeck/roms/switch`, the folder Switch games download into — as an **external content folder** in Eden's settings.
+them, add the Switch ROM folder — with RetroDECK's own settings `~/retrodeck/roms/switch`, the folder Switch games
+download into — as a **game folder** in Eden and turn on **scanning its subfolders**, because each game downloads into a
+folder of its own. Set up that way, a game started from Steam boots with its updates and DLC applied.
 
 **Sources Tender cannot start games through.** The main panel says **_Source_ is switched on in Settings › Emulator
 sources, but Tender cannot start games through it yet.** for every switched-on source but RetroDECK, whether or not it

@@ -54,9 +54,7 @@ class TestTheReading:
     def test_an_entry_that_loads_from_an_external_folder_holding_the_game_is_offered_with_nothing_in_the_way(self):
         view = read_extra_content(_answer(folders=(_external(),), scanned=True))
 
-        assert view == ExtraContentFolders(
-            offered=True, game_folder_scanned=True, only_beside_launch=False, extensions=_EXTENSIONS
-        )
+        assert view == ExtraContentFolders(offered=True, game_folder_scanned=True, extensions=_EXTENSIONS)
 
     def test_an_unstated_entry_offers_nothing(self):
         view = read_extra_content(_answer(loads=None, caveats=(_caveat(CAVEAT_EXTRA_CONTENT_FOLDERS_UNSTATED),)))
@@ -77,9 +75,8 @@ class TestTheReading:
 
         assert view.offered is True
         assert view.game_folder_scanned is False
-        assert view.only_beside_launch is False
 
-    def test_a_game_folder_scanned_only_through_game_folders_is_scanned_only_beside_the_launch(self):
+    def test_a_game_folder_scanned_beside_the_launch_is_offered_with_nothing_in_the_way(self):
         view = read_extra_content(
             _answer(
                 folders=(_game_dir(),),
@@ -88,28 +85,7 @@ class TestTheReading:
             )
         )
 
-        assert view.only_beside_launch is True
-
-    def test_with_a_folder_registered_before_the_launch_listed_too_which_holds_the_game_is_not_stated(self):
-        view = read_extra_content(
-            _answer(
-                folders=(_external("/home/deck/switch-extras"), _game_dir()),
-                scanned=True,
-                caveats=(_caveat(CAVEAT_EXTRA_CONTENT_SCANNED_BESIDE_LAUNCH),),
-            )
-        )
-
-        assert view.only_beside_launch is False
-
-    def test_where_scanning_the_game_folder_is_not_established_nothing_is_said_of_the_launch(self):
-        view = read_extra_content(
-            _answer(
-                folders=(_game_dir(),), scanned=None, caveats=(_caveat(CAVEAT_EXTRA_CONTENT_SCANNED_BESIDE_LAUNCH),)
-            )
-        )
-
-        assert view.game_folder_scanned is None
-        assert view.only_beside_launch is False
+        assert view == ExtraContentFolders(offered=True, game_folder_scanned=True, extensions=_EXTENSIONS)
 
     def test_the_extensions_are_every_folder_s_once_in_order(self):
         view = read_extra_content(

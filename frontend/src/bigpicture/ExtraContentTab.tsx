@@ -29,7 +29,6 @@ import {
   REMOVE_FAILED_TOAST,
   REMOVE_LABEL,
   REMOVE_TITLE,
-  besideLaunchNote,
   downloadTickedLabel,
   fileDetail,
   notScannedNote,
@@ -49,7 +48,6 @@ const MUTED_STYLE = { fontSize: "12px" };
 /** What stands in the way of the emulator loading the files, where something does. */
 export function folderNote(answer: ExtraContentAnswer): string | null {
   if (answer.game_folder_scanned === false) return notScannedNote(answer.rom_folder);
-  if (answer.only_beside_launch) return besideLaunchNote(answer.rom_folder);
   return null;
 }
 

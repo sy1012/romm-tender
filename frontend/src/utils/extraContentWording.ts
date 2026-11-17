@@ -38,16 +38,10 @@ export function downloadTickedLabel(count: number): string {
   return count === 1 ? "Download 1 file" : `Download ${count} files`;
 }
 
-/** Where the game's folder is not one the emulator scans: add the system's ROM folder as an external content folder. */
+/** Where the game's folder is not one the emulator scans: add the system's ROM folder as a game folder that is searched to its subfolders. */
 export function notScannedNote(romFolder: string | null): string {
   const folder = romFolder ?? "the Switch ROM folder";
-  return `The emulator does not look for updates and DLC in this game's folder. In Eden's settings, add ${folder} as an external content folder so it loads them.`;
-}
-
-/** Where the game's folder is scanned only while the game starts. */
-export function besideLaunchNote(romFolder: string | null): string {
-  const folder = romFolder ?? "the Switch ROM folder";
-  return `Eden finds these files only through its game folders, which it scans while the game starts, so it may not apply them when the game is started from Steam. Add ${folder} as an external content folder in Eden's settings.`;
+  return `The emulator does not look for updates and DLC in this game's folder. In Eden, add ${folder} as a game folder and turn on scanning its subfolders, so it loads them.`;
 }
 
 /** The removal's question, naming what goes and that RomM keeps it. */

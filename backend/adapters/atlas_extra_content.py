@@ -10,12 +10,7 @@ reads it.
 
 Only a stated ``true`` offers extra content. ``null`` is the resolver saying it
 has not established it for this entry (``extra-content-folders-unstated``),
-which offers nothing and is never read as a "no". Where the game's folder is
-scanned and every folder the answer lists is scanned only beside the launch
-(``extra-content-scanned-beside-launch``, ``registered_before_launch`` null on
-each), the view says so; where the answer lists a folder registered before the
-launch as well, which of them holds the game's folder is not stated, and the
-view says nothing.
+which offers nothing and is never read as a "no".
 """
 
 from __future__ import annotations
@@ -42,6 +37,11 @@ if TYPE_CHECKING:
 # field rather than off its note.
 _SAID_BY_THE_FIELDS = frozenset({CAVEAT_EXTRA_CONTENT_FOLDERS_UNSTATED, CAVEAT_CONTENT_OUTSIDE_EXTRA_CONTENT_FOLDERS})
 
+# Eden scans its game folders on a worker thread beside a ``-g`` boot, which is
+# what this note says; on the reference Deck a deep-scanned game folder's DLC was
+# applied on a start from Steam all the same, so nothing is said about it.
+_NOTES_THAT_CHANGE_NOTHING = frozenset({CAVEAT_EXTRA_CONTENT_SCANNED_BESIDE_LAUNCH})
+
 
 def read_extra_content(answer: Any) -> ExtraContentFolders:
     """*answer* in Tender's words."""
@@ -49,15 +49,10 @@ def read_extra_content(answer: Any) -> ExtraContentFolders:
         return NOT_OFFERED
     folders = tuple(answer.folders)
     scanned = answer.content_folder_scanned
-    beside_launch = any(caveat.code == CAVEAT_EXTRA_CONTENT_SCANNED_BESIDE_LAUNCH for caveat in answer.caveats)
-    only_beside_launch = (
-        scanned is True and beside_launch and not any(folder.registered_before_launch is True for folder in folders)
-    )
     extensions = tuple(dict.fromkeys(extension for folder in folders for extension in folder.extensions))
     return ExtraContentFolders(
         offered=True,
         game_folder_scanned=scanned,
-        only_beside_launch=only_beside_launch,
         extensions=extensions,
     )
 

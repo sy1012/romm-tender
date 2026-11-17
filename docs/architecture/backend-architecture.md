@@ -1980,10 +1980,9 @@ none is, so none is ticked. Extra content is **offered** only where the resolver
 starts with loads it from folders (`extra_content_folders`, read by `adapters/atlas_extra_content.py` through the game's
 answering source, with the entry `ActiveCoreReader` resolves); a `null` there is "not established" and offers nothing,
 without RomM being asked. The offer (`get_extra_content`) asks about the game's folder — the install's `rom_dir`, or the
-folder a download would create — and answers whether it is scanned, whether only beside the launch (the resolver's
-`extra-content-scanned-beside-launch` and no listed folder registered before the launch; with such a folder listed too,
-which folder holds the game is not stated and nothing is said), and, per file, whether the emulator reads its extension
-from a folder.
+folder a download would create — and answers whether it is scanned (the resolver's `extra-content-scanned-beside-launch`
+is read and changes nothing: a deep-scanned game folder's DLC was applied on a start from Steam on the reference Deck),
+and, per file, whether the emulator reads its extension from a folder.
 
 Each file is fetched **on its own**, naming its one id (`?file_ids=<id>`, which RomM serves as the file itself), into
 `<rom_dir>/<rel_path>` joined through `safe_join`, by way of a `.tmp` beside it that is removed on every way out but its

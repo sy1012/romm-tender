@@ -6744,7 +6744,6 @@ describe("CustomPlayButton — a game's updates and DLC", () => {
       },
     ],
     game_folder_scanned: true,
-    only_beside_launch: false,
     rom_folder: "/roms/switch",
   };
 

@@ -8774,7 +8774,6 @@ class TestTheExtraContentOffer:
             "installed": False,
             "files": [],
             "game_folder_scanned": None,
-            "only_beside_launch": False,
             "rom_folder": None,
         }
         downloads.romm_api.get_rom.assert_not_called()
@@ -8818,7 +8817,7 @@ class TestTheExtraContentOffer:
             install.add_extra_content(13, "update/Game [v131072].nsp", 310)
             downloads.uow.rom_installs.save(install)
         downloads.extra_content.answer = ExtraContentFolders(
-            offered=True, game_folder_scanned=True, only_beside_launch=True, extensions=(".nsp",)
+            offered=True, game_folder_scanned=True, extensions=(".nsp",)
         )
 
         answer = await downloads.service.get_extra_content(1)
@@ -8827,7 +8826,6 @@ class TestTheExtraContentOffer:
         # 13 is recorded but no longer lies in the folder.
         assert on_device == {12: False, 13: False, 14: True}
         assert answer["installed"] is True
-        assert answer["only_beside_launch"] is True
         assert downloads.extra_content.asked == [("switch", None, str(game_dir))]
 
     async def test_a_compressed_package_is_said_not_to_be_read_from_a_folder(self, downloads):

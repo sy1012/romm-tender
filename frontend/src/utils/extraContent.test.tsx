@@ -23,7 +23,6 @@ const OFFERED: ExtraContentAnswer = {
     },
   ],
   game_folder_scanned: true,
-  only_beside_launch: false,
   rom_folder: "/roms/switch",
 };
 const NOT_OFFERED: ExtraContentAnswer = { ...OFFERED, offered: false, files: [] };

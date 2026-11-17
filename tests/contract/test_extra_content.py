@@ -29,7 +29,7 @@ from ._seed import seed_rom
 pytestmark = pytest.mark.usefixtures("seeded_retrodeck")
 
 _FILE_KEYS = {"file_id", "file_name", "rel_path", "category", "size_bytes", "on_device", "ticked", "read_from_folders"}
-_ANSWER_KEYS = {"success", "offered", "installed", "files", "game_folder_scanned", "only_beside_launch", "rom_folder"}
+_ANSWER_KEYS = {"success", "offered", "installed", "files", "game_folder_scanned", "rom_folder"}
 
 
 async def _drain_background_tasks() -> None:
@@ -122,7 +122,6 @@ async def test_a_game_whose_emulator_states_nothing_is_offered_nothing_and_romm_
         "installed": False,
         "files": [],
         "game_folder_scanned": None,
-        "only_beside_launch": False,
         "rom_folder": None,
     }
     assert not [call for call in harness.romm.call_log if call[0] == "get_rom"]

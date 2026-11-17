@@ -79,7 +79,7 @@ class ExtraContentOffer:
         """The game's extra content as the game page and a download's question show it.
 
         Answers ``{success, offered, installed, files, game_folder_scanned,
-        only_beside_launch, rom_folder}``; where nothing is offered, ``files``
+        rom_folder}``; where nothing is offered, ``files``
         is empty and RomM is not asked. Each file is ``{file_id, file_name,
         rel_path, category, size_bytes, on_device, ticked, read_from_folders}``.
         Refuses ``not_found`` for a game Tender does not know; a RomM error is
@@ -116,7 +116,6 @@ class ExtraContentOffer:
             "installed": install is not None,
             "files": [_file_row(entry, entry.file_id in ticked, on_device, folders) for entry in files],
             "game_folder_scanned": folders.game_folder_scanned,
-            "only_beside_launch": folders.only_beside_launch,
             "rom_folder": rom_folder,
         }
 
@@ -154,7 +153,6 @@ def _not_offered(*, installed: bool) -> dict[str, Any]:
         "installed": installed,
         "files": [],
         "game_folder_scanned": None,
-        "only_beside_launch": False,
         "rom_folder": None,
     }
 

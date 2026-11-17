@@ -262,7 +262,6 @@ describe("the UPDATES & DLC tab", () => {
       },
     ],
     game_folder_scanned: true,
-    only_beside_launch: false,
     rom_folder: "/roms/switch",
   };
 

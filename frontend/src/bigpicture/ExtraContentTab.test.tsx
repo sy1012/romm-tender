@@ -43,7 +43,6 @@ function answer(overrides: Partial<ExtraContentAnswer> = {}): ExtraContentAnswer
     installed: true,
     files: [file(), file({ file_id: 14, file_name: "Game DLC.nsp", category: "dlc", on_device: true })],
     game_folder_scanned: true,
-    only_beside_launch: false,
     rom_folder: "/home/deck/retrodeck/roms/switch",
     ...overrides,
   };
@@ -160,20 +159,14 @@ describe("ExtraContentTab — the UPDATES & DLC pane", () => {
 });
 
 describe("folderNote — what keeps the emulator from loading the files", () => {
-  it("names the ROM folder to add as an external content folder where the game's folder is not scanned", () => {
+  it("names the ROM folder to add as a game folder searched to its subfolders where the game's folder is not scanned", () => {
     expect(folderNote(answer({ game_folder_scanned: false }))).toBe(
-      "The emulator does not look for updates and DLC in this game's folder. In Eden's settings, add " +
-        "/home/deck/retrodeck/roms/switch as an external content folder so it loads them.",
+      "The emulator does not look for updates and DLC in this game's folder. In Eden, add " +
+        "/home/deck/retrodeck/roms/switch as a game folder and turn on scanning its subfolders, so it loads them.",
     );
   });
 
-  it("warns that a launch from Steam may not apply them where the folder is scanned only beside the launch", () => {
-    expect(folderNote(answer({ only_beside_launch: true }))).toContain(
-      "may not apply them when the game is started from Steam. Add /home/deck/retrodeck/roms/switch as an external content folder",
-    );
-  });
-
-  it("says nothing where the folder is scanned before the launch, or where that is not established", () => {
+  it("says nothing where the folder is scanned, or where that is not established", () => {
     expect(folderNote(answer())).toBeNull();
     expect(folderNote(answer({ game_folder_scanned: null }))).toBeNull();
   });

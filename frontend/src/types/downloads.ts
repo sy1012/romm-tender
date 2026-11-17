@@ -84,8 +84,7 @@ export interface ExtraContentFile {
  * A game's extra content. `offered` is true only where the emulator the game
  * starts with is stated to load updates and DLC from folders; otherwise
  * `files` is empty. `game_folder_scanned` is whether the game's folder is one
- * the emulator scans (`null`: not established); `only_beside_launch` that it is
- * scanned only while the game starts. `rom_folder` is the system's ROM folder.
+ * the emulator scans (`null`: not established). `rom_folder` is the system's ROM folder.
  */
 export interface ExtraContentAnswer {
   success: true;
@@ -93,7 +92,6 @@ export interface ExtraContentAnswer {
   installed: boolean;
   files: ExtraContentFile[];
   game_folder_scanned: boolean | null;
-  only_beside_launch: boolean;
   rom_folder: string | null;
 }
 

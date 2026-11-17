@@ -153,17 +153,13 @@ class ExtraContentFolders:
     *offered* is ``True`` only where the resolver states the emulator entry the
     game starts with loads it from folders; ``False`` stands for "not stated",
     never for a "no". *game_folder_scanned* is whether the game's own folder is
-    one the emulator scans, ``None`` where that is not established.
-    *only_beside_launch* is ``True`` where the game's folder is scanned and
-    every folder the emulator scans is scanned only beside the launch, so what
-    lies there may not be registered before the game boots. *extensions* are
+    one the emulator scans, ``None`` where that is not established. *extensions* are
     the file extensions the emulator reads from those folders, empty where
     none are known.
     """
 
     offered: bool
     game_folder_scanned: bool | None = None
-    only_beside_launch: bool = False
     extensions: tuple[str, ...] = ()
 
 

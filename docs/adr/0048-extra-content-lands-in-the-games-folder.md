@@ -38,8 +38,10 @@ them at all.
 ## Consequences
 
 - An emulator that loads updates from folders finds them only in a folder it scans. Where the resolver says the game's
-  folder is not one, or only beside the launch, the tab says so and names the ROM folder to add as an external content
-  folder; Tender changes no emulator setting.
+  folder is not one, the tab says so and names the ROM folder to add as a game folder scanned to its subfolders; Tender
+  changes no emulator setting. Eden scans its game folders beside a `-g` boot rather than before it, which the resolver
+  states (`extra-content-scanned-beside-launch`); on the reference Deck a deep-scanned game folder's DLC was applied on
+  a start from Steam all the same, so the tab says nothing about it.
 - An emulator that wants updates installed gets no offer until the resolver states how it loads them; installing into an
   emulator's storage is not this decision.
 - The extra-content download reuses the download machinery — the claim, the semaphore, the reservation, the queue and

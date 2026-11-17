@@ -452,10 +452,9 @@ for which RomM holds none.
 where Tender can tell it does not:
 
 - **The game's folder is not scanned.** Add the Switch ROM folder the tab names — with RetroDECK's own settings
-  `~/retrodeck/roms/switch` — as an **external content folder** in Eden's settings.
-- **Scanned only while the game starts.** Eden also scans its game folders, but only alongside starting a game, so
-  updates and DLC found there may not be applied when the game is started from Steam. Adding the Switch ROM folder as an
-  external content folder makes Eden read it when it starts, before the game boots.
+  `~/retrodeck/roms/switch` — as a **game folder** in Eden, and turn on **scanning its subfolders**: each game downloads
+  into a folder of its own, and without that Eden reads only the ROM folder's top level. A game started from Steam then
+  boots with its updates and DLC applied.
 
 Eden reads `.nsp` and `.xci` packages from those folders. A compressed `.nsz` or `.xcz` update or DLC file is not read
 from a folder, and the dialog and the tab say so beside it: decompress it first, or keep the `.nsp`/`.xci` on RomM.
