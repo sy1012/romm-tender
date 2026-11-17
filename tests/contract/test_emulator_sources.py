@@ -155,15 +155,15 @@ async def test_the_start_check_answers_a_failed_detection_in_the_failure_shape(h
     assert isinstance(result["message"], str)
 
 
-async def test_an_eden_appimage_is_listed_as_a_source_that_starts_games_after_retrodeck(harness):
+async def test_an_eden_appimage_is_listed_first_as_a_source_that_starts_games(harness):
     seed_es_systems(harness)
     _seed_eden_appimage(harness)
 
     listing = await harness.endpoints.get_emulator_sources()
 
     assert [(source["kind"], source["starts_games"]) for source in listing["sources"]] == [
-        ("retrodeck", True),
         ("eden_appimage", True),
+        ("retrodeck", True),
     ]
     assert listing["answering"] == "retrodeck"
 

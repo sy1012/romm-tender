@@ -138,7 +138,8 @@ def arrange_sources(
     *detected* is in the resolver's probe order, which is the default order.
     A stored order ranks the kinds it names; a detected kind it does not name
     follows them, in probe order, so a source seen for the first time joins at
-    the end. Switched-off is a deny-list, so a source seen for the first time is
+    the end — except a single-system source, which joins at the front
+    (:func:`_merged_order`). Switched-off is a deny-list, so a source seen for the first time is
     on. A stored kind that is not detected now keeps its place in the stored
     order but is not listed.
     """
@@ -334,7 +335,14 @@ def is_absolute_path(value: str) -> bool:
 
 
 def _merged_order(*, detected: Sequence[str], stored_order: Sequence[str]) -> tuple[str, ...]:
-    """The stored order, deduplicated, then every detected kind it does not name, in probe order."""
-    merged = list(dict.fromkeys(stored_order))
-    merged.extend(kind for kind in detected if kind not in merged)
-    return tuple(merged)
+    """Every detected single-system kind the stored order does not name, then the stored order, then the rest.
+
+    Both unnamed groups keep probe order. A single-system source goes first because a whole-machine
+    frontend can list that system with an entry Tender cannot start (RetroDECK's ES-DE finds an Eden
+    AppImage itself and answers it as "Eden (Standalone)", whose start through RetroDECK is not
+    established), and whichever stands first for the system answers it.
+    """
+    stored = list(dict.fromkeys(stored_order))
+    unnamed = [kind for kind in detected if kind not in stored]
+    single = [kind for kind in unnamed if kind in _SINGLE_SYSTEM_KINDS]
+    return (*single, *stored, *(kind for kind in unnamed if kind not in _SINGLE_SYSTEM_KINDS))

@@ -196,7 +196,9 @@ native, and a standalone Eden AppImage (GLOSSARY.md, "Emulator source") — and 
 place they are detected and held; the catalogue, firmware and save adapters take their installation from it and choose
 none themselves. The user orders the sources and switches them off under Settings › Emulator sources, stored by kind in
 `settings.json` (`emulator_source_order`, and the deny-list `emulator_sources_off`, so a source seen for the first time
-is on and joins the end of the order); `domain/emulator_sources.py` holds the rules.
+is on and joins the end of the order — a single-system source, the Eden AppImage, joins at the front instead, because
+RetroDECK's ES-DE finds the same AppImage and lists it as "Eden (Standalone)", a `startable` entry whose start through
+RetroDECK is not established); `domain/emulator_sources.py` holds the rules.
 
 **A game's answers come from the source it starts through, chosen per system.** Tender starts games through two kinds of
 source: RetroDECK, and an Eden AppImage (`eden_appimage`), which answers for one system only, `switch`. For a game of

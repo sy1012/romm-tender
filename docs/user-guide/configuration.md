@@ -342,11 +342,13 @@ are read again, and its saves too while save sync is on.
 
 **Which source answers for a game.** A game's emulator, BIOS and save answers come from the source it starts through,
 decided for its system: the first source switched on in the order that Tender starts games through and that has an
-installed emulator for the game's system. So a Switch game answers from Eden (AppImage) while RetroDECK has no Switch
-emulator installed, and every other game from RetroDECK, wherever it stands in the order — even while it has not been
-set up yet, when it answers that it has not. Where RetroDECK does have an installed Switch emulator, the one higher in
-the order starts Switch games. Without a source Tender starts games through, the first source switched on in the order
-answers. A source found for the first time joins the end of the order, switched on.
+installed emulator for the game's system. Every game but a Switch game answers from RetroDECK, wherever it stands in the
+order — even while it has not been set up yet, when it answers that it has not. Where RetroDECK also has a Switch
+emulator, the one higher in the order starts Switch games. RetroDECK finds an Eden AppImage in the same folders Tender
+searches and lists it as **Eden (Standalone)**, which Tender cannot start through RetroDECK yet, so keep **Eden
+(AppImage)** above RetroDECK. Without a source Tender starts games through, the first source switched on in the order
+answers. A source found for the first time is switched on and joins the end of the order — except Eden (AppImage), which
+joins at the top.
 
 **Eden AppImage.** Under the cards, the **Eden AppImage** row says which Eden Tender uses. Tender looks for a file whose
 name starts with `eden` and ends in `.AppImage` in `~/Applications`, `~/AppImages`, `~/Emulation/tools` and

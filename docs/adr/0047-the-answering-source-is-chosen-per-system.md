@@ -33,7 +33,13 @@ answering for no system.
    the user's Eden unused. An entry the resolver states `not-installed` therefore lists nothing, and neither does a
    catalogue that raised or was refused.
 2. **The user's order still decides between sources that both start _S_.** A RetroDECK with an installed Switch
-   emulator, ordered above the Eden AppImage, answers Switch; moved below it, Eden does.
+   emulator, ordered above the Eden AppImage, answers Switch; moved below it, Eden does. RetroDECK's ES-DE finds an Eden
+   AppImage in `~/Applications` by itself and states its "Eden (Standalone)" entry `startable`, though Tender's start
+   through RetroDECK refuses it (the environment its start needs is not stated) — seen on the reference Deck. So a
+   source that answers for one system joins the order at the front the first time it is detected, rather than at the
+   end; once the user moves any source, the whole order is stored and that place is theirs. Skipping a source whose
+   start would be refused was the alternative: it needs a launch command, which needs a game's file, at a point where
+   only the system is known.
 3. **The source answering for no system** — for the firmware inventory, whether a set-up source answers for saves at
    all, what a content folder accepts, and as the fallback — is the first switched-on source that starts games and
    answers for more than one system, then the first that answers for more than one, then the first switched-on source. A

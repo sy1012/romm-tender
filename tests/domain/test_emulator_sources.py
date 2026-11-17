@@ -47,6 +47,20 @@ class TestArrangeSources:
         assert _kinds(sources) == ["emudeck", "retrodeck", "bare_retroarch_native"]
         assert sources[-1].enabled is True
 
+    def test_a_single_system_kind_seen_for_the_first_time_joins_at_the_front(self):
+        sources = arrange_sources(detected=("retrodeck", "eden_appimage"), stored_order=(), switched_off=())
+        assert _kinds(sources) == ["eden_appimage", "retrodeck"]
+        stored = arrange_sources(
+            detected=("retrodeck", "emudeck", "eden_appimage"), stored_order=("emudeck", "retrodeck"), switched_off=()
+        )
+        assert _kinds(stored) == ["eden_appimage", "emudeck", "retrodeck"]
+
+    def test_a_single_system_kind_the_stored_order_names_keeps_its_place(self):
+        sources = arrange_sources(
+            detected=("retrodeck", "eden_appimage"), stored_order=("retrodeck", "eden_appimage"), switched_off=()
+        )
+        assert _kinds(sources) == ["retrodeck", "eden_appimage"]
+
     def test_a_kind_unknown_to_tender_is_listed_like_any_other(self):
         sources = arrange_sources(detected=("retrodeck", "standalone_x"), stored_order=(), switched_off=())
         assert _kinds(sources) == ["retrodeck", "standalone_x"]
