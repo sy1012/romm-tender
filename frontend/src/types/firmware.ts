@@ -445,7 +445,7 @@ export type StartCommandReason =
  * the same words an entry's `reason` carries (`utils/emulatorInstallation.ts`), worded as those are.
  */
 export type StartInstallationReason =
-  "not_established" | "no_find_rule" | "find_rules_unread" | "lookup_unsupported" | "path_unseen";
+  "not_established" | "no_find_rule" | "find_rules_unread" | "lookup_unsupported" | "path_unseen" | "several_appimages";
 
 /**
  * Why a start is refused: the answering source is one Tender starts no game through yet (#2221 D21); `source` on

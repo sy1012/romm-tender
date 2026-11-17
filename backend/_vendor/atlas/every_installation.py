@@ -376,7 +376,9 @@ class EveryInstallation:
         return f"EveryInstallation({[i.kind for i in self._installations]})"
 
 
-def every_installation(home: str, machine: Machine | None = None) -> EveryInstallation:
+def every_installation(
+    home: str, machine: Machine | None = None, *, eden_appimage: str | None = None
+) -> EveryInstallation:
     """Detect the installations under *home* and return them ready to answer as one.
 
     The mirror of :func:`~atlas.detect.detect` for a caller who does not choose:
@@ -385,4 +387,4 @@ def every_installation(home: str, machine: Machine | None = None) -> EveryInstal
     detected handles wraps them with :class:`EveryInstallation` directly rather
     than detecting twice.
     """
-    return EveryInstallation(detect(home, machine))
+    return EveryInstallation(detect(home, machine, eden_appimage=eden_appimage))

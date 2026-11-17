@@ -712,26 +712,31 @@ Three distinct notions in core selection, kept separate because they have differ
 
 ### Emulator source
 
-Where Tender gets an emulator from: RetroDECK, EmuDeck, a RetroArch without a frontend, or a standalone emulator.
-emu-atlas calls it an installation; Tender does not, because "install" already names Tender's own installation and a
-downloaded game (`RomInstall`). Each source is asked through emu-atlas's common interface, has a switch in the settings,
-and has a place in the **emulator source order**
+Where Tender gets an emulator from: RetroDECK, EmuDeck, a RetroArch without a frontend, or a standalone emulator — an
+Eden AppImage (`eden_appimage`) is the one Tender detects today. emu-atlas calls it an installation; Tender does not,
+because "install" already names Tender's own installation and a downloaded game (`RomInstall`). Each source is asked
+through emu-atlas's common interface, has a switch in the settings, and has a place in the **emulator source order**
 ([ADR-0042](docs/adr/0042-tender-takes-emulator-answers-starts-emulators-and-keeps-its-own-store.md)). _Avoid_:
 installation, arrangement, frontend (a RetroArch without a frontend is a source too).
 
 ### Emulator source order
 
 The order in which the emulator sources are used — RetroDECK → EmuDeck → RetroArch (Flatpak) → RetroArch (native) →
-standalone unless the user changes it under Settings › Emulator sources. Which source answers for a game is the
-**answering source**; the order decides it only where no switched-on source is one Tender starts games through.
+standalone unless the user changes it under Settings › Emulator sources; a source seen for the first time joins the end.
+Which source answers for a game is the **answering source**, and the order decides between the sources that could.
 
 ### Answering source
 
-The one emulator source a game's emulator, firmware and save answers come from: the first switched-on source Tender
-starts games through — RetroDECK, wherever it stands in the order — or, without one, the first switched-on source in the
-**emulator source order**, which answers for a start through that source's own frontend. There is none where no source
-is detected or every detected one is switched off, and the pages say which of the two
-(`domain/emulator_sources.py::answering_source`).
+The one emulator source a game's emulator, firmware and save answers come from, chosen for the game's system: the first
+switched-on source Tender starts games through (RetroDECK, an Eden AppImage) whose catalogue has an entry for that
+system whose program is there, then one whose program is not established, in the **emulator source order**
+(`domain/emulator_sources.py::answering_source_for`,
+[ADR-0047](docs/adr/0047-the-answering-source-is-chosen-per-system.md)). Failing both, and for a question about no one
+system, it is the **source answering for no system**: the first switched-on source that starts games and answers for
+more than one system — RetroDECK, wherever it stands in the order — then the first that answers for more than one, which
+answers for a start through that source's own frontend, then the first switched-on source
+(`domain/emulator_sources.py::answering_source`). There is none where no source is detected or every detected one is
+switched off, and the pages say which of the two.
 
 ### Root (of an emulator source): read / frontend default / assumed
 

@@ -25,10 +25,12 @@ import os
 from typing import TYPE_CHECKING, Any, cast
 
 import pytest
+from _atlas_machines import fixture_machine
 from _vendor.atlas import (
     AVAILABILITY_NOT_INSTALLED,
     AVAILABILITY_STARTABLE,
     AVAILABILITY_UNESTABLISHED,
+    CAVEAT_APPIMAGE_AMBIGUOUS,
     CAVEAT_CORE_NOT_INSTALLED,
     CAVEAT_CORE_RULES_MISSING,
     CAVEAT_EMULATOR_CATALOGUE_EXCLUSIVE,
@@ -51,6 +53,7 @@ from _vendor.atlas import (
     KIND_STANDALONE,
     find_rules,
 )
+from _vendor.atlas import detect as atlas_detect
 from _vendor.atlas.esde import CatalogueKind, EmulatorSpec
 from _vendor.atlas.installations import CatalogueAnswer, EmulatorEntry, RomPlacement, SystemsAnswer
 from _vendor.atlas.launch import Launcher, LaunchResolution
@@ -59,7 +62,13 @@ from _vendor.atlas.placement import Caveat
 from adapters import atlas_catalogue
 from adapters.atlas_catalogue import AtlasCatalogueAdapter
 from adapters.emulator_sources import EmulatorSourcesAdapter
-from domain.emulator_commands import CORE, FOREIGN_CORE, PROGRAM, default_option
+from domain.emulator_commands import (
+    CORE,
+    FOREIGN_CORE,
+    NOT_ESTABLISHED_SEVERAL_APPIMAGES,
+    PROGRAM,
+    default_option,
+)
 
 if TYPE_CHECKING:
     from _vendor.atlas import Availability
@@ -721,7 +730,7 @@ class TestEveryLaunchLookupCodeIsClassified:
             if name.startswith("CAVEAT_")
             and not name.startswith("CAVEAT_LAUNCH_COMMAND_")
             and name not in launch_command_codes
-        } | {CAVEAT_CORE_NOT_INSTALLED}
+        } | {CAVEAT_CORE_NOT_INSTALLED, CAVEAT_APPIMAGE_AMBIGUOUS}
         places = [
             set(atlas_catalogue._NOT_ESTABLISHED_BECAUSE),
             set(atlas_catalogue._NOT_INSTALLED_BECAUSE),
@@ -1218,3 +1227,34 @@ class TestTheRealResolverOverARealTree:
         assert ryubing.not_installed is True
         directory = adapter.get_emulator_options("ps3")["options"][0]
         assert (directory.not_installed, directory.not_established) == (False, None)
+
+
+def _eden_picker(vector_name: str, traces: list[str]) -> AtlasCatalogueAdapter:
+    """The catalogue adapter over the recorded Eden AppImage machine *vector_name*."""
+    path = os.path.join(os.path.dirname(__file__), "atlas_vectors", "vectors", "machines", "eden-appimage.json")
+    with open(path, encoding="utf-8") as handle:
+        vectors = json.load(handle)["vectors"]
+    inp = next(vector for vector in vectors if vector["name"] == vector_name)["input"]
+    sources = EmulatorSourcesAdapter(
+        user_home=inp["home"],
+        settings={},
+        log_debug=traces.append,
+        detect_installations=atlas_detect,
+        machine=fixture_machine(inp),
+    )
+    return AtlasCatalogueAdapter(sources=sources, log_debug=traces.append)
+
+
+class TestAnEdenAppImageInThePicker:
+    def test_switch_offers_eden_through_the_source_that_starts_it(self):
+        answer = _eden_picker("eden-appimage-catalogue-one-startable-entry", []).get_emulator_options("switch")
+
+        assert answer["source"] == {"kind": "eden_appimage", "starts_games": True}
+        assert [(option.label, option.not_installed, option.not_established) for option in answer["options"]] == [
+            ("Eden (AppImage)", False, None)
+        ]
+
+    def test_two_appimages_found_leave_its_installation_not_established_for_that_reason(self):
+        answer = _eden_picker("eden-appimage-two-appimages-are-not-picked-between", []).get_emulator_options("switch")
+
+        assert [option.not_established for option in answer["options"]] == [NOT_ESTABLISHED_SEVERAL_APPIMAGES]

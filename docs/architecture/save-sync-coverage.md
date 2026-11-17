@@ -120,7 +120,7 @@ which names no folder.
 | **not established**    | Nobody established what this emulator writes, or the names in a known folder.                                        | MAME, PSP, ScummVM, unaudited cores |
 | **saves root missing** | The source read its saves folder from its settings, and it is missing.                                               | saves on an SD card that is out     |
 | **place not read**     | The emulator's own settings did not name the place, so its defaults stand in for them.                               | a standalone emulator never started |
-| **per-game unit**      | The answer says a folder, or a named set of files in a shared folder, is the game's own. Synced as one staged zip.   | none yet: no answer says so today   |
+| **per-game unit**      | The answer says a folder, or a named set of files in a shared folder, is the game's own. Synced as one staged zip.   | GameCube, Wii; Switch on Eden       |
 
 **The sixth is about the emulator source, not the emulator.** While the answering source reports `saves-root-missing`
 for a saves root it read from its settings (its roots answer states that root `read`), the resolver still places a save
@@ -159,8 +159,13 @@ game's saves there.
 **The eighth is a save of several files the answer says are the game's own** — a folder per game (a Wii title's `data/`
 folder) or a game's files in a shared folder (GameCube `.gci` files). It syncs as one zip Tender stages for it
 ([Save units](save-file-sync-architecture.md#save-units)). Only an explicit statement makes one: a `per-game-directory`
-granularity alone does not, because RPCS3 answers it with the parent of every title's folder, so no answer the vendored
-resolver gives today is a unit, and such an answer stays **not established**.
+granularity alone does not, because RPCS3 answers it with the parent of every title's folder, and such an answer stays
+**not established**. Dolphin's answers state it for a Wii title's folder and a GameCube game's `.gci` files, and a
+standalone Eden AppImage's for a Switch game's own save folder,
+`<save root>/user/save/0000000000000000/<user>/<application id>`, laid out under the application id. Where the
+application id or the Eden user is not established, Eden's answer keeps that part of the path as a hole (`save_id`,
+`profile_id`) and the game is not synced; where several Eden AppImages put Eden's data in different places, nothing is
+established.
 
 **Where several apply, the first in this order is named:** a shape Tender never syncs (shared, inside the content), then
 a missing saves root, then a place not read, then what cannot be established yet (a hole, not established).

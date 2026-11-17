@@ -24,6 +24,11 @@
       "label": "RetroArch (native)",
       "spelling": "RetroArch",
       "citation": "the program's own README at libretro/RetroArch 0630231f681b050a1ae81a7f5b47003146f53139: the title '# RetroArch' (README.md:3) and the sentence under it, 'RetroArch is the reference frontend for the libretro API.' (README.md:5). The '(native)' half is atlas's own qualifier, not RetroArch's: the two bare kinds are one program in two packagings and its own text spells no distinction between them, so the qualifier follows atlas's identifiers (bare_retroarch_flatpak, bare_retroarch_native) rather than claiming a name upstream uses."
+    },
+    "eden_appimage": {
+      "label": "Eden (AppImage)",
+      "spelling": "Eden",
+      "citation": "the project's own README at eden-emu/eden 58c1e20ee58efa3900ba616207d460886214480b (the v0.2.1 tag): the title '<b>Eden</b>' (README.md:14) and the sentence under it, '<b>Eden</b> is a free and opensource (FOSS) Switch 1 emulator' (README.md:18). The '(AppImage)' half is atlas's own qualifier, naming the packaging this kind answers for (eden_appimage), not a name upstream uses."
     }
   }
 }

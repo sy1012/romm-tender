@@ -8,6 +8,7 @@ machine through the same reading.
 
 from __future__ import annotations
 
+from types import SimpleNamespace
 from typing import Any, cast
 
 import pytest
@@ -332,10 +333,17 @@ class TestWhatIsSaidBesideAStart:
 
 
 class _Installation:
-    def __init__(self, answer: LaunchCommandAnswer | Exception) -> None:
-        self.kind = "retrodeck"
+    def __init__(
+        self, answer: LaunchCommandAnswer | Exception, *, kind: str = "retrodeck", starts: tuple[str, ...] = ()
+    ) -> None:
+        self.kind = kind
         self._answer = answer
+        self._starts = starts
         self.calls: list[tuple[str, str, str | None]] = []
+
+    def emulators_for(self, system: str, *, content_path: str | None = None) -> Any:
+        entries = (SimpleNamespace(availability=AVAILABILITY_STARTABLE),) if system in self._starts else ()
+        return SimpleNamespace(entries=entries, caveats=())
 
     def launch_command(self, system: str, content_path: str, *, label: str | None = None) -> LaunchCommandAnswer:
         self.calls.append((system, content_path, label))
@@ -358,6 +366,17 @@ def _adapter(installations: list[Any], traces: list[str]) -> AtlasLaunchAdapter:
 
 
 class TestTheAdapter:
+    def test_each_game_asks_the_source_answering_its_system(self):
+        retrodeck = _Installation(_answer(_command()), starts=("gc",))
+        eden = _Installation(_answer(_command()), kind="eden_appimage", starts=("switch",))
+        adapter = _adapter([retrodeck, eden], [])
+
+        adapter.start_command("switch", _GAME, label="Eden (AppImage)")
+        adapter.start_command("gc", _GAME, label="Dolphin (Standalone)")
+
+        assert eden.calls == [("switch", _GAME, "Eden (AppImage)")]
+        assert retrodeck.calls == [("gc", _GAME, "Dolphin (Standalone)")]
+
     def test_it_asks_the_answering_source_with_the_entry_tender_starts_the_game_through(self):
         installation = _Installation(_answer(_command()))
         traces: list[str] = []

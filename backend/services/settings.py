@@ -23,6 +23,7 @@ from domain.custom_headers import (
     resolve_custom_headers,
     stored_custom_headers,
 )
+from domain.emulator_sources import EDEN_APPIMAGE_SETTING, is_absolute_path
 from domain.sibling_resolution import AUTO_REGION
 from lib.errors import NamedRefused, NotConfigured, Refused
 from lib.steam_input_apply import SteamInputApply
@@ -263,6 +264,7 @@ class SettingsService:
             "skip_preview": self._settings.get("skip_preview", False),
             "steam_library_hidden": self._settings.get("steam_library_hidden", False),
             "steam_hidden_by_tender": list(self._settings.get("steam_hidden_by_tender", [])),
+            EDEN_APPIMAGE_SETTING: self._settings.get(EDEN_APPIMAGE_SETTING, ""),
             "romm_custom_header_names": [
                 h.name for h in stored_custom_headers(self._settings.get("romm_custom_headers"))
             ],
@@ -295,6 +297,26 @@ class SettingsService:
         if not isinstance(region, str):
             raise Refused("invalid_region", "Invalid region")
         self._settings["preferred_region"] = region.strip() or AUTO_REGION
+        self._settings_persister.save_settings()
+        return {"success": True}
+
+    # ── Eden AppImage ───────────────────────────────────────────────────
+
+    def save_eden_appimage(self, path: object) -> dict[str, Any]:
+        """Persist the Eden AppImage the user names, or ``""`` to name none.
+
+        A named AppImage is the Eden the resolver detects, there or not, in
+        place of the one it searches for; the next reading of the emulator
+        sources takes it. Surrounding blanks are dropped, and a blank value
+        names none. Refuses ``invalid_value`` for a value that is not a string
+        or not an absolute path, and writes nothing.
+        """
+        if not isinstance(path, str):
+            raise Refused("invalid_value", "The Eden AppImage is named by a path.")
+        named = path.strip()
+        if named and not is_absolute_path(named):
+            raise Refused("invalid_value", "The Eden AppImage is named by a full path, starting with /.")
+        self._settings[EDEN_APPIMAGE_SETTING] = named
         self._settings_persister.save_settings()
         return {"success": True}
 

@@ -8,17 +8,17 @@ pick **Settings** from the menu at the bottom of the panel.
 Settings is a wide page split in two: a list of eight sections on the left, and the focused section's controls on the
 right. Move onto a section in the list and the right-hand side changes at once — there is nothing to confirm.
 
-| Section              | What is in it                                                                                                                                                              |
-| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Connections**      | the services Tender talks to: **RomM** (server URL, account, Sign out, Allow Insecure SSL) and **SteamGridDB** (the API key)                                               |
-| **Save Sync**        | the save-sync switch and its settings (device, before launch, after exit, default slot, history limit, Sync All Saves Now) and the list of registered devices              |
-| **Controller**       | Steam Input Mode and Apply to All Shortcuts                                                                                                                                |
-| **Steam Library**    | preferred region, collection games in platform groups, collection types in Steam names, hiding synced games                                                                |
-| **Emulator sources** | every emulator setup Tender found — RetroDECK, EmuDeck, a RetroArch of its own — as a numbered card with its health, **Use this source**, and arrows to move it up or down |
-| **Tender folder**    | where Tender keeps its own files: the current place, the internal storage, each writable drive with its free space, and **Another folder…**                                |
-| **Updates**          | the version you have and the release the last successful check found, an update that was rolled back or refused, the daily update check, and **Check now**                 |
-| **Interface**        | whether Tender's Quick Access entry sits above or below Decky Loader's                                                                                                     |
-| **Advanced**         | log level                                                                                                                                                                  |
+| Section              | What is in it                                                                                                                                                                                                              |
+| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Connections**      | the services Tender talks to: **RomM** (server URL, account, Sign out, Allow Insecure SSL) and **SteamGridDB** (the API key)                                                                                               |
+| **Save Sync**        | the save-sync switch and its settings (device, before launch, after exit, default slot, history limit, Sync All Saves Now) and the list of registered devices                                                              |
+| **Controller**       | Steam Input Mode and Apply to All Shortcuts                                                                                                                                                                                |
+| **Steam Library**    | preferred region, collection games in platform groups, collection types in Steam names, hiding synced games                                                                                                                |
+| **Emulator sources** | every emulator setup Tender found — RetroDECK, EmuDeck, a RetroArch of its own, an Eden AppImage — as a numbered card with its health, **Use this source**, and arrows to move it up or down; and the Eden AppImage to use |
+| **Tender folder**    | where Tender keeps its own files: the current place, the internal storage, each writable drive with its free space, and **Another folder…**                                                                                |
+| **Updates**          | the version you have and the release the last successful check found, an update that was rolled back or refused, the daily update check, and **Check now**                                                                 |
+| **Interface**        | whether Tender's Quick Access entry sits above or below Decky Loader's                                                                                                                                                     |
+| **Advanced**         | log level                                                                                                                                                                                                                  |
 
 If you used an earlier version, everything is still here — the eight blocks the panel used to stack are grouped into
 five of the nine sections; **Emulator sources**, **Tender folder**, **Updates** and **Interface** are new. Registered
@@ -302,9 +302,10 @@ picture.
 ## Emulator sources
 
 An emulator source is a setup Tender can ask which emulators a system offers, which BIOS files they want and where they
-keep saves: **RetroDECK**, **EmuDeck**, or a **RetroArch** installed on its own (**RetroArch (Flatpak)** or **RetroArch
-(native)**). Tender lists every source it finds as a card, numbered by its place in the order — the number filled blue
-while the source is switched on, an empty grey ring and a grey name while it is off. Each card holds:
+keep saves: **RetroDECK**, **EmuDeck**, a **RetroArch** installed on its own (**RetroArch (Flatpak)** or **RetroArch
+(native)**), or **Eden (AppImage)**, the Switch emulator run as the AppImage you downloaded. Tender lists every source
+it finds as a card, numbered by its place in the order — the number filled blue while the source is switched on, an
+empty grey ring and a grey name while it is off. Each card holds:
 
 - the source's name, with two arrows at the end of its line that move it up or down the order, which is the order the
   sources are used in; the first card's up arrow and the last card's down arrow do nothing. The card slides into its new
@@ -318,28 +319,44 @@ while the source is switched on, an empty grey ring and a grey name while it is 
 - where it could not, **_Source_'s emulator list is not established.**, with a warning sign, unless a line already says
   why — a problem with ES-DE's systems file, a source not set up yet, or one of the two lines below;
 - **EmuDeck's emulator list cannot be read yet.**, with a warning sign, for EmuDeck, whose list Tender cannot read yet;
-- **Tender cannot start games through _source_ yet.**, with an information sign, for every source but RetroDECK — Tender
-  starts games through RetroDECK only, and a game such a source answers for does not start. A RetroArch without a
-  frontend has no emulator list at all, so for it this line stands in place of the "not established" one;
+- **Tender cannot start games through _source_ yet.**, with an information sign, for every source but RetroDECK and Eden
+  (AppImage) — Tender starts games through those two only, and a game another source answers for does not start. A
+  RetroArch without a frontend has no emulator list at all, so for it this line stands in place of the "not established"
+  one;
 - **Use this source**, under a thin line at the bottom of the card: a source switched off offers no emulators and is
   never asked about a game. It stays listed, so you can switch it on again.
 
-**RetroDECK switched off.** Every game starts through RetroDECK, so while RetroDECK is switched off no game starts:
-pressing **Play** on a game page, or starting a game from Steam's own library, recent games or a `steam://rungameid`
-link, starts nothing and says **RetroDECK is switched off in Settings › Emulator sources, and Tender can only start
-games through RetroDECK yet.** Switch it on again and games start as before. Where Tender cannot check the switch — it
-gets no answer in time, or cannot find out which emulator sources are installed — a dialog titled **Emulator Source
-Unchecked** asks **Tender could not check whether the emulator source is switched on. Start anyway?**: **Start** starts
-the game, **Cancel** starts nothing. While Tender itself is not running, no game starts from Steam's library at all
-([Starting a game](managing-games.md#launching-games)).
+**A source that starts games switched off.** While the source a game would start through is switched off, the game does
+not start: pressing **Play** on a game page, or starting a game from Steam's own library, recent games or a
+`steam://rungameid` link, starts nothing and says **RetroDECK is switched off in Settings › Emulator sources, and Tender
+can only start this game through RetroDECK.** — or the same of **Eden (AppImage)** for a Switch game Eden starts. Switch
+it on again and the game starts as before. Switching Eden off stops only the Switch games it starts; switching RetroDECK
+off stops every other game, and a Switch game too where RetroDECK is what starts it. Where Tender cannot check the
+switch — it gets no answer in time, or cannot find out which emulator sources are installed — a dialog titled **Emulator
+Source Unchecked** asks **Tender could not check whether the emulator source is switched on. Start anyway?**: **Start**
+starts the game, **Cancel** starts nothing. While Tender itself is not running, no game starts from Steam's library at
+all ([Starting a game](managing-games.md#launching-games)).
 
 A game page that is open while you switch or move a source shows the change at once: its emulators and its BIOS state
 are read again, and its saves too while save sync is on.
 
-**Which source answers for a game.** While RetroDECK is found and switched on, a game's emulator, BIOS and save answers
-come from RetroDECK, wherever it stands in the order, because every game starts through it — even while it has not been
-set up yet, when it answers that it has not. Without it, the first source switched on in the order answers. A source
-found for the first time joins the end of the order, switched on.
+**Which source answers for a game.** A game's emulator, BIOS and save answers come from the source it starts through,
+decided for its system: the first source switched on in the order that Tender starts games through and that has an
+installed emulator for the game's system. So a Switch game answers from Eden (AppImage) while RetroDECK has no Switch
+emulator installed, and every other game from RetroDECK, wherever it stands in the order — even while it has not been
+set up yet, when it answers that it has not. Where RetroDECK does have an installed Switch emulator, the one higher in
+the order starts Switch games. Without a source Tender starts games through, the first source switched on in the order
+answers. A source found for the first time joins the end of the order, switched on.
+
+**Eden AppImage.** Under the cards, the **Eden AppImage** row says which Eden Tender uses. Tender looks for a file whose
+name starts with `eden` and ends in `.AppImage` in `~/Applications`, `~/AppImages`, `~/Emulation/tools` and
+`~/.local/bin`, so most setups need nothing here; the row says **Optional. None set: Tender looks for one in …**. Press
+**Set** to type the full path of the AppImage to use instead — it must start with `/` — and **Save**; **Edit** changes
+it and **Clear** goes back to looking. A path set here is used even when the file is not there, and the Eden card then
+says **Eden (AppImage): the AppImage _path_ set in Settings › Emulator sources is not there.** Where Tender finds more
+than one Eden AppImage and none is set, it starts none of them: the card lists every AppImage found and asks you to set
+the one to use here. Eden's keys and firmware are yours to set up in Eden: start Eden once and install them before
+starting a game through Tender. Tender does not download a Switch game's updates or DLC.
 
 **Sources Tender cannot start games through.** The main panel says **_Source_ is switched on in Settings › Emulator
 sources, but Tender cannot start games through it yet.** for every switched-on source but RetroDECK, whether or not it

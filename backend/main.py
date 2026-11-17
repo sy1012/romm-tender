@@ -248,8 +248,8 @@ class Endpoints:
         return await self._services.emulator_sources_service.get_emulator_sources()
 
     @route
-    async def check_start_source(self):
-        return await self._services.emulator_sources_service.check_start_source()
+    async def check_start_source(self, rom_id=None):
+        return await self._services.emulator_sources_service.check_start_source(rom_id)
 
     @route
     async def set_emulator_source_enabled(self, kind, enabled):
@@ -435,6 +435,10 @@ class Endpoints:
     @route
     def save_steam_library_hiding(self, enabled, hidden_by_tender):
         return self._services.settings_service.save_steam_library_hiding(enabled, hidden_by_tender)
+
+    @route
+    def save_eden_appimage(self, path):
+        return self._services.settings_service.save_eden_appimage(path)
 
     @route
     def set_qam_entry_position(self, position):

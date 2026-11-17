@@ -2,16 +2,20 @@
  * Emulator sources — every source the resolver detects, in the user's order,
  * as one card each: its place in the order, its name with Move up and Move
  * down beside it (a controller cannot drag), the folder it lives in, what its
- * health says, and the switch "Use this source". Pure renderer: the parent owns
- * the listing and the writes.
+ * health says, and the switch "Use this source". Below them, the Eden AppImage
+ * the user names, which is shown whether or not one is detected, since naming
+ * it is how one Tender did not find is detected. Pure renderer: the parent
+ * owns the listing, the path and the writes.
  */
 
 import { FC, ReactElement, RefObject, useEffect, useLayoutEffect, useRef } from "react";
-import { PanelSection, PanelSectionRow, DialogButton, Field, Focusable, ToggleField } from "@decky/ui";
+import { PanelSection, PanelSectionRow, DialogButton, Field, Focusable, ToggleField, showModal } from "@decky/ui";
 import { FaCheckCircle, FaChevronDown, FaExclamationTriangle, FaInfoCircle } from "react-icons/fa";
 import type { EmulatorSource, EmulatorSourceDirection, EmulatorSourcesListing } from "../../types";
+import { EdenAppImageModal } from "./EdenAppImageModal";
 import {
   NO_SOURCE_BANNER,
+  edenAppImageLine,
   SOURCES_READING,
   SOURCES_UNREAD,
   sourceName,
@@ -29,6 +33,12 @@ interface EmulatorSourcesSectionProps {
   busy: boolean;
   onSwitch: (kind: string, enabled: boolean) => void;
   onMove: (kind: string, direction: EmulatorSourceDirection) => void;
+  /** The Eden AppImage set, `""` for none. */
+  edenAppImage: string;
+  /** Stores the Eden AppImage path, `""` for none; throws where it is refused. */
+  onSaveEdenAppImage: (path: string) => Promise<void>;
+  /** Sets none, so Tender looks for one again. */
+  onClearEdenAppImage: () => void;
 }
 
 const NAME_ON = "#ffffff";
@@ -185,7 +195,40 @@ function noticeLine(listing: EmulatorSourcesListing | null | undefined): string 
   return NO_SOURCE_BANNER;
 }
 
-export const EmulatorSourcesSection: FC<EmulatorSourcesSectionProps> = ({ listing, busy, onSwitch, onMove }) => {
+const EdenAppImageRow: FC<{ path: string; onSave: (path: string) => Promise<void>; onClear: () => void }> = ({
+  path,
+  onSave,
+  onClear,
+}) => (
+  <PanelSectionRow>
+    <Field label="Eden AppImage" description={<span data-testid="eden-appimage-line">{edenAppImageLine(path)}</span>}>
+      <Focusable flow-children="row" style={{ display: "flex", gap: "8px" }}>
+        <DialogButton
+          style={{ minWidth: "auto", width: "auto" }}
+          onClick={() => showModal(<EdenAppImageModal current={path} onSave={onSave} />)}
+        >
+          {path === "" ? "Set" : "Edit"}
+        </DialogButton>
+        {path !== "" && (
+          <DialogButton style={{ minWidth: "auto", width: "auto" }} onClick={onClear}>
+            Clear
+          </DialogButton>
+        )}
+      </Focusable>
+    </Field>
+  </PanelSectionRow>
+);
+
+export const EmulatorSourcesSection: FC<EmulatorSourcesSectionProps> = ({
+  listing,
+  busy,
+  onSwitch,
+  onMove,
+  edenAppImage,
+  onSaveEdenAppImage,
+  onClearEdenAppImage,
+}) => {
+  const eden = <EdenAppImageRow path={edenAppImage} onSave={onSaveEdenAppImage} onClear={onClearEdenAppImage} />;
   if (listing === undefined || listing === null || listing.sources.length === 0) {
     const line = noticeLine(listing);
     return (
@@ -200,24 +243,23 @@ export const EmulatorSourcesSection: FC<EmulatorSourcesSectionProps> = ({ listin
             focusable={true}
           />
         </PanelSectionRow>
+        {eden}
       </PanelSection>
     );
   }
   return (
     <PanelSection title="Emulator sources">
       <SourceCards sources={listing.sources} busy={busy} onSwitch={onSwitch} onMove={onMove} />
+      {eden}
     </PanelSection>
   );
 };
 
 /** The cards, mounted only while there are sources to list, so a list that
  *  comes back after a notice starts from no remembered places. */
-const SourceCards: FC<Omit<EmulatorSourcesSectionProps, "listing"> & { sources: EmulatorSource[] }> = ({
-  sources,
-  busy,
-  onSwitch,
-  onMove,
-}) => {
+const SourceCards: FC<
+  Pick<EmulatorSourcesSectionProps, "busy" | "onSwitch" | "onMove"> & { sources: EmulatorSource[] }
+> = ({ sources, busy, onSwitch, onMove }) => {
   const cards = useSlideOnReorder(sources.map((source) => source.kind).join("\n"));
   const pressed = useFocusFollowsMove(cards, sources, busy);
   const last = sources.length - 1;

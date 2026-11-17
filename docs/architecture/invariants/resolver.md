@@ -60,7 +60,8 @@ taken from it. How an entry reads and binds, and the other areas: [the register'
   the rest of it stays prose, the prompt-only part above
 - **The resolver's installations are detected in one place, `adapters/emulator_sources.py`, through the one
   `RealMachine` the process keeps; every other adapter asks it, and a game's questions go to the source
-  `domain/emulator_sources.py::answering_source` names** — test + prompt-only —
+  `domain/emulator_sources.py::answering_source_for` names for its system** — test + prompt-only — a question about no
+  one system goes to the one `answering_source` names;
   `tests/adapters/test_emulator_sources.py::TestOnlyTheHolderDetects` (no other backend module imports `detect`,
   `every_installation`, `RealMachine` or an installation class from the resolver, star-imports it, imports the
   resolver's package as a module, or reads one of those names off it) and, for the last clause,
@@ -68,10 +69,16 @@ taken from it. How an entry reads and binds, and the other areas: [the register'
   and `test_retrodeck_answers_with_emudeck_first_in_the_order` in each of the three adapters' tests —
   `tests/adapters/test_atlas_catalogue.py::TestWhichSourceAnswers`,
   `tests/adapters/test_atlas_firmware.py::TestDegradation` and
-  `tests/adapters/test_atlas_saves.py::TestWhichSourceAnswers`. An adapter that detected on its own would pick its own
-  source — the old "first detected" — and would build a fresh machine, so every save question would run its core's probe
-  again. Unseen by the scan: a name reached through `getattr` or `importlib`. Prompt-only: no adapter keeps a handle or
-  an answer past the reading it came through (a panel call's per question, a run's for the run)
+  `tests/adapters/test_atlas_saves.py::TestWhichSourceAnswers`; for the per-system clause,
+  `tests/domain/test_emulator_sources.py::TestTheSourceAnsweringForOneSystem`,
+  `tests/adapters/test_emulator_sources.py::TestTheSourceAnsweringASystem` and
+  `tests/adapters/test_atlas_launch.py::TestTheAdapter::test_each_game_asks_the_source_answering_its_system`.
+  Prompt-only: a question about one game names that game's system to the reading (`answering_installation(system)`), and
+  only a question about the whole machine, or about the folder content lands in, names none. An adapter that detected on
+  its own would pick its own source — the old "first detected" — and would build a fresh machine, so every save question
+  would run its core's probe again. Unseen by the scan: a name reached through `getattr` or `importlib`. Prompt-only: no
+  adapter keeps a handle or an answer past the reading it came through (a panel call's per question, a run's for the
+  run)
 - **Every RetroDECK folder Tender downloads into, removes from, bounds a removal by or reads for the move code is the
   resolver's answer, asked through `adapters/retrodeck_folders.py`** — test + prompt-only
 

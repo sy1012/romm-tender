@@ -27,6 +27,7 @@ describe("sourceName", () => {
     ["emudeck", "EmuDeck"],
     ["bare_retroarch_flatpak", "RetroArch (Flatpak)"],
     ["bare_retroarch_native", "RetroArch (native)"],
+    ["eden_appimage", "Eden (AppImage)"],
   ])("names %s as %s", (kind, name) => {
     expect(sourceName(kind)).toBe(name);
   });
@@ -41,9 +42,15 @@ describe("sourceName", () => {
 });
 
 describe("startingSourceOffSentence", () => {
-  it("says D1's sentence for RetroDECK, the one source Tender starts games through yet", () => {
+  it("says a switched-off Eden is the one source this game starts through", () => {
+    expect(startingSourceOffSentence("eden_appimage")).toBe(
+      "Eden (AppImage) is switched off in Settings › Emulator sources, and Tender can only start this game through it.",
+    );
+  });
+
+  it("says D1's sentence for RetroDECK", () => {
     expect(startingSourceOffSentence("retrodeck")).toBe(
-      "RetroDECK is switched off in Settings › Emulator sources, and Tender can only start games through RetroDECK yet.",
+      "RetroDECK is switched off in Settings › Emulator sources, and Tender can only start this game through RetroDECK.",
     );
   });
 
@@ -182,6 +189,45 @@ describe("findingSentence", () => {
     ["no settings file, only a path", { code: "emulator-config-missing", data: { path: "/p" } }],
   ])("falls back to the code where a fact the sentence needs is missing: %s", (_label, finding) => {
     expect(findingSentence("retrodeck", finding)).toBe(`Problem with RetroDECK: ${finding.code}`);
+  });
+});
+
+describe("an Eden AppImage's findings", () => {
+  it("lists every AppImage found and says where to set the one that runs", () => {
+    expect(
+      findingSentence("eden_appimage", {
+        code: "several-appimages",
+        data: { candidates: "/home/deck/AppImages/eden-nightly.AppImage\n/home/deck/Applications/Eden.AppImage" },
+      }),
+    ).toBe(
+      "Eden (AppImage): 2 AppImages were found (/home/deck/AppImages/eden-nightly.AppImage, " +
+        "/home/deck/Applications/Eden.AppImage), and Tender starts none of them until you set which one in " +
+        "Settings › Emulator sources › Eden AppImage.",
+    );
+  });
+
+  it("falls back to naming the problem where no AppImage is listed", () => {
+    expect(findingSentence("eden_appimage", { code: "several-appimages", data: {} })).toBe(
+      "Problem with Eden (AppImage): several-appimages",
+    );
+  });
+
+  it("says the AppImage set is not there, where it is missing", () => {
+    expect(findingSentence("eden_appimage", { code: "marker-missing", data: { path: "/opt/Eden.AppImage" } })).toBe(
+      "Eden (AppImage): the AppImage /opt/Eden.AppImage set in Settings › Emulator sources is not there.",
+    );
+  });
+
+  it("is a source Tender starts games through, so its card says nothing about starting", () => {
+    const eden: EmulatorSource = {
+      kind: "eden_appimage",
+      enabled: true,
+      starts_games: true,
+      root: "/home/deck/.local/share/eden",
+      findings: [],
+      catalogue: "read",
+    };
+    expect(sourceRowLines(eden)).toEqual([{ tone: "ok", text: "No problems found." }]);
   });
 });
 

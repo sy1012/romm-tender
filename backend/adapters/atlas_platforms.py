@@ -4,8 +4,9 @@ The one place Tender puts ``systems_for_platform`` to the resolver, and the
 one that reads its platform vocabularies and statuses: each of RomM's ids is
 asked in the resolver's vocabulary for it, and each match's status is read
 into Tender's :class:`~domain.platform_system.SystemStatus`. Each source is
-asked for itself: the answering source by default, or the source a caller
-names — RetroDECK, for a download that lands in its folders. What the answers
+asked for itself: the answering source by default — then each other source
+that starts games, where it has no system for the platform — or the source a
+caller names — RetroDECK, for a download that lands in its folders. What the answers
 decide is :func:`domain.platform_system.pick_system`'s.
 """
 
@@ -16,7 +17,7 @@ from typing import TYPE_CHECKING, Any
 from _vendor.atlas import PLATFORM_STATUS_ABSENT, PLATFORM_STATUS_DECLARED, PLATFORM_STATUS_DISABLED
 
 from domain.emulator_sources import CATALOGUE_UNAVAILABLE, NO_SOURCE_DETECTED
-from domain.platform_system import UNASKED, IdAnswer, PlatformSystem, SystemMatch, SystemStatus, pick_system
+from domain.platform_system import FOUND, UNASKED, IdAnswer, PlatformSystem, SystemMatch, SystemStatus, pick_system
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterator
@@ -67,7 +68,13 @@ class AtlasPlatformSystemsAdapter:
     ) -> PlatformSystem:
         """The system *platform_slug* is in *source* — the answering source where it is ``None``.
 
-        A named source is asked whatever its switch, because the switch is the
+        Unnamed, where the answering source has no switched-on system for the
+        platform, each other switched-on source that starts games is asked in
+        the user's order, and the first that has one answers: a source that
+        answers for one system (an Eden AppImage) is not the answering source
+        while another is switched on, and may hold that system where the
+        other has none. Otherwise the answering source's answer stands. A
+        named source is asked whatever its switch, because the switch is the
         folder's question (``adapters/retrodeck_folders.py``), not the
         platform's. Where no source can be asked the answer is
         :data:`~domain.platform_system.UNASKED`, and ``unasked`` says why.
@@ -82,6 +89,25 @@ class AtlasPlatformSystemsAdapter:
                 platform_name,
                 unasked=unasked or reading.no_answer_reason(),
             )
+        answer = self._asked(reading, arranged, ids, platform_slug, platform_name)
+        if source is not None or answer.state == FOUND:
+            return answer
+        for other in reading.sources:
+            if other.enabled and other.starts_games and other.kind != arranged.kind:
+                found = self._asked(reading, other, ids, platform_slug, platform_name)
+                if found.state == FOUND:
+                    return found
+        return answer
+
+    def _asked(
+        self,
+        reading: SourcesReading,
+        arranged: ArrangedSource,
+        ids: PlatformIds,
+        platform_slug: str,
+        platform_name: str,
+    ) -> PlatformSystem:
+        """The system *platform_slug* is in the one source *arranged*."""
         installation = next(i for i in reading.installations if i.kind == arranged.kind)
         try:
             pick = pick_system(self._answers(reading, installation, ids), platform_slug)

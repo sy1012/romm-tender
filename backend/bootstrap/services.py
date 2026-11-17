@@ -734,6 +734,7 @@ def wire_services(cfg: WiringConfig) -> ServicesBundle:
             sources=cfg.adapters.emulator_sources,
             settings=cfg.stores.settings,
             settings_persister=cfg.callbacks.settings_persister,
+            uow_factory=cfg.callbacks.uow_factory,
             loop=cfg.runtime.loop,
             log_debug=cfg.callbacks.log_debug,
         ),

@@ -1159,7 +1159,10 @@ in `needs` ([ADR-0046](../adr/0046-a-save-of-several-files-syncs-as-one-staged-z
 maps the statement to a `SaveUnit` (root = the group's folder; its members and archive folder as stated), and
 `tests/adapters/test_atlas_saves.py::TestOnlyTheResolversStatementMakesASaveUnit` pins both directions. Today the
 statement comes from Dolphin's answers, read from the disc image: a Wii title's own folder `<NAND>/title/<hi>/<lo>`,
-laid out under `<lo>`, and a GameCube game's `.gci` files in the disc region's GCI folder, flat.
+laid out under `<lo>`, and a GameCube game's `.gci` files in the disc region's GCI folder, flat; and from a standalone
+Eden AppImage's: a Switch game's own folder `<save root>/user/save/0000000000000000/<user>/<application id>`, laid out
+under the application id, where the content names its application and the Eden user is established — either missing is a
+hole in the path, and the game is not synced.
 
 **The staged zip.** A unit is carried as one file, `<rom stem>.zip`, in a staging folder of Tender's own,
 `<data root>/save-units/<rom id>/`. `RomInfoService` stages every unit answer it reads (`SaveUnits.stage`), so the

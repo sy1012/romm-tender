@@ -500,6 +500,10 @@ export const setCollectionNamingMode = endpoint<
   [CollectionNamingMode],
   { success: boolean; reason?: WireReason; message?: string }
 >("set_collection_naming_mode");
+// Read via getSettings().eden_appimage; "" names none, and the resolver searches.
+export const saveEdenAppimage = endpoint<[string], { success: boolean; reason?: WireReason; message?: string }>(
+  "save_eden_appimage",
+);
 // Read via getSettings().steam_library_hidden / steam_hidden_by_tender; the panel
 // changes Steam itself (utils/libraryHiding.ts), after this has been stored.
 export const saveSteamLibraryHiding = endpoint<
@@ -916,8 +920,8 @@ export const getSystemCoreInfo = endpoint<[string, string], SystemCoreInfo | End
 /** Every detected emulator source, in the user's order, with its health and its switch. */
 export const getEmulatorSources = endpoint<[], EmulatorSourcesListing>("get_emulator_sources");
 
-/** The switched-off source that would start a game, which refuses the start (the launch check's read). */
-export const checkStartSource = endpoint<[], StartSourceCheck | StartSourceRefusal>("check_start_source");
+/** The switched-off source that would start game `romId`, which refuses the start (the launch check's read). */
+export const checkStartSource = endpoint<[number], StartSourceCheck | StartSourceRefusal>("check_start_source");
 
 /** Why the launch check's read could not tell: detecting the emulator sources failed. */
 export type StartSourceRefusal = EndpointFailure & { reason: WireReasonSubset<"detection_failed"> };

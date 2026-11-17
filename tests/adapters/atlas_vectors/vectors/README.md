@@ -158,6 +158,18 @@ or behind a container's compression, that no fixture should carry. The file must
 declared file with no entry here answers **unreadable**, so a vector that forgot the key cannot prove a disc nobody
 modeled; a path with no file at it answers missing.
 
+**`switch_packages`** — the path of a Switch package `files` declares (an NSP or NSZ) → the file names its PFS0 header
+lists, in entry order (`["<rights id>.tik", "<nca id>.nca", …]`), or the one state `"not-a-package"`: a file whose front
+is no PFS0 header the reader takes. Modeled at the seam for the reason `dolphin_discs` is; the file must not be one
+declared `unreadable`, a declared file with no entry here answers **unreadable**, and a path with no file at it answers
+missing.
+
+**`eden_profiles`** — the path of an Eden `profiles.dat` `files` declares → the users it lists, in the order Eden counts
+them: at most eight UUIDs, each thirty-two lowercase hex digits spelled the way `UUID::RawString` spells it (the bytes
+in order) and not all zero, since a zero record lists nobody. Or the one state `"short"`: a file shorter than the
+structure Eden reads, which Eden treats as no file. The same rules as `switch_packages` for a declared file with no
+entry, an `unreadable` one and a missing one.
+
 **`disc_identities`** — the path of a PlayStation disc image `files` declares (a `.cue`, `.bin`, `.img`, `.iso`, `.chd`
 or `.pbp`) → what reading its first data track yields:
 `{"license": …, "system_cnf": …, "boot_found": …, "edc_valid": …}`, where `license` is the start of sector 4's user

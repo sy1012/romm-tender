@@ -192,33 +192,61 @@ game to another entry by itself.
 ### Which emulator source answers
 
 The resolver detects every **emulator source** it knows — RetroDECK, EmuDeck, a RetroArch without a frontend, Flatpak or
-native (GLOSSARY.md, "Emulator source") — and `adapters/emulator_sources.py` is the one place they are detected and
-held; the catalogue, firmware and save adapters take their installation from it and choose none themselves. The user
-orders the sources and switches them off under Settings › Emulator sources, stored by kind in `settings.json`
-(`emulator_source_order`, and the deny-list `emulator_sources_off`, so a source seen for the first time is on and joins
-the end of the order); `domain/emulator_sources.py` holds the rules.
+native, and a standalone Eden AppImage (GLOSSARY.md, "Emulator source") — and `adapters/emulator_sources.py` is the one
+place they are detected and held; the catalogue, firmware and save adapters take their installation from it and choose
+none themselves. The user orders the sources and switches them off under Settings › Emulator sources, stored by kind in
+`settings.json` (`emulator_source_order`, and the deny-list `emulator_sources_off`, so a source seen for the first time
+is on and joins the end of the order); `domain/emulator_sources.py` holds the rules.
 
-**A game's answers come from the source it starts through.** Every game starts through RetroDECK, so while RetroDECK is
-detected and switched on it answers, wherever the user put it in the order; the stored picks are RetroDECK labels and
-are read against RetroDECK only, and a pick records that source (D20). That holds for a RetroDECK that has not been set
-up yet too: it is detected and answers, and every answer says it is not set up. Without it, the first switched-on source
-in the order answers, with `starts_games` false, and the panel says Tender cannot start games through it yet. A game
-such a source answers is not started: the game page, every row of its emulator menu and the start check refuse with that
-sentence (`cannotStartSentence`, `frontend/src/utils/emulatorSourceWording.ts`), and no command is asked of the source
-(`domain/start_command.py::source_refusal`, [#2221](https://github.com/danielcopper/romm-tender/issues/2221) D21). Until
-Tender chooses among every source's emulators, the order decides only while RetroDECK is absent or switched off.
+**A game's answers come from the source it starts through, chosen per system.** Tender starts games through two kinds of
+source: RetroDECK, and an Eden AppImage (`eden_appimage`), which answers for one system only, `switch`. For a game of
+system _S_, the **answering source** is the first switched-on source in the order that starts games and whose catalogue
+holds an entry for _S_ whose program is there (the resolver's `availability` `startable`); failing that, the first such
+source with an entry whose program is not established (`unestablished`); failing both, the source answering for no
+system, below (`domain/emulator_sources.py::answering_source_for`,
+[ADR-0047](../adr/0047-the-answering-source-is-chosen-per-system.md)). An entry `not-installed`, no entry, and a
+catalogue that raised or was refused list nothing. Each source's catalogue is asked for _S_ once per reading
+(`DetectedSourcesReading.answering_for`), and only where more than one source could answer: with one switched-on source
+that starts games, nothing is asked beyond what is asked today. So on a Deck with RetroDECK and an Eden AppImage, a
+Switch game answers from Eden whenever RetroDECK has no installed Switch emulator, and from RetroDECK if it has one and
+stands first; every other system answers from RetroDECK as before. What RetroDECK's own `switch` entries answer on a
+device with no Switch emulator installed in it has not been observed; the rule holds either way, because an entry that
+is `not-installed` lists nothing.
+
+**The source answering for no system** — the one a question about the whole machine goes to (the firmware inventory,
+whether a set-up source answers for saves at all, which content a folder accepts) and the fallback above — is the first
+switched-on source that starts games and answers for more than one system; otherwise the first switched-on source that
+answers for more than one; otherwise the first switched-on source (`domain/emulator_sources.py::answering_source`). An
+Eden AppImage answers for one system, so it is that source only where it is the one switched on, wherever the user puts
+it in the order. RetroDECK therefore answers it while it is detected and switched on, as before. The stored picks are
+labels read against the source that answers the game's system, and a pick records that source (D20). A RetroDECK that
+has not been set up yet is detected and answers, and every answer says it is not set up. Without a source that starts
+games, the first switched-on source in the order answers, with `starts_games` false, and the panel says Tender cannot
+start games through it yet. A game such a source answers is not started: the game page, every row of its emulator menu
+and the start check refuse with that sentence (`cannotStartSentence`, `frontend/src/utils/emulatorSourceWording.ts`),
+and no command is asked of the source (`domain/start_command.py::source_refusal`,
+[#2221](https://github.com/danielcopper/romm-tender/issues/2221) D21).
+
+The questions about where a game's content lives and what its folder accepts — `is_known_system`,
+`get_supported_extensions`, `system_supports_m3u` — go to the source answering for no system: they are about the
+frontend whose folders the content lands in, not about the emulator that starts it.
 
 **A switched-off starting source starts nothing.** The resolver's command starts a game through its source whatever that
 source's switch says, so the shared launch gate refuses the start instead: while the source that would start the game is
-detected and switched off, `check_start_source` answers its kind
-(`domain/emulator_sources.py::switched_off_starting_source`, over a detection and nothing else of the sources), and both
-funnels — the game page's Play and the launch watcher — refuse before any save-sync work and say, as a notification, the
-sentence `startingSourceOffSentence` (`frontend/src/utils/emulatorSourceWording.ts`) has for that kind. Today that
-source is always RetroDECK, the one with `starts_games`, and RetroDECK's is the only sentence there; a kind with no
-sentence of its own says only that it is switched off. A switched-on source that starts games takes the start over, and
-one that does not starts nothing, so it lifts no refusal. Where the starting source is not detected at all, the start
-goes ahead: a source that is not listed has no switch to turn back on. While the backend is not running nothing hands a
-start its command, so a start from Steam's library starts nothing at all
+detected and switched off, `check_start_source(rom_id)` answers its kind
+(`domain/emulator_sources.py::switched_off_starting_source`), and both funnels — the game page's Play and the launch
+watcher — refuse before any save-sync work and say, as a notification, the sentence `startingSourceOffSentence`
+(`frontend/src/utils/emulatorSourceWording.ts`) has for that kind — RetroDECK's and the Eden AppImage's; a kind with no
+sentence of its own says only that it is switched off. The check is asked for the system the game's install record
+holds: the first switched-off source that starts games and lists that system is the one named, unless the source
+answering the system lists it too and takes the start over — so a switched-off Eden refuses a Switch game while
+RetroDECK has no Switch emulator, and refuses no SNES game. Where no switched-off source lists the system, or the game
+has no install record, the check is the one for no system: none while a switched-on source starts games, otherwise the
+first switched-off source that does. A switched-on source that does not start games starts nothing, so it lifts no
+refusal. Where more than one source starts games, the check reads their catalogues for the system; otherwise it reads
+nothing of the sources beyond their detection. Where the starting source is not detected at all, the start goes ahead: a
+source that is not listed has no switch to turn back on. While the backend is not running nothing hands a start its
+command, so a start from Steam's library starts nothing at all
 ([The start](#the-start-one-command-handed-over-for-one-start)).
 
 Where the check cannot tell — no answer within `LOCAL_CALL_LIMIT_MS`, a call that fails, or a detection of the sources
@@ -228,6 +256,19 @@ title `UNCHECKED_START_SOURCE_TITLE` (both in `frontend/src/utils/emulatorSource
 `frontend/src/shared/UncheckedSourceModal.tsx` — in the desktop dev build's desktop client, in
 `frontend/src/desktop/gameview/dialogs/DesktopUncheckedSourceDialog.tsx` — with Start and Cancel. Start runs the rest of
 the launch check and starts the game; Cancel starts nothing.
+
+**The Eden AppImage.** The resolver looks for a file named `eden*.appimage`, compared case-insensitively, in
+`~/Applications`, `~/AppImages`, `~/Emulation/tools` and `~/.local/bin`. The user may name one under Settings › Emulator
+sources › Eden AppImage, stored as `eden_appimage` in `settings.json` — an absolute path, or `""` for none
+(`SettingsService.save_eden_appimage`, which refuses anything else with `invalid_value`) — and the sources adapter hands
+it to every detection (`detect(..., eden_appimage=...)`). A named AppImage wins and is the source whether or not it is
+there: a missing one is listed with the resolver's `marker-missing`, which the card words as the AppImage set not being
+there. Several found and none named is never picked between: the resolver states `appimage-ambiguous`, and Tender reads
+it into a finding of its own, `several-appimages`, with one candidate per line (`adapters/emulator_sources.py`), which
+the card words as each AppImage found and where to set the one that runs; the entry's installation is then not
+established for that reason (`several_appimages`), and the start is refused with it. Eden is started as the AppImage
+with `-f -g <content>` in the AppImage's own folder, which `read_start` runs as the resolver states it. Its firmware
+answer is `unsupported`: keys and firmware are set up in Eden by the user, and Tender downloads neither.
 
 **How long an answer is kept.** Sources are detected per reading, so a source installed later appears on the next call,
 and nothing outlives the call or run that asked it. A call from the panel takes a fresh reading per question. The
@@ -285,10 +326,13 @@ established, the search for a copy already on disk finds nothing, and the launch
 save answer, whether the target is taken, the search for a copy already there, an adoption's target — asks
 **RetroDECK**, the one source Tender downloads into, whatever its switch: the switch is the folder's question
 (`adapters/retrodeck_folders.py`). Every other question — the emulator choice, the BIOS answers, the platform page —
-asks the answering source (above), so a platform can be one system in RetroDECK and another in EmuDeck. **An installed
-game keeps the system its install record holds** for its saves, its emulator choice, its BIOS answer, the BIOS download
-started from its page and its launch (`PlatformSystems.rom_system`); only a new download, and the platform page's BIOS
-download, follow the source's current answer. A source that renames, moves or drops a system is not followed yet.
+asks the answering source (above), so a platform can be one system in RetroDECK and another in EmuDeck. Where that
+source has no switched-on system for the platform, each other switched-on source that starts games is asked in the
+user's order, and the first that has one answers — an Eden AppImage holds `switch` where the frontend has none. **An
+installed game keeps the system its install record holds** for its saves, its emulator choice, its BIOS answer, the BIOS
+download started from its page and its launch (`PlatformSystems.rom_system`); only a new download, and the platform
+page's BIOS download, follow the source's current answer. A source that renames, moves or drops a system is not followed
+yet.
 
 **The ids are kept.** `kv_config`'s `platform_ids` keeps a record of each platform RomM lists, keyed by the platform's
 folder in RomM (`fs_slug`): its slug, its folder, its RomM id, its `name`, `is_identified`, the RomM version Tender had

@@ -95,7 +95,7 @@ from dataclasses import dataclass, field
 from types import MappingProxyType
 from typing import BinaryIO, Callable, Iterable, Literal, Mapping, NamedTuple, Protocol, cast, runtime_checkable
 
-from . import dolphin_disc, lha, ps2_bios, ps3_file, ps3_iso, psx_chd, psx_disc, psx_pbp, squashfs, whdload
+from . import dolphin_disc, eden, lha, ps2_bios, ps3_file, ps3_iso, psx_chd, psx_disc, psx_pbp, squashfs, switch_title, whdload
 from .content_path import archive_delimiter
 
 try:
@@ -267,6 +267,38 @@ DOLPHIN_DISC_STATUSES: tuple[DolphinDiscStatus, ...] = (
     DOLPHIN_DISC_MISSING,
     DOLPHIN_DISC_UNREADABLE,
     DOLPHIN_DISC_NOT_A_DISC,
+)
+
+# Reading a Switch package's PFS0 header (atlas.switch_title) fails the way a
+# plain read fails, and in one way that is a finding about the bytes:
+# "not-a-package" is a file whose front is no PFS0 header the reader takes — an
+# XCI, a header cut short, one past the bound. "missing" is no regular file
+# there once links are followed.
+SwitchPackageStatus = Literal["ok", "missing", "unreadable", "not-a-package"]
+SWITCH_PACKAGE_OK: SwitchPackageStatus = "ok"
+SWITCH_PACKAGE_MISSING: SwitchPackageStatus = "missing"
+SWITCH_PACKAGE_UNREADABLE: SwitchPackageStatus = "unreadable"
+SWITCH_PACKAGE_NOT_A_PACKAGE: SwitchPackageStatus = "not-a-package"
+SWITCH_PACKAGE_STATUSES: tuple[SwitchPackageStatus, ...] = (
+    SWITCH_PACKAGE_OK,
+    SWITCH_PACKAGE_MISSING,
+    SWITCH_PACKAGE_UNREADABLE,
+    SWITCH_PACKAGE_NOT_A_PACKAGE,
+)
+
+# Reading Eden's user list (atlas.eden) fails the way a plain read fails, and
+# in one way of the file's own: "short" is a file shorter than the structure
+# Eden reads, which Eden treats exactly as no file.
+EdenProfilesStatus = Literal["ok", "missing", "unreadable", "short"]
+EDEN_PROFILES_OK: EdenProfilesStatus = "ok"
+EDEN_PROFILES_MISSING: EdenProfilesStatus = "missing"
+EDEN_PROFILES_UNREADABLE: EdenProfilesStatus = "unreadable"
+EDEN_PROFILES_SHORT: EdenProfilesStatus = "short"
+EDEN_PROFILES_STATUSES: tuple[EdenProfilesStatus, ...] = (
+    EDEN_PROFILES_OK,
+    EDEN_PROFILES_MISSING,
+    EDEN_PROFILES_UNREADABLE,
+    EDEN_PROFILES_SHORT,
 )
 
 # Reading a PlayStation disc's identity has two ways to fail beyond a plain
@@ -473,6 +505,43 @@ class DolphinDiscResult:
         if (self.facts is None) == (self.status == DOLPHIN_DISC_OK):
             raise ValueError(
                 f"DolphinDiscResult: facts must be set exactly when status is 'ok' (got {self.status!r})"
+            )
+
+
+@dataclass(frozen=True, slots=True)
+class SwitchPackageResult:
+    """One read of a Switch package's PFS0 header — ``names`` is set exactly when ``status`` is ok.
+
+    ``missing`` / ``unreadable`` mean what they mean on :class:`ReadResult`;
+    ``names`` are the file names the header lists, in entry order
+    (:func:`atlas.switch_title.read_pfs0_names`).
+    """
+
+    status: SwitchPackageStatus
+    names: tuple[str, ...] | None = None
+
+    def __post_init__(self) -> None:
+        if (self.names is None) == (self.status == SWITCH_PACKAGE_OK):
+            raise ValueError(
+                f"SwitchPackageResult: names must be set exactly when status is 'ok' (got {self.status!r})"
+            )
+
+
+@dataclass(frozen=True, slots=True)
+class EdenProfilesResult:
+    """One read of Eden's ``profiles.dat`` — ``users`` is set exactly when ``status`` is ok.
+
+    ``users`` are the listed users' UUIDs, sixteen bytes each, in the order
+    Eden counts them (:func:`atlas.eden.parse_profiles`) — possibly none.
+    """
+
+    status: EdenProfilesStatus
+    users: tuple[bytes, ...] | None = None
+
+    def __post_init__(self) -> None:
+        if (self.users is None) == (self.status == EDEN_PROFILES_OK):
+            raise ValueError(
+                f"EdenProfilesResult: users must be set exactly when status is 'ok' (got {self.status!r})"
             )
 
 
@@ -1257,6 +1326,10 @@ class Machine(Protocol):
 
     def read_dolphin_disc(self, path: str) -> DolphinDiscResult: ...
 
+    def read_switch_package(self, path: str) -> SwitchPackageResult: ...
+
+    def read_eden_profiles(self, path: str) -> EdenProfilesResult: ...
+
     def read_disc_identity(self, path: str, *, extracted: ExtractedEntry | None = None) -> DiscIdentityResult: ...
 
     def list_archive(self, path: str) -> ArchiveListResult: ...
@@ -1729,6 +1802,58 @@ class RealMachine:
         except OSError:
             return DolphinDiscResult(DOLPHIN_DISC_UNREADABLE)
         return DolphinDiscResult(DOLPHIN_DISC_OK, facts)
+
+    def read_switch_package(self, path: str) -> SwitchPackageResult:
+        """The file names a Switch package's PFS0 header lists — a status, and the names where read.
+
+        A regular file once links are followed, checked before opening, as for
+        :meth:`read_dolphin_disc`; only the header and its string table are
+        read, under :data:`atlas.switch_title.PFS0_HEADER_LIMIT`.
+        """
+        try:
+            st = os.stat(path)
+        except (FileNotFoundError, NotADirectoryError):
+            return SwitchPackageResult(SWITCH_PACKAGE_MISSING)
+        except OSError:
+            return SwitchPackageResult(SWITCH_PACKAGE_UNREADABLE)
+        if not _stat.S_ISREG(st.st_mode):
+            return SwitchPackageResult(SWITCH_PACKAGE_MISSING)
+        try:
+            with open(path, "rb") as f:
+                names = switch_title.read_pfs0_names(f)
+        except (FileNotFoundError, NotADirectoryError):
+            return SwitchPackageResult(SWITCH_PACKAGE_MISSING)
+        except switch_title.SwitchPackageUnread:
+            return SwitchPackageResult(SWITCH_PACKAGE_NOT_A_PACKAGE)
+        except OSError:
+            return SwitchPackageResult(SWITCH_PACKAGE_UNREADABLE)
+        return SwitchPackageResult(SWITCH_PACKAGE_OK, names)
+
+    def read_eden_profiles(self, path: str) -> EdenProfilesResult:
+        """The users Eden's ``profiles.dat`` lists — a status, and the UUIDs where read.
+
+        Only the structure Eden reads is read (:data:`atlas.eden.PROFILES_SIZE`
+        bytes); a regular file once links are followed, as for the other reads.
+        """
+        try:
+            st = os.stat(path)
+        except (FileNotFoundError, NotADirectoryError):
+            return EdenProfilesResult(EDEN_PROFILES_MISSING)
+        except OSError:
+            return EdenProfilesResult(EDEN_PROFILES_UNREADABLE)
+        if not _stat.S_ISREG(st.st_mode):
+            return EdenProfilesResult(EDEN_PROFILES_MISSING)
+        try:
+            with open(path, "rb") as f:
+                data = f.read(eden.PROFILES_SIZE)
+        except (FileNotFoundError, NotADirectoryError):
+            return EdenProfilesResult(EDEN_PROFILES_MISSING)
+        except OSError:
+            return EdenProfilesResult(EDEN_PROFILES_UNREADABLE)
+        try:
+            return EdenProfilesResult(EDEN_PROFILES_OK, eden.parse_profiles(data))
+        except eden.ProfilesUnread:
+            return EdenProfilesResult(EDEN_PROFILES_SHORT)
 
     def read_disc_identity(self, path: str, *, extracted: ExtractedEntry | None = None) -> DiscIdentityResult:
         """The bytes a PlayStation disc's emulators decide its region from — a status, and the identity where read.
@@ -2822,6 +2947,70 @@ def _fixture_dolphin_facts(path: str, fields: Mapping[str, object]) -> dolphin_d
         raise ValueError(f"dolphin disc {path!r}: {error}") from error
 
 
+def _validate_fixture_switch_packages(
+    declared: Mapping[str, object] | None,
+    files: Mapping[str, tuple[ReadStatus, str | None]],
+) -> dict[str, tuple[str, ...] | str]:
+    """The names each Switch package's PFS0 header lists — or ``not-a-package``.
+
+    The names describe a file's bytes, so the path must be a declared file
+    whose bytes can be read, as for ``dolphin_discs``.
+    """
+    validated: dict[str, tuple[str, ...] | str] = {}
+    for path, spec in (declared or {}).items():
+        if path not in files:
+            raise ValueError(f"switch package {path!r}: names describe a file's bytes, and no file is declared there")
+        if files[path][0] == READ_UNREADABLE:
+            raise ValueError(
+                f"switch package {path!r}: an unreadable file states no names — its bytes are what cannot be read"
+            )
+        if spec == SWITCH_PACKAGE_NOT_A_PACKAGE:
+            validated[path] = SWITCH_PACKAGE_NOT_A_PACKAGE
+            continue
+        if not isinstance(spec, list) or not all(
+            isinstance(name, str) for name in cast("list[object]", spec)
+        ):
+            raise ValueError(f"switch package {path!r}: expected 'not-a-package' or a list of names, got {spec!r}")
+        validated[path] = tuple(cast("list[str]", spec))
+    return validated
+
+
+def _fixture_eden_user(path: str, uuid: object) -> bytes:
+    if not isinstance(uuid, str) or not re.fullmatch("[0-9a-f]{32}", uuid) or uuid == "0" * 32:
+        raise ValueError(
+            f"eden profiles {path!r}: a user is thirty-two lowercase hex digits, not all zero, got {uuid!r}"
+        )
+    return bytes.fromhex(uuid)
+
+
+def _validate_fixture_eden_profiles(
+    declared: Mapping[str, object] | None,
+    files: Mapping[str, tuple[ReadStatus, str | None]],
+) -> dict[str, tuple[bytes, ...] | str]:
+    """The users each ``profiles.dat`` lists, as UUIDs in ``UUID::RawString`` spelling — or ``short``.
+
+    A UUID is thirty-two lowercase hex digits, the bytes in order, and not all
+    zeros: a zero record lists no user, so a fixture states the users only.
+    """
+    validated: dict[str, tuple[bytes, ...] | str] = {}
+    for path, spec in (declared or {}).items():
+        if path not in files:
+            raise ValueError(f"eden profiles {path!r}: users describe a file's bytes, and no file is declared there")
+        if files[path][0] == READ_UNREADABLE:
+            raise ValueError(
+                f"eden profiles {path!r}: an unreadable file states no users — its bytes are what cannot be read"
+            )
+        if spec == EDEN_PROFILES_SHORT:
+            validated[path] = EDEN_PROFILES_SHORT
+            continue
+        if not isinstance(spec, list) or len(cast("list[object]", spec)) > eden.MAX_USERS:
+            raise ValueError(
+                f"eden profiles {path!r}: expected 'short' or a list of at most {eden.MAX_USERS} UUIDs, got {spec!r}"
+            )
+        validated[path] = tuple(_fixture_eden_user(path, uuid) for uuid in cast("list[object]", spec))
+    return validated
+
+
 _FIXTURE_PS3_FILE_FIELDS = ("magic", "iso", "category")
 _FIXTURE_PS3_ISO_FIELDS = ("regions", "watermark")
 _FIXTURE_PS3_ISO_OPTIONAL = ("blocks",)
@@ -3343,6 +3532,8 @@ class FixtureMachine:
         ps2_bios_headers: Mapping[str, Mapping[str, object] | str] | None = None,
         ps3_files: Mapping[str, object] | None = None,
         dolphin_discs: Mapping[str, object] | None = None,
+        switch_packages: Mapping[str, object] | None = None,
+        eden_profiles: Mapping[str, object] | None = None,
         disc_identities: Mapping[str, Mapping[str, object] | str] | None = None,
         archives: Mapping[str, object] | None = None,
         whdload_slaves: Mapping[str, object] | None = None,
@@ -3356,6 +3547,8 @@ class FixtureMachine:
         self._ps2_bios_headers = _validate_fixture_ps2_bios_headers(ps2_bios_headers or {}, self._files)
         self._ps3_files = _validate_fixture_ps3_files(ps3_files or {}, self._files)
         self._dolphin_discs = _validate_fixture_dolphin_discs(dolphin_discs or {}, self._files)
+        self._switch_packages = _validate_fixture_switch_packages(switch_packages, self._files)
+        self._eden_profiles = _validate_fixture_eden_profiles(eden_profiles, self._files)
         self._inaccessible = set(inaccessible or ())
         self._unlistable = set(unlistable or ())
         _refuse_both_unreadable_lists(self._inaccessible, self._unlistable)
@@ -3583,6 +3776,51 @@ class FixtureMachine:
         if resolved in self._files:
             return DolphinDiscResult(DOLPHIN_DISC_UNREADABLE)
         return DolphinDiscResult(DOLPHIN_DISC_MISSING)
+
+    def read_switch_package(self, path: str) -> SwitchPackageResult:
+        """The modeled read of a Switch package's PFS0 header — the names declared, RealMachine's outcomes.
+
+        Modeled beside ``files`` for the reason ``dolphin_discs`` is. A path
+        declared in ``switch_packages`` answers its names or ``not-a-package``;
+        a declared file with no entry there answers ``unreadable``, so a vector
+        that forgot the key cannot prove a header nobody modeled. A directory,
+        a dead link and nothing at all answer ``missing``.
+        """
+        if self._is_inaccessible(path):
+            return SwitchPackageResult(SWITCH_PACKAGE_UNREADABLE)
+        resolved = self._resolve(path).path
+        if resolved is None or resolved in self._dirs:
+            return SwitchPackageResult(SWITCH_PACKAGE_MISSING)
+        declared = self._switch_packages.get(resolved)
+        if isinstance(declared, tuple):
+            return SwitchPackageResult(SWITCH_PACKAGE_OK, declared)
+        if declared is not None:
+            return SwitchPackageResult(SWITCH_PACKAGE_NOT_A_PACKAGE)
+        if resolved in self._files:
+            return SwitchPackageResult(SWITCH_PACKAGE_UNREADABLE)
+        return SwitchPackageResult(SWITCH_PACKAGE_MISSING)
+
+    def read_eden_profiles(self, path: str) -> EdenProfilesResult:
+        """The modeled read of Eden's ``profiles.dat`` — the users declared, RealMachine's outcomes.
+
+        A path declared in ``eden_profiles`` answers its users or ``short``; a
+        declared file with no entry there answers ``unreadable``, and an
+        ``unreadable`` file too. A directory, a dead link and nothing at all
+        answer ``missing``.
+        """
+        if self._is_inaccessible(path):
+            return EdenProfilesResult(EDEN_PROFILES_UNREADABLE)
+        resolved = self._resolve(path).path
+        if resolved is None or resolved in self._dirs:
+            return EdenProfilesResult(EDEN_PROFILES_MISSING)
+        declared = self._eden_profiles.get(resolved)
+        if isinstance(declared, tuple):
+            return EdenProfilesResult(EDEN_PROFILES_OK, declared)
+        if declared is not None:
+            return EdenProfilesResult(EDEN_PROFILES_SHORT)
+        if resolved in self._files:
+            return EdenProfilesResult(EDEN_PROFILES_UNREADABLE)
+        return EdenProfilesResult(EDEN_PROFILES_MISSING)
 
     def read_disc_identity(self, path: str, *, extracted: ExtractedEntry | None = None) -> DiscIdentityResult:
         """The modeled disc identity read — the four facts in, the same outcomes RealMachine reports.

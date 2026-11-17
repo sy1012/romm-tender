@@ -17,6 +17,7 @@ const CAUSES: ReadonlyMap<string, string | null> = new Map([
   ["find_rules_unread", "ES-DE's find rules could not be read"],
   ["lookup_unsupported", "Tender cannot follow ES-DE's lookup for it yet"],
   ["path_unseen", "ES-DE looks for it where Tender cannot see"],
+  ["several_appimages", "several AppImages were found; set which one in Settings › Emulator sources"],
 ]);
 
 /** Whether `reason` says the entry's installation could not be established. */

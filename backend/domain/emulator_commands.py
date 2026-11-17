@@ -35,6 +35,7 @@ NOT_ESTABLISHED_NO_FIND_RULE = "no_find_rule"
 NOT_ESTABLISHED_FIND_RULES_UNREAD = "find_rules_unread"
 NOT_ESTABLISHED_LOOKUP_UNSUPPORTED = "lookup_unsupported"
 NOT_ESTABLISHED_PATH_UNSEEN = "path_unseen"
+NOT_ESTABLISHED_SEVERAL_APPIMAGES = "several_appimages"
 
 # What an entry launches, as the resolver states it, in Tender's words: a core
 # RetroArch loads on this machine, an emulator program of its own, or a

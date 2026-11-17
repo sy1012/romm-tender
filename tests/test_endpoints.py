@@ -107,6 +107,9 @@ _MIGRATION_RULE_WHITELIST: set[str] = {
     # Hiding synced games — a settings.json-only write; the Steam side is the
     # panel's, applied before the call.
     "save_steam_library_hiding",
+    # The Eden AppImage named — a settings.json-only write; the next reading of
+    # the emulator sources takes it.
+    "save_eden_appimage",
     # Preferred sibling-group region — a settings.json-only write (ADR-0021 §3),
     # never touches RetroDECK state; takes effect on the next sync. Its companion
     # read (distinct regions in the local library) is a pure local DB read.

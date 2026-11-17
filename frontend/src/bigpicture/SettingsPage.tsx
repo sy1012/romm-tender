@@ -39,6 +39,7 @@ import {
   listDevices,
   logError,
   getEmulatorSources,
+  saveEdenAppimage,
   setEmulatorSourceEnabled,
   moveEmulatorSource,
   isEndpointFailure,
@@ -76,6 +77,7 @@ import { ConnectionSection } from "./settings/ConnectionSection";
 import { SAVE_FAILED } from "./settings/helpers";
 import { SteamGridDBSection } from "./settings/SteamGridDBSection";
 import { SgdbKeySaveRefused } from "./settings/SgdbApiKeyModal";
+import { EdenAppImageRefused } from "./settings/EdenAppImageModal";
 import { SaveSyncSection } from "./settings/SaveSyncSection";
 import { RegisteredDevicesSection } from "./settings/RegisteredDevicesSection";
 import { ControllerSection } from "./settings/ControllerSection";
@@ -205,6 +207,7 @@ export const SettingsPage: FC<SettingsPageProps> = ({ onBack, section }) => {
   // Emulator sources: `undefined` until the listing answers, `null` where it failed.
   const [emulatorSources, setEmulatorSources] = useState<EmulatorSourcesListing | null | undefined>(undefined);
   const [sourcesBusy, setSourcesBusy] = useState(false);
+  const [edenAppImage, setEdenAppImage] = useState("");
   const tenderFolder = useTenderFolder();
 
   useEffect(() => {
@@ -233,6 +236,7 @@ export const SettingsPage: FC<SettingsPageProps> = ({ onBack, section }) => {
         setPlatformGroups(!!s.collection_create_platform_groups);
         setNamingMode(s.collection_naming_mode ?? "merge");
         setHideSynced(s.steam_library_hidden ?? false);
+        setEdenAppImage(s.eden_appimage ?? "");
         setQamPosition(s.qam_entry_position ?? "above_decky");
       })
       .catch((e) => {
@@ -694,6 +698,24 @@ export const SettingsPage: FC<SettingsPageProps> = ({ onBack, section }) => {
     detach(fetchEmulatorSources().then(setEmulatorSources));
   }, []);
 
+  /** Store the Eden AppImage named, then read the sources again: the path decides which Eden is detected, and
+   *  which source answers for a Switch game, so every open game page is told to read its answers again. */
+  const handleSaveEdenAppImage = async (path: string) => {
+    const result = await saveEdenAppimage(path);
+    if (!result.success) throw new EdenAppImageRefused(result.message ?? "The path was refused.");
+    setEdenAppImage(path);
+    setEmulatorSources(await fetchEmulatorSources());
+    globalThis.dispatchEvent(new CustomEvent("romm_data_changed", { detail: { type: "emulator_sources" } }));
+  };
+  const handleClearEdenAppImage = async () => {
+    try {
+      await handleSaveEdenAppImage("");
+    } catch (e) {
+      logError(`Failed to clear the Eden AppImage: ${e}`);
+      showToast("The Eden AppImage could not be cleared");
+    }
+  };
+
   const renderSection = (id: SettingsSection): ReactNode => {
     switch (id) {
       case "connections":
@@ -788,6 +810,11 @@ export const SettingsPage: FC<SettingsPageProps> = ({ onBack, section }) => {
             }}
             onMove={(kind, direction: EmulatorSourceDirection) => {
               detach(writeEmulatorSources(() => moveEmulatorSource(kind, direction)));
+            }}
+            edenAppImage={edenAppImage}
+            onSaveEdenAppImage={handleSaveEdenAppImage}
+            onClearEdenAppImage={() => {
+              detach(handleClearEdenAppImage());
             }}
           />
         );

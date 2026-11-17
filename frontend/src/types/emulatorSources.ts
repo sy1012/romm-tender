@@ -42,7 +42,7 @@ export interface EmulatorSourcesListing {
 }
 
 /** The answer of `check_start_source`: the kind of the detected source that
- *  would start a game while it is switched off, which refuses the start; `null` otherwise. */
+ *  would start the game while it is switched off, which refuses the start; `null` otherwise. */
 export interface StartSourceCheck {
   switched_off: string | null;
 }

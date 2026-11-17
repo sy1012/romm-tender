@@ -52,6 +52,7 @@ from typing import TYPE_CHECKING, Any
 from _vendor.atlas import (
     AVAILABILITY_NOT_INSTALLED,
     AVAILABILITY_STARTABLE,
+    CAVEAT_APPIMAGE_AMBIGUOUS,
     CAVEAT_ARCHIVE_CONTENTS_UNREAD,
     CAVEAT_ARRANGEMENT_VERSION_DRIFTED,
     CAVEAT_BOOT_CATEGORY_UNESTABLISHED,
@@ -132,6 +133,7 @@ from domain.emulator_commands import (
     NOT_ESTABLISHED_LOOKUP_UNSUPPORTED,
     NOT_ESTABLISHED_NO_FIND_RULE,
     NOT_ESTABLISHED_PATH_UNSEEN,
+    NOT_ESTABLISHED_SEVERAL_APPIMAGES,
     NOT_INSTALLED,
     PROGRAM,
     emulator_option,
@@ -254,6 +256,7 @@ _NOT_ESTABLISHED_BECAUSE = {
     CAVEAT_FIND_RULES_UNREADABLE: NOT_ESTABLISHED_FIND_RULES_UNREAD,
     CAVEAT_LAUNCH_RESOLUTION_UNSUPPORTED: NOT_ESTABLISHED_LOOKUP_UNSUPPORTED,
     CAVEAT_LAUNCH_PATH_UNESTABLISHED: NOT_ESTABLISHED_PATH_UNSEEN,
+    CAVEAT_APPIMAGE_AMBIGUOUS: NOT_ESTABLISHED_SEVERAL_APPIMAGES,
 }
 
 # The reasons beside ``not-installed``, deliberately not told apart: each says
@@ -430,9 +433,9 @@ def _unavailable(reason: str, source: dict[str, Any] | None) -> dict[str, Any]:
     return {"available": False, "options": [], "reason": reason, "source": source}
 
 
-def _source_payload(reading: SourcesReading) -> dict[str, Any] | None:
-    """The answering source as the picker answer names it: its kind, and whether Tender starts games through it."""
-    answering = reading.answering
+def _source_payload(reading: SourcesReading, system: str) -> dict[str, Any] | None:
+    """*system*'s answering source as the picker answer names it: its kind, and whether it starts games."""
+    answering = reading.answering_for(system)
     if answering is None:
         return None
     return {"kind": answering.kind, "starts_games": answering.starts_games}
@@ -764,7 +767,7 @@ class AtlasCatalogueAdapter:
         knows no emulator for. ``reason`` says which, and is ``None`` where the
         list is available: ``no_source`` / ``switched_off`` where no source
         answers, ``not_set_up`` / ``catalogue_invalid`` / ``sealed`` /
-        ``unavailable`` for a refusal. ``source`` is the answering source's ``{"kind",
+        ``unavailable`` for a refusal. ``source`` is the system's answering source's ``{"kind",
         "starts_games"}``, ``None`` where none answers.
 
         ``options`` is in the order the resolver gives: a choice the user made
@@ -785,7 +788,7 @@ class AtlasCatalogueAdapter:
         ``unavailable`` with no source.
         """
         reading = self._reading(reading)
-        payload = _source_payload(reading) if source is None else _named_source_payload(reading, source)
+        payload = _source_payload(reading, system_name) if source is None else _named_source_payload(reading, source)
         if payload is None:
             return _unavailable(reading.no_answer_reason() if source is None else CATALOGUE_UNAVAILABLE, None)
         answer = self._catalogue_answer(system_name, reading, content_path=content_path, source=source)
@@ -853,7 +856,7 @@ class AtlasCatalogueAdapter:
         is not established with no reason named.
         """
         reading = self._reading(reading)
-        installation = self._installation(reading)
+        installation = self._installation(reading, system=system_name)
         if installation is None:
             return Launchability(
                 state=LAUNCH_NOT_ESTABLISHED,
@@ -926,11 +929,17 @@ class AtlasCatalogueAdapter:
             self._log_debug(f"[catalogue] resolver failed on {subject}: {exc!r}")
             return None
 
-    def _installation(self, reading: SourcesReading, source: str | None = None) -> Any:
-        """The installation of *source*, or of the answering source; ``None`` where there is none."""
+    def _installation(self, reading: SourcesReading, source: str | None = None, *, system: str | None = None) -> Any:
+        """The installation of *source*, or of *system*'s answering source, or of the one answering for no system.
+
+        ``None`` where there is none. The questions about a system's folder and
+        what it accepts (:meth:`_systems_answer`, :meth:`_rom_location`) name no
+        system: they are about the frontend whose folders the content lands
+        in, not about the emulator that starts it.
+        """
         if source is not None:
             return reading.installation(source)
-        installation = reading.answering_installation()
+        installation = reading.answering_installation(system)
         if installation is None:
             self._log_debug(f"[catalogue] no emulator source answers ({reading.no_answer_reason()})")
         return installation
@@ -943,7 +952,7 @@ class AtlasCatalogueAdapter:
         Asked with *content_path* where a caller names one game: the answer then
         states that game's own choice in ES-DE (``<altemulator>``) as well.
         """
-        installation = self._installation(reading, source)
+        installation = self._installation(reading, source, system=system_name)
         if installation is None:
             return None
         subject = f"emulators_for({system_name!r})"

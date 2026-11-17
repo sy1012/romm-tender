@@ -197,7 +197,7 @@ def read_start(answer: Any, *, writable: tuple[str, ...] = (), read_only: tuple[
 
 
 class AtlasLaunchAdapter:
-    """Asks the answering emulator source for one game's launch command, and reads it into Tender's view.
+    """Asks a game's answering emulator source for its launch command, and reads it into Tender's view.
 
     Keeps no answer of its own: each is asked through a reading of the emulator
     sources and kept by that reading alone.
@@ -219,12 +219,12 @@ class AtlasLaunchAdapter:
     ) -> StartAnswer:
         """How *content_path* starts as *system*'s content with the entry *label* names, or why it does not.
 
-        Asked of the answering source with the entry Tender starts the game
-        through. Where no source answers or the resolver could not be asked, the
+        Asked of *system*'s answering source with the entry Tender starts the
+        game through. Where no source answers or the resolver could not be asked, the
         command could not be read (:data:`~domain.start_command.COMMAND_UNREAD`).
         """
         reading = reading if reading is not None else self._sources.read()
-        installation = reading.answering_installation()
+        installation = reading.answering_installation(system)
         if installation is None:
             self._log_debug(f"[launch] no emulator source answers ({reading.no_answer_reason()})")
             return StartRefused(COMMAND_UNREAD)

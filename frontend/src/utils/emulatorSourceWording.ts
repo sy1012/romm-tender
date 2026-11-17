@@ -27,6 +27,7 @@ const SOURCE_NAMES: ReadonlyMap<string, string> = new Map([
   ["emudeck", "EmuDeck"],
   ["bare_retroarch_flatpak", "RetroArch (Flatpak)"],
   ["bare_retroarch_native", "RetroArch (native)"],
+  ["eden_appimage", "Eden (AppImage)"],
 ]);
 
 // A RetroArch without a frontend has no emulator list, and its "cannot start
@@ -80,6 +81,24 @@ const UNWIRED_PROBLEMS: ReadonlyMap<string, string> = new Map([
 // `backend/domain/source_roots.py`'s.
 const ROOTS_ASSUMED = "roots-assumed";
 
+// Tender's own finding for several AppImages found and none named; its shape is
+// `backend/domain/emulator_sources.py`'s: `candidates`, one path per line.
+const SEVERAL_APPIMAGES = "several-appimages";
+
+/** The sentence for several AppImages of a source's emulator found where Tender looks, with each one found. */
+function severalAppImagesSentence(name: string, candidates: string | null): string | null {
+  const found = (candidates ?? "").split("\n").filter((path) => path !== "");
+  if (found.length === 0) return null;
+  return (
+    `${name}: ${found.length} AppImages were found (${found.join(", ")}), and Tender starts none of them ` +
+    "until you set which one in Settings › Emulator sources › Eden AppImage."
+  );
+}
+
+// The source whose settings file is the AppImage the user named, so a missing
+// one is that AppImage rather than a settings file.
+const NAMED_APPIMAGE_KINDS: ReadonlySet<string> = new Set(["eden_appimage"]);
+
 // What each root is called in a sentence, after "its".
 const ROOT_WORDS: ReadonlyMap<string, string> = new Map([
   ["installation", "folder"],
@@ -106,6 +125,7 @@ const SUBJECT_KEYS: ReadonlyMap<string, string> = new Map([
 /** The worded sentence, or `null` where the code, or a fact it needs, is not one this module knows. */
 function wordedFinding(kind: string, { code, data }: SourceHealthFinding): string | null {
   const name = sourceName(kind);
+  if (code === SEVERAL_APPIMAGES) return severalAppImagesSentence(name, text(data, "candidates"));
   const subject = text(data, SUBJECT_KEYS.get(code) ?? "path");
   if (subject === null) return null;
   const repair = kind === "retrodeck" ? RETRODECK_REPAIR : "";
@@ -113,6 +133,9 @@ function wordedFinding(kind: string, { code, data }: SourceHealthFinding): strin
     case "not-set-up":
       return `${name} is installed but has not been set up yet. Start ${name} once and finish its first-run setup.`;
     case "marker-missing":
+      if (NAMED_APPIMAGE_KINDS.has(kind)) {
+        return `${name}: the AppImage ${subject} set in Settings › Emulator sources is not there.`;
+      }
       return `${name}: its settings file ${subject} is missing.`;
     case "marker-unreadable":
     case "config-unreadable":
@@ -256,6 +279,16 @@ export function withPlatformSystemSentence<T>(answer: T): T {
 /** Main's notice, and the settings section's line, while no emulator source is detected. */
 export const NO_SOURCE_BANNER = "No emulator source was found.";
 
+/** Where Tender looks for an Eden AppImage while none is set, as the end of a sentence. */
+export const EDEN_APPIMAGE_SEARCH = "looks for one in ~/Applications, ~/AppImages, ~/Emulation/tools and ~/.local/bin.";
+
+/** The settings section's line under its Eden AppImage row: the path set, or that none is and where Tender looks. */
+export function edenAppImageLine(path: string): string {
+  return path === ""
+    ? `Optional. None set: Tender ${EDEN_APPIMAGE_SEARCH}`
+    : `${path} — used instead of looking for one.`;
+}
+
 /** The settings section's line while its listing has not answered yet. */
 export const SOURCES_READING = "Reading the emulator sources…";
 
@@ -273,12 +306,16 @@ export function cannotStartNotice(kind: string): string {
 }
 
 // Why a start is refused while the source that would start the game is
-// switched off, by that source's kind. RetroDECK is the one source Tender
-// starts games through yet, so it is the one sentence there is.
+// switched off, by that source's kind: the two sources Tender starts games
+// through.
 const STARTING_SOURCE_OFF_SENTENCES: ReadonlyMap<string, string> = new Map([
   [
     "retrodeck",
-    "RetroDECK is switched off in Settings › Emulator sources, and Tender can only start games through RetroDECK yet.",
+    "RetroDECK is switched off in Settings › Emulator sources, and Tender can only start this game through RetroDECK.",
+  ],
+  [
+    "eden_appimage",
+    "Eden (AppImage) is switched off in Settings › Emulator sources, and Tender can only start this game through it.",
   ],
 ]);
 

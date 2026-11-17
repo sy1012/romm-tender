@@ -8,8 +8,11 @@ from domain.emulator_sources import (
     ALL_SOURCES_SWITCHED_OFF,
     NO_SOURCE_DETECTED,
     ArrangedSource,
+    SystemListing,
     answering_source,
+    answering_source_for,
     arrange_sources,
+    is_absolute_path,
     move_source,
     no_answering_source_reason,
     switch_source,
@@ -225,3 +228,113 @@ class TestSwitchSource:
         with pytest.raises(DomainRefused) as refusal:
             switch_source(kind="emudeck", enabled=False, detected=("retrodeck",), switched_off=())
         assert refusal.value.reason == "unknown_source"
+
+
+def _source(kind: str, *, enabled: bool = True) -> ArrangedSource:
+    return arrange_sources(detected=(kind,), stored_order=(), switched_off=() if enabled else (kind,))[0]
+
+
+def _kind(source: ArrangedSource | None) -> str | None:
+    return source.kind if source is not None else None
+
+
+def _listing(table: dict[str, SystemListing], asked: list[str] | None = None):
+    def listing(kind: str) -> SystemListing:
+        if asked is not None:
+            asked.append(kind)
+        return table.get(kind, SystemListing.NOT_LISTED)
+
+    return listing
+
+
+class TestEdenStartsGames:
+    def test_an_eden_appimage_starts_games(self):
+        assert _source("eden_appimage").starts_games is True
+
+    def test_emudeck_still_does_not(self):
+        assert _source("emudeck").starts_games is False
+
+
+class TestTheSourceAnsweringForNoSystem:
+    def test_retrodeck_answers_with_eden_switched_on_beside_it(self):
+        assert _kind(answering_source((_source("retrodeck"), _source("eden_appimage")))) == "retrodeck"
+
+    def test_a_frontend_answers_whole_machine_questions_even_with_eden_ordered_first(self):
+        sources = (_source("eden_appimage"), _source("emudeck"))
+        assert _kind(answering_source(sources)) == "emudeck"
+
+    def test_eden_alone_answers(self):
+        sources = (_source("retrodeck", enabled=False), _source("eden_appimage"))
+        assert _kind(answering_source(sources)) == "eden_appimage"
+
+
+class TestTheSourceAnsweringForOneSystem:
+    def test_eden_answers_switch_where_retrodeck_has_no_switch_emulator_installed(self):
+        sources = (_source("retrodeck"), _source("eden_appimage"))
+        listing = _listing({"retrodeck": SystemListing.NOT_LISTED, "eden_appimage": SystemListing.STARTS})
+        assert _kind(answering_source_for(sources, listing)) == "eden_appimage"
+
+    def test_the_first_in_the_order_that_starts_it_answers(self):
+        sources = (_source("retrodeck"), _source("eden_appimage"))
+        listing = _listing({"retrodeck": SystemListing.STARTS, "eden_appimage": SystemListing.STARTS})
+        assert _kind(answering_source_for(sources, listing)) == "retrodeck"
+
+    def test_one_that_starts_it_wins_over_an_earlier_one_whose_program_is_unconfirmed(self):
+        sources = (_source("retrodeck"), _source("eden_appimage"))
+        listing = _listing({"retrodeck": SystemListing.UNESTABLISHED, "eden_appimage": SystemListing.STARTS})
+        assert _kind(answering_source_for(sources, listing)) == "eden_appimage"
+
+    def test_an_unconfirmed_one_answers_where_none_starts_it(self):
+        sources = (_source("retrodeck"), _source("eden_appimage"))
+        listing = _listing({"eden_appimage": SystemListing.UNESTABLISHED})
+        assert _kind(answering_source_for(sources, listing)) == "eden_appimage"
+
+    def test_where_none_lists_it_the_source_answering_for_no_system_answers(self):
+        sources = (_source("emudeck"), _source("retrodeck"), _source("eden_appimage"))
+        assert _kind(answering_source_for(sources, _listing({}))) == "retrodeck"
+
+    def test_a_switched_off_source_never_answers(self):
+        sources = (_source("retrodeck"), _source("eden_appimage", enabled=False))
+        listing = _listing({"eden_appimage": SystemListing.STARTS})
+        assert _kind(answering_source_for(sources, listing)) == "retrodeck"
+
+    def test_with_one_source_that_starts_games_no_catalogue_is_asked(self):
+        asked: list[str] = []
+        sources = (_source("retrodeck"), _source("emudeck"))
+        assert _kind(answering_source_for(sources, _listing({}, asked))) == "retrodeck"
+        assert asked == []
+
+    def test_eden_alone_beside_emudeck_is_asked_and_answers_its_system(self):
+        sources = (_source("emudeck"), _source("eden_appimage"))
+        listing = _listing({"eden_appimage": SystemListing.STARTS})
+        assert _kind(answering_source_for(sources, listing)) == "eden_appimage"
+
+    def test_nothing_switched_on_answers_none(self):
+        assert answering_source_for((_source("retrodeck", enabled=False),), _listing({})) is None
+
+
+class TestTheSwitchedOffSourceForOneSystem:
+    def test_a_switched_off_eden_refuses_switch_where_retrodeck_does_not_start_it(self):
+        sources = (_source("retrodeck"), _source("eden_appimage", enabled=False))
+        listing = _listing({"eden_appimage": SystemListing.STARTS})
+        assert switched_off_starting_source(sources, listing) == "eden_appimage"
+
+    def test_a_switched_off_eden_refuses_nothing_retrodeck_starts(self):
+        sources = (_source("retrodeck"), _source("eden_appimage", enabled=False))
+        listing = _listing({"retrodeck": SystemListing.STARTS, "eden_appimage": SystemListing.STARTS})
+        assert switched_off_starting_source(sources, listing) is None
+
+    def test_a_switched_off_retrodeck_refuses_its_system_beside_eden(self):
+        sources = (_source("retrodeck", enabled=False), _source("eden_appimage"))
+        listing = _listing({"retrodeck": SystemListing.STARTS})
+        assert switched_off_starting_source(sources, listing) == "retrodeck"
+
+    def test_where_no_switched_off_source_lists_it_the_rule_for_no_system_stands(self):
+        sources = (_source("retrodeck", enabled=False), _source("emudeck"))
+        assert switched_off_starting_source(sources, _listing({})) == "retrodeck"
+
+
+class TestStoredAppImage:
+    @pytest.mark.parametrize(("value", "absolute"), [("/a/Eden.AppImage", True), ("a/Eden.AppImage", False)])
+    def test_only_an_absolute_path_names_one(self, value, absolute):
+        assert is_absolute_path(value) is absolute

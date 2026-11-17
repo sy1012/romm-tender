@@ -468,6 +468,17 @@ CAVEAT_FILE_NAMES_UNESTABLISHED = "file-names-unestablished"
 # meaning "the tree is empty or not there" and a listing that holds nothing
 # because nothing could be read is never mistaken for one.
 CAVEAT_SAVE_ID_CANDIDATES = "save-id-candidates"
+# Which user profile an emulator that keeps one save tree per user runs a game
+# as could not be established, so the answer keeps the ``profile_id`` hole in
+# its directory. Eden is the case it was added for: it opens the user its
+# ``[System] current_user`` index names among those ``profiles.dat`` lists,
+# and creates a fresh user with a random id where that file is missing, cut
+# short or lists nobody — a folder nothing on the machine names yet. ``data``
+# carries the ``file`` read, its read ``status`` (an
+# :data:`atlas.machine.EdenProfilesStatus`), the ``users`` folders found
+# below the save tree where it could be listed (each spelled as the hole is
+# filled), and ``profile_id``: the sentence saying what fills the hole.
+CAVEAT_ACTIVE_PROFILE_UNESTABLISHED = "active-profile-unestablished"
 # Which files of a directory are one game's, decided by bytes inside each file
 # rather than by its name: the answer's ``save_id`` hole is filled, and a file
 # belongs to the game where the bytes at ``offset``, ``length`` long, equal the
@@ -1188,6 +1199,11 @@ HOLE_CWD = "cwd"
 # one tree. The groups list every tree either way, so a caller without the
 # region still sees the whole candidate set.
 HOLE_REGION = "region"
+# The hole a per-user answer keeps where which user the emulator runs as is
+# not established: one path segment, the user's own folder below the save
+# tree, spelled the way the emulator spells it. ``active-profile-unestablished``
+# says why and what fills it.
+HOLE_PROFILE_ID = "profile_id"
 
 # The template tokens a rule card's declared file names may carry, and the hole
 # each leaves behind. ``<rom_stem>`` the resolver fills itself from the content
@@ -1216,6 +1232,7 @@ TEMPLATE_CWD = "<cwd>"
 # because that is the granularity Dolphin swaps it at (GetGCIFolderPath
 # replaces the last segment, MainSettings.cpp:844-873 at 2603a).
 TEMPLATE_REGION = "<region>"
+TEMPLATE_PROFILE_ID = "<profile_id>"
 _FILE_NAME_HOLES: Mapping[str, str] = MappingProxyType({TEMPLATE_SAVE_ID: HOLE_SAVE_ID})
 SUBDIR_TEMPLATE_HOLES: Mapping[str, str] = MappingProxyType(
     {TEMPLATE_ROM_STEM: HOLE_ROM_STEM, TEMPLATE_CONTENT_DIR_NAME: HOLE_CONTENT_DIR_NAME}

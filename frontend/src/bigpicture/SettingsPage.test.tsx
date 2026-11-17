@@ -2762,6 +2762,61 @@ describe("SettingsPage", () => {
       return seen;
     };
 
+    it("hands the section the Eden AppImage the settings name", async () => {
+      vi.mocked(backend.getSettings).mockResolvedValue({ ...defaultSettings(), eden_appimage: "/opt/Eden.AppImage" });
+      renderPage();
+      await flushAsync();
+      expect(last().edenAppImage).toBe("/opt/Eden.AppImage");
+    });
+
+    it("stores an Eden AppImage, reads the sources again and tells every open game page", async () => {
+      vi.mocked(backend.saveEdenAppimage).mockResolvedValue({ success: true });
+      renderPage();
+      await flushAsync();
+      const withEden = { answering: "retrodeck", sources: [...TWO_SOURCES.sources] };
+      vi.mocked(backend.getEmulatorSources).mockResolvedValue(withEden);
+
+      const seen = await dataChangesDuring(async () => {
+        await act(async () => {
+          await last().onSaveEdenAppImage("/opt/Eden.AppImage");
+        });
+        await flushAsync();
+      });
+
+      expect(backend.saveEdenAppimage).toHaveBeenCalledWith("/opt/Eden.AppImage");
+      expect(last().edenAppImage).toBe("/opt/Eden.AppImage");
+      expect(last().listing).toBe(withEden);
+      expect(seen).toEqual([{ type: "emulator_sources" }]);
+    });
+
+    it("hands a refused Eden AppImage's message back to the prompt and keeps the old one", async () => {
+      vi.mocked(backend.saveEdenAppimage).mockResolvedValue({
+        success: false,
+        reason: "invalid_value",
+        message: "The Eden AppImage is named by a full path, starting with /.",
+      });
+      renderPage();
+      await flushAsync();
+
+      await expect(last().onSaveEdenAppImage("Eden.AppImage")).rejects.toThrow("full path");
+      expect(last().edenAppImage).toBe("");
+    });
+
+    it("clears the Eden AppImage, and says so where that fails", async () => {
+      vi.mocked(backend.getSettings).mockResolvedValue({ ...defaultSettings(), eden_appimage: "/opt/Eden.AppImage" });
+      vi.mocked(backend.saveEdenAppimage).mockRejectedValue(new Error("socket closed"));
+      const logSpy = vi.spyOn(backend, "logError").mockImplementation(() => {});
+      renderPage();
+      await flushAsync();
+
+      act(() => last().onClearEdenAppImage());
+      await flushAsync();
+
+      expect(backend.saveEdenAppimage).toHaveBeenCalledWith("");
+      expect(last().edenAppImage).toBe("/opt/Eden.AppImage");
+      expect(logSpy).toHaveBeenCalledWith(expect.stringContaining("Failed to clear the Eden AppImage"));
+    });
+
     it("tells every open game page when a switch is accepted", async () => {
       vi.mocked(backend.setEmulatorSourceEnabled).mockResolvedValue(TWO_SOURCES);
       renderPage();

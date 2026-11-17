@@ -2608,7 +2608,7 @@ describe("CustomPlayButton — shared launch gate (ADR-0015)", () => {
     await waitFor(() =>
       expect(toaster.toast).toHaveBeenCalledWith({
         title: "Tender",
-        body: "RetroDECK is switched off in Settings › Emulator sources, and Tender can only start games through RetroDECK yet.",
+        body: "RetroDECK is switched off in Settings › Emulator sources, and Tender can only start this game through RetroDECK.",
       }),
     );
     expect(vi.mocked(SteamClient.Apps.RunGame)).not.toHaveBeenCalled();

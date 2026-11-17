@@ -83,6 +83,10 @@ DEFAULT_SETTINGS: dict[str, Any] = {
     # docs/architecture/steam-non-steam-shortcuts.md § Hiding synced games.
     "steam_library_hidden": False,
     "steam_hidden_by_tender": [],
+    # The Eden AppImage the user named, an absolute path, or "" to have the
+    # resolver search for one. docs/architecture/core-emulator-selection.md
+    # § Which emulator source answers.
+    "eden_appimage": "",
     "preferred_region": "auto",
     # User intent for the sync button: apply without being asked first. Stored
     # for a reader to choose between a preview and a run; no backend sync path

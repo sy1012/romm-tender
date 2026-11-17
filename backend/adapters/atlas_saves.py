@@ -46,10 +46,12 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 from _vendor.atlas import (
+    CAVEAT_ACTIVE_PROFILE_UNESTABLISHED,
     CAVEAT_FILE_MEMBERSHIP_BY_HEADER,
     CAVEAT_REDIRECT_OUTRANKED,
     CAVEAT_SAVE_FILES_SHARED_WITH_CORE,
     HEALTH_ISSUE_NOT_SET_UP,
+    UNRESOLVED_APPIMAGE_AMBIGUOUS,
     SavestateAbsence,
     SavestatePlacement,
     Unresolved,
@@ -59,7 +61,7 @@ from _vendor.atlas import (
 from adapters.atlas_catalogue import catalogue_refused
 from adapters.atlas_identity import emulator_identity
 from adapters.emulator_sources import source_roots
-from domain.emulator_sources import SourceFinding
+from domain.emulator_sources import SEVERAL_APPIMAGES, SourceFinding
 from domain.save_answer import (
     SAVE_STATE_SAVES_ROOT_MISSING,
     SAVES_ROOT_MISSING,
@@ -92,8 +94,16 @@ if TYPE_CHECKING:
 # which of a folder's files belong to the game is read off each file's header;
 # it stands beside a folder whose path still needs the game's region and save
 # id, so the answer is a hole Tender refuses before the note matters (#2698 D3).
+# ``active-profile-unestablished`` says which user Eden runs a game as is not
+# known; it stands beside a folder whose path still needs ``profile_id``, so
+# the answer is a hole too.
 _NOTES_THAT_CHANGE_NOTHING = frozenset(
-    {CAVEAT_REDIRECT_OUTRANKED, CAVEAT_SAVE_FILES_SHARED_WITH_CORE, CAVEAT_FILE_MEMBERSHIP_BY_HEADER}
+    {
+        CAVEAT_REDIRECT_OUTRANKED,
+        CAVEAT_SAVE_FILES_SHARED_WITH_CORE,
+        CAVEAT_FILE_MEMBERSHIP_BY_HEADER,
+        CAVEAT_ACTIVE_PROFILE_UNESTABLISHED,
+    }
 )
 
 
@@ -144,7 +154,7 @@ class AtlasSaveLocationAdapter:
             return unestablished_answer(shape=UNESTABLISHED_NOT_ASKED, content_installed=content_installed)
 
         reading = self._sources.read()
-        installation = reading.answering_installation()
+        installation = reading.answering_installation(system)
         if installation is None:
             self._log_debug(f"[saves] no emulator source answers ({reading.no_answer_reason()})")
             return unestablished_answer(
@@ -153,7 +163,7 @@ class AtlasSaveLocationAdapter:
         answer, findings = self._emulators_answer(installation, system, content_path, emulator_label, content_installed)
         missing_root = self._missing_saves_root(installation)
         refused = with_source_findings(
-            answer, source=reading.answering_kind, findings=findings, missing_saves_root=missing_root
+            answer, source=reading.answering_kind_for(system), findings=findings, missing_saves_root=missing_root
         )
         if refused.state == SAVE_STATE_SAVES_ROOT_MISSING:
             self._log_debug(f"[saves] {system}: the saves root {missing_root} does not exist; nothing is synced")
@@ -198,7 +208,7 @@ class AtlasSaveLocationAdapter:
             declined: tuple[SourceFinding, ...] = ()
             if isinstance(placement, Unresolved):
                 self._log_debug(f"[saves] {subject}: declined with code={placement.code!r}")
-                declined = _findings((placement,))
+                declined = _declined_findings(placement)
             return unestablished_answer(emulator=emulator_label, content_installed=content_installed), declined
 
         answer = _translate(placement, emulator_label, content_installed, emulator_identity(entry))
@@ -247,9 +257,9 @@ class AtlasSaveLocationAdapter:
     # -- helpers -------------------------------------------------------------
 
     def _entry(self, system: str, content_path: str, emulator_label: str) -> Any | None:
-        """The answering source's catalogue entry carrying *emulator_label*, or ``None``."""
+        """*system*'s answering source's catalogue entry carrying *emulator_label*, or ``None``."""
         reading = self._sources.read()
-        installation = reading.answering_installation()
+        installation = reading.answering_installation(system)
         if installation is None:
             self._log_debug(f"[saves] no emulator source answers ({reading.no_answer_reason()})")
             return None
@@ -335,6 +345,21 @@ def _findings(caveats: Any, *, only: str | None = None) -> tuple[SourceFinding, 
         for caveat in caveats
         if only is None or caveat.code == only
     )
+
+
+def _declined_findings(refusal: Any) -> tuple[SourceFinding, ...]:
+    """A refusal as findings; several AppImages found is the finding the source's own card shows for it.
+
+    That is Tender's :data:`~domain.emulator_sources.SEVERAL_APPIMAGES`, its
+    candidates one path per line, as :mod:`adapters.emulator_sources` reads the
+    health issue of the same name.
+    """
+    if refusal.code == UNRESOLVED_APPIMAGE_AMBIGUOUS:
+        candidates = refusal.data.get("candidates", ())
+        return (
+            SourceFinding(code=SEVERAL_APPIMAGES, data={"candidates": "\n".join(str(path) for path in candidates)}),
+        )
+    return _findings((refusal,))
 
 
 def _translate(placement: Any, emulator_label: str, content_installed: bool, identity: str | None) -> SaveAnswer:

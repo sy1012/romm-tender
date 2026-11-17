@@ -1202,6 +1202,37 @@ class TestSaveSteamLibraryHiding:
         settings_persister.save_settings.assert_not_called()
 
 
+class TestSaveEdenAppImage:
+    def test_an_absolute_path_persists(self, service, settings, settings_persister):
+        result = service.save_eden_appimage("/home/deck/Applications/Eden.AppImage")
+        assert result == {"success": True}
+        assert settings["eden_appimage"] == "/home/deck/Applications/Eden.AppImage"
+        settings_persister.save_settings.assert_called_once_with()
+
+    def test_surrounding_blanks_are_dropped(self, service, settings):
+        service.save_eden_appimage("  /opt/eden.AppImage\n")
+        assert settings["eden_appimage"] == "/opt/eden.AppImage"
+
+    @pytest.mark.parametrize("blank", ["", "   "])
+    def test_a_blank_value_names_none(self, service, settings, settings_persister, blank):
+        settings["eden_appimage"] = "/opt/eden.AppImage"
+        service.save_eden_appimage(blank)
+        assert settings["eden_appimage"] == ""
+        settings_persister.save_settings.assert_called_once_with()
+
+    @pytest.mark.parametrize("value", ["Applications/Eden.AppImage", "~/Eden.AppImage", None, 7, ["/a"]])
+    def test_anything_else_is_refused_without_writing(self, service, settings, settings_persister, value):
+        with pytest.raises(Refused) as refused:
+            service.save_eden_appimage(value)
+        assert refused.value.reason == "invalid_value"
+        assert "eden_appimage" not in settings
+        settings_persister.save_settings.assert_not_called()
+
+    def test_it_is_read_back_with_the_settings(self, service, settings):
+        settings["eden_appimage"] = "/opt/eden.AppImage"
+        assert service.get_settings()["eden_appimage"] == "/opt/eden.AppImage"
+
+
 class TestSetQamEntryPosition:
     @pytest.mark.parametrize("position", ["above_decky", "below_decky"])
     def test_both_positions_persist(self, service, settings, settings_persister, position):
