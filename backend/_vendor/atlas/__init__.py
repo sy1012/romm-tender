@@ -65,7 +65,7 @@ from __future__ import annotations
 # tests/test_version.py holds it equal to pyproject — CI's package job holds
 # dist-info to pyproject in a clean venv — so drift is a red test, not a
 # silent fork.
-__version__ = "0.34.0+tender.1"  # x-release-please-version
+__version__ = "0.34.0+tender.3"  # x-release-please-version
 
 # --- The two entry points, and the aggregate over them -----------------------
 from .detect import detect
@@ -157,6 +157,7 @@ from .opens_codes import (
 
 # --- The handles every question is asked of ----------------------------------
 from .installations import (
+    EdenAppImage,
     EmuDeck,
     Installation,
     BareRetroArchNative,
@@ -186,6 +187,7 @@ from .contract import (
     installation_answers_contract,
     installation_contract,
     launch_command_contract,
+    extra_content_contract,
     launchable_contract,
     platform_systems_contract,
     savefile_answer_contract,
@@ -245,6 +247,8 @@ from .installations import (
     Installer,
     LaunchabilityAnswer,
     LaunchCommandAnswer,
+    ExtraContentAnswer,
+    ExtraContentFolder,
     PlatformSystemMatch,
     PlatformSystemsAnswer,
     RomLocationsAnswer,
@@ -595,6 +599,12 @@ from .installations import (
     HEALTH_ISSUE_MARKER_INVALID,
     HEALTH_ISSUE_MARKER_MISSING,
     HEALTH_ISSUE_MARKER_UNREADABLE,
+    HEALTH_ISSUE_APPIMAGE_AMBIGUOUS,
+    CAVEAT_APPIMAGE_AMBIGUOUS,
+    UNRESOLVED_APPIMAGE_AMBIGUOUS,
+    CAVEAT_EXTRA_CONTENT_FOLDERS_UNSTATED,
+    CAVEAT_EXTRA_CONTENT_SCANNED_BESIDE_LAUNCH,
+    CAVEAT_CONTENT_OUTSIDE_EXTRA_CONTENT_FOLDERS,
     HEALTH_ISSUE_NOT_SET_UP,
     HEALTH_ISSUE_ROMS_ROOT_MISSING,
     HEALTH_ISSUE_ROMS_ROOT_NOT_ABSOLUTE,
@@ -732,6 +742,8 @@ from .placement import (
     HOLE_REGION,
     HOLE_ROM_STEM,
     HOLE_SAVE_ID,
+    HOLE_PROFILE_ID,
+    CAVEAT_ACTIVE_PROFILE_UNESTABLISHED,
     KEYINGS,
     SAVE_ID_SPELLING_GAME_CODE,
     SAVE_ID_SPELLING_PATH_SEGMENT,
@@ -902,6 +914,7 @@ __all__ = [
     "EmuDeck",
     "BareRetroArchFlatpak",
     "BareRetroArchNative",
+    "EdenAppImage",
     # Answers
     "SavefilePlacement",
     "SavestateAbsence",
@@ -939,6 +952,8 @@ __all__ = [
     "Boot",
     "LaunchCommandAnswer",
     "LaunchCommand",
+    "ExtraContentAnswer",
+    "ExtraContentFolder",
     "LaunchProgram",
     "LauncherScript",
     "LauncherStep",
@@ -1057,6 +1072,7 @@ __all__ = [
     "system_platforms_contract",
     "launchable_contract",
     "launch_command_contract",
+    "extra_content_contract",
     "firmware_contract",
     "identification_contract",
     # Vocabulary types
@@ -1363,6 +1379,7 @@ __all__ = [
     "HOLE_REGION",
     "HOLE_ROM_STEM",
     "HOLE_SAVE_ID",
+    "HOLE_PROFILE_ID",
     # How a ``save_id`` fill is spelled, and the check a caller runs on a value
     # before filling the hole with it.
     "SAVE_ID_SPELLING_GAME_CODE",
@@ -1405,6 +1422,12 @@ __all__ = [
     "STATE_ROOT_KINDS",
     # Health finding codes
     "HEALTH_ISSUE_MARKER_MISSING",
+    "HEALTH_ISSUE_APPIMAGE_AMBIGUOUS",
+    "CAVEAT_APPIMAGE_AMBIGUOUS",
+    "UNRESOLVED_APPIMAGE_AMBIGUOUS",
+    "CAVEAT_EXTRA_CONTENT_FOLDERS_UNSTATED",
+    "CAVEAT_EXTRA_CONTENT_SCANNED_BESIDE_LAUNCH",
+    "CAVEAT_CONTENT_OUTSIDE_EXTRA_CONTENT_FOLDERS",
     "HEALTH_ISSUE_MARKER_UNREADABLE",
     "HEALTH_ISSUE_MARKER_INVALID",
     "HEALTH_ISSUE_ROOT_MISSING",
@@ -1602,6 +1625,7 @@ __all__ = [
     "CAVEAT_SIZE_FIXED_EXCEPT_TRAILING_FILL",
     "CAVEAT_SAVE_DIR_UNLISTABLE",
     "CAVEAT_SAVE_ID_CANDIDATES",
+    "CAVEAT_ACTIVE_PROFILE_UNESTABLISHED",
     "CAVEAT_SOFT_PATCHING_APPLIES",
     "CAVEAT_SORTED_DIR_MISSING",
     "CAVEAT_SORTED_DIR_UNCREATABLE",

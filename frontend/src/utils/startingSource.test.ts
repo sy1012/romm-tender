@@ -15,18 +15,24 @@ describe("readStartingSource", () => {
 
   it("answers the kind the backend names as the switched-off source that would start the game", async () => {
     vi.mocked(backend.checkStartSource).mockResolvedValue({ switched_off: "emudeck" });
-    await expect(readStartingSource("Watcher")).resolves.toEqual({ checked: true, switchedOff: "emudeck" });
+    await expect(readStartingSource("Watcher", 7)).resolves.toEqual({ checked: true, switchedOff: "emudeck" });
+  });
+
+  it("asks about the game it is handed, whose system decides which source starts it", async () => {
+    vi.mocked(backend.checkStartSource).mockResolvedValue({ switched_off: "eden_appimage" });
+    await expect(readStartingSource("Watcher", 42)).resolves.toEqual({ checked: true, switchedOff: "eden_appimage" });
+    expect(vi.mocked(backend.checkStartSource)).toHaveBeenCalledWith(42);
   });
 
   it("answers checked with no kind while the backend names none", async () => {
     vi.mocked(backend.checkStartSource).mockResolvedValue({ switched_off: null });
-    await expect(readStartingSource("Watcher")).resolves.toEqual({ checked: true, switchedOff: null });
+    await expect(readStartingSource("Watcher", 7)).resolves.toEqual({ checked: true, switchedOff: null });
   });
 
   it("answers unchecked, and logs, when the read throws", async () => {
     vi.mocked(backend.checkStartSource).mockRejectedValue(new Error("bridge down"));
 
-    await expect(readStartingSource("CustomPlayButton")).resolves.toEqual({ checked: false });
+    await expect(readStartingSource("CustomPlayButton", 7)).resolves.toEqual({ checked: false });
     expect(vi.mocked(backend.logError)).toHaveBeenCalledWith(
       expect.stringContaining("CustomPlayButton start-source check got no answer"),
     );
@@ -39,7 +45,7 @@ describe("readStartingSource", () => {
       message: "Detecting the emulator sources failed.",
     });
 
-    await expect(readStartingSource("Watcher")).resolves.toEqual({ checked: false });
+    await expect(readStartingSource("Watcher", 7)).resolves.toEqual({ checked: false });
     expect(vi.mocked(backend.logError)).toHaveBeenCalledWith(expect.stringContaining("detection_failed"));
   });
 
@@ -53,7 +59,7 @@ describe("readStartingSource", () => {
       answer as unknown as Awaited<ReturnType<typeof backend.checkStartSource>>,
     );
 
-    await expect(readStartingSource("Watcher")).resolves.toEqual({ checked: false });
+    await expect(readStartingSource("Watcher", 7)).resolves.toEqual({ checked: false });
     expect(vi.mocked(backend.logError)).toHaveBeenCalledWith(expect.stringContaining("could not tell"));
   });
 
@@ -62,7 +68,7 @@ describe("readStartingSource", () => {
     try {
       vi.mocked(backend.checkStartSource).mockReturnValue(new Promise<never>(() => {}));
       let outcome: unknown = "pending";
-      void readStartingSource("CustomPlayButton").then(
+      void readStartingSource("CustomPlayButton", 7).then(
         (value) => (outcome = value),
         (e: unknown) => (outcome = e),
       );

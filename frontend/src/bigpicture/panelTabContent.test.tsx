@@ -3,7 +3,7 @@ import { render } from "@testing-library/react";
 import { createElement, type ComponentProps } from "react";
 import { buildPanelTabs } from "./panelTabContent";
 import type { PanelState } from "./panelState";
-import type { SaveSyncAvailability } from "../types";
+import type { ExtraContentAnswer, SaveSyncAvailability } from "../types";
 import type { SavesTab } from "./SavesTab";
 import type { AchievementsLoad } from "../utils/achievements";
 import type { BiosTabState } from "./BiosTab";
@@ -86,6 +86,7 @@ function savesTabOf(panel: PanelState) {
     state: panel,
     achievements: {} as AchievementsLoad,
     bios: {} as BiosTabState,
+    extraContent: { answer: null, reload: vi.fn() },
   });
   const saves = tabs.find((tab) => tab.id === "saves");
   if (saves === undefined) throw new Error("no SAVES tab");
@@ -240,5 +241,48 @@ describe("the SAVES pane of a game that is not downloaded (#2149 D4)", () => {
     const { queryByTestId } = paneOf(state({ saveSyncAnswer: syncs() }));
 
     expect(queryByTestId("saves-not-downloaded")).toBeNull();
+  });
+});
+
+describe("the UPDATES & DLC tab", () => {
+  const OFFERED: ExtraContentAnswer = {
+    success: true,
+    offered: true,
+    installed: true,
+    files: [
+      {
+        file_id: 14,
+        file_name: "Game DLC.nsp",
+        rel_path: "dlc/Game DLC.nsp",
+        category: "dlc",
+        size_bytes: 10,
+        on_device: false,
+        ticked: true,
+        read_from_folders: true,
+      },
+    ],
+    game_folder_scanned: true,
+    rom_folder: "/roms/switch",
+  };
+
+  function tabIds(answer: ExtraContentAnswer | null): string[] {
+    return buildPanelTabs({
+      appId: 1,
+      binding: { romId: 7, write: vi.fn() },
+      state: state(),
+      achievements: {} as AchievementsLoad,
+      bios: {} as BiosTabState,
+      extraContent: { answer, reload: vi.fn() },
+    }).map((tab) => tab.id);
+  }
+
+  it("stands between BIOS and ARTWORK where extra content is offered and RomM holds some", () => {
+    expect(tabIds(OFFERED)).toEqual(["info", "saves", "bios", "extras", "artwork"]);
+  });
+
+  it("is not there where the emulator is not stated to load it from folders, or RomM holds none", () => {
+    expect(tabIds({ ...OFFERED, offered: false, files: [] })).not.toContain("extras");
+    expect(tabIds({ ...OFFERED, files: [] })).not.toContain("extras");
+    expect(tabIds(null)).not.toContain("extras");
   });
 });

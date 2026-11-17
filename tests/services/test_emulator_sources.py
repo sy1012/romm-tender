@@ -7,26 +7,58 @@ way the stored settings say.
 
 from __future__ import annotations
 
+from types import SimpleNamespace
 from typing import Any
 
 import pytest
-from _vendor.atlas import CAVEAT_EMULATOR_CATALOGUE_SEALED, HEALTH_ISSUE_ROOT_MISSING
+from _vendor.atlas import (
+    AVAILABILITY_NOT_INSTALLED,
+    AVAILABILITY_STARTABLE,
+    CAVEAT_EMULATOR_CATALOGUE_SEALED,
+    HEALTH_ISSUE_ROOT_MISSING,
+)
 from _vendor.atlas.installations import Health, SystemsAnswer
 from _vendor.atlas.placement import Caveat
 from fakes.fake_settings_persister import FakeSettingsPersister
+from fakes.fake_unit_of_work import FakeUnitOfWorkFactory
 from fakes.running_loop import running_loop
 
 from adapters.emulator_sources import EmulatorSourcesAdapter
 from domain.refusal import DomainRefused
+from domain.rom import Rom
+from domain.rom_install import RomInstall
 from lib.errors import Refused
 from services.emulator_sources import EmulatorSourcesService, EmulatorSourcesServiceConfig
 
 
 class _Installation:
-    def __init__(self, kind: str, *, issues: tuple[Caveat, ...] = (), sealed: bool = False) -> None:
+    """A source; *startable* and *not_installed* name the systems it holds an entry for, and whether it starts."""
+
+    def __init__(
+        self,
+        kind: str,
+        *,
+        issues: tuple[Caveat, ...] = (),
+        sealed: bool = False,
+        startable: tuple[str, ...] = (),
+        not_installed: tuple[str, ...] = (),
+    ) -> None:
         self.kind = kind
         self._issues = issues
         self._sealed = sealed
+        self._startable = startable
+        self._not_installed = not_installed
+
+    def emulators_for(self, system: str, *, content_path: str | None = None) -> Any:
+        availability = (
+            AVAILABILITY_STARTABLE
+            if system in self._startable
+            else AVAILABILITY_NOT_INSTALLED
+            if system in self._not_installed
+            else None
+        )
+        entries = () if availability is None else (SimpleNamespace(availability=availability),)
+        return SimpleNamespace(entries=entries, caveats=())
 
     def health(self) -> Health:
         return Health(self._issues)
@@ -44,6 +76,7 @@ class _Rig:
         self.detected = list(installations)
         self.settings: dict[str, Any] = {"emulator_source_order": [], "emulator_sources_off": []}
         self.persister = FakeSettingsPersister()
+        self.uow_factory = FakeUnitOfWorkFactory()
         self.sources = EmulatorSourcesAdapter(
             user_home="/home/deck",
             settings=self.settings,
@@ -56,6 +89,7 @@ class _Rig:
                 sources=self.sources,
                 settings=self.settings,
                 settings_persister=self.persister,
+                uow_factory=self.uow_factory,
                 loop=running_loop(),
                 log_debug=lambda msg: None,
             )
@@ -63,6 +97,28 @@ class _Rig:
 
     def kinds(self, listing: dict[str, Any]) -> list[str]:
         return [source["kind"] for source in listing["sources"]]
+
+    def install(self, rom_id: int, system: str) -> None:
+        self.uow_factory.uow.roms.save(
+            Rom.synced(
+                rom_id=rom_id,
+                platform_slug=system,
+                name=f"Game {rom_id}",
+                fs_name=f"game-{rom_id}",
+                shortcut_app_id=None,
+                synced_at="2026-11-17T00:00:00",
+            )
+        )
+        self.uow_factory.uow.rom_installs.save(
+            RomInstall(
+                rom_id=rom_id,
+                file_path=f"/roms/{system}/game",
+                rom_dir=None,
+                platform_slug=system,
+                system=system,
+                installed_at="2026-11-17T00:00:00Z",
+            )
+        )
 
 
 @pytest.fixture
@@ -157,6 +213,52 @@ class TestTheStartCheck:
         assert await rig.service.check_start_source() == {"switched_off": "retrodeck"}
         assert detections == [1]
         assert asked == []
+
+
+@pytest.fixture
+def with_eden() -> _Rig:
+    rig = _Rig(
+        _Installation("retrodeck", startable=("snes",), not_installed=("switch",)),
+        _Installation("eden_appimage", startable=("switch",)),
+    )
+    rig.install(1, "switch")
+    rig.install(2, "snes")
+    return rig
+
+
+class TestTheStartCheckForAGame:
+    @pytest.mark.asyncio
+    async def test_a_switched_off_eden_refuses_a_switch_game(self, with_eden):
+        await with_eden.service.set_emulator_source_enabled("eden_appimage", False)
+
+        assert await with_eden.service.check_start_source(1) == {"switched_off": "eden_appimage"}
+
+    @pytest.mark.asyncio
+    async def test_a_switched_off_eden_refuses_no_game_retrodeck_starts(self, with_eden):
+        await with_eden.service.set_emulator_source_enabled("eden_appimage", False)
+
+        assert await with_eden.service.check_start_source(2) == {"switched_off": None}
+
+    @pytest.mark.asyncio
+    async def test_a_switched_off_retrodeck_refuses_its_game_and_not_edens(self, with_eden):
+        await with_eden.service.set_emulator_source_enabled("retrodeck", False)
+
+        assert await with_eden.service.check_start_source(2) == {"switched_off": "retrodeck"}
+        assert await with_eden.service.check_start_source(1) == {"switched_off": None}
+
+    @pytest.mark.asyncio
+    async def test_a_game_with_no_install_is_checked_for_no_system(self, with_eden):
+        await with_eden.service.set_emulator_source_enabled("eden_appimage", False)
+
+        assert await with_eden.service.check_start_source(99) == {"switched_off": None}
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("rom_id", ["1", 0, -3, 1.0, True])
+    async def test_a_rom_id_that_is_not_a_positive_whole_number_is_refused(self, with_eden, rom_id):
+        with pytest.raises(Refused) as refusal:
+            await with_eden.service.check_start_source(rom_id)
+
+        assert refusal.value.reason == "invalid_value"
 
 
 class _Watched(_Installation):

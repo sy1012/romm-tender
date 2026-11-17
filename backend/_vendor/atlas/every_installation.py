@@ -50,6 +50,7 @@ from .firmware import FirmwareAnswer, FirmwareIdentification
 from .installations import (
     CatalogueAnswer,
     Health,
+    ExtraContentAnswer,
     Installation,
     LaunchabilityAnswer,
     LaunchCommandAnswer,
@@ -304,6 +305,19 @@ class EveryInstallation:
             raise ValueError(f"content_path must be an absolute path, got {content_path!r}")
         return self._ask(lambda installation: installation.launch_command(system, content_path, label=label))
 
+    def extra_content_folders(
+        self, system: str, *, label: str | None = None, content_path: str | None = None
+    ) -> tuple[InstallationAnswer[ExtraContentAnswer], ...]:
+        """Whether each installation's entry loads a game's updates and add-ons from folders, and which.
+
+        A relative *content_path* raises here, as each installation refuses it.
+        """
+        if content_path is not None and not os.path.isabs(content_path):
+            raise ValueError(f"content_path must be an absolute path, got {content_path!r}")
+        return self._ask(
+            lambda installation: installation.extra_content_folders(system, label=label, content_path=content_path)
+        )
+
     def firmware_for_core(
         self,
         core_so: str,
@@ -376,7 +390,9 @@ class EveryInstallation:
         return f"EveryInstallation({[i.kind for i in self._installations]})"
 
 
-def every_installation(home: str, machine: Machine | None = None) -> EveryInstallation:
+def every_installation(
+    home: str, machine: Machine | None = None, *, eden_appimage: str | None = None
+) -> EveryInstallation:
     """Detect the installations under *home* and return them ready to answer as one.
 
     The mirror of :func:`~atlas.detect.detect` for a caller who does not choose:
@@ -385,4 +401,4 @@ def every_installation(home: str, machine: Machine | None = None) -> EveryInstal
     detected handles wraps them with :class:`EveryInstallation` directly rather
     than detecting twice.
     """
-    return EveryInstallation(detect(home, machine))
+    return EveryInstallation(detect(home, machine, eden_appimage=eden_appimage))

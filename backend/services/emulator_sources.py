@@ -23,7 +23,6 @@ from domain.emulator_sources import (
     move_source,
     stored_kinds,
     switch_source,
-    switched_off_starting_source,
 )
 from lib.errors import Refused
 
@@ -31,7 +30,7 @@ if TYPE_CHECKING:
     import asyncio
 
     from domain.emulator_sources import SourceReport, SourcesReading
-    from services.protocols import DebugLogger, EmulatorSourcesReader, SettingsPersister
+    from services.protocols import DebugLogger, EmulatorSourcesReader, SettingsPersister, UnitOfWorkFactory
 
 _OFFSETS = {"up": -1, "down": 1}
 
@@ -42,13 +41,15 @@ class EmulatorSourcesServiceConfig:
 
     Carries the sources seam the listing and the detected kinds are read
     through, the live settings dict the order and the switches live in, the
-    persister that writes it, the event loop the I/O is run off, and the debug
-    logger.
+    persister that writes it, the Unit-of-Work factory a game's install record
+    is read through for the launch check, the event loop the I/O is run off,
+    and the debug logger.
     """
 
     sources: EmulatorSourcesReader
     settings: dict[str, Any]
     settings_persister: SettingsPersister
+    uow_factory: UnitOfWorkFactory
     loop: asyncio.AbstractEventLoop
     log_debug: DebugLogger
 
@@ -60,6 +61,7 @@ class EmulatorSourcesService:
         self._sources = config.sources
         self._settings = config.settings
         self._settings_persister = config.settings_persister
+        self._uow_factory = config.uow_factory
         self._loop = config.loop
         self._log_debug = config.log_debug
 
@@ -77,20 +79,26 @@ class EmulatorSourcesService:
         """
         return await self._loop.run_in_executor(None, self._listing_io)
 
-    async def check_start_source(self) -> dict[str, Any]:
-        """Whether a game may start through the sources as they stand: ``{"switched_off"}``.
+    async def check_start_source(self, rom_id: object = None) -> dict[str, Any]:
+        """Whether game *rom_id* may start through the sources as they stand: ``{"switched_off"}``.
 
         ``switched_off`` is the kind of the detected source that would start the
         game while the user switched it off, which refuses the start, and
         ``None`` otherwise (:func:`domain.emulator_sources.switched_off_starting_source`).
-        Detects the sources and reads nothing else of them, so the launch check
-        that asks it waits for no health or catalogue read.
+        Asked for the system of the game's install record, where it has one,
+        because which source starts a game is decided per system; without a
+        game, or for one not installed, for no system. Where more than one
+        source starts games, that reads their catalogues for the system;
+        otherwise nothing but the detection is read.
 
         Refuses ``detection_failed`` where detecting the sources raised: such a
         reading detected nothing, and answering ``None`` from it would let a
-        start through a source that may be switched off.
+        start through a source that may be switched off. A *rom_id* that is not
+        a whole number is refused with ``invalid_value``.
         """
-        return await self._loop.run_in_executor(None, self._start_source_io)
+        if rom_id is not None and (type(rom_id) is not int or rom_id <= 0):
+            raise Refused("invalid_value", f"A game is named by its id, not {rom_id!r}.")
+        return await self._loop.run_in_executor(None, self._start_source_io, rom_id)
 
     async def set_emulator_source_enabled(self, kind: str, enabled: object) -> dict[str, Any]:
         """Switch the detected source of *kind* on or off, and answer the listing as it now stands.
@@ -127,11 +135,19 @@ class EmulatorSourcesService:
             "answering": answering.kind if answering is not None else None,
         }
 
-    def _start_source_io(self) -> dict[str, Any]:
+    def _start_source_io(self, rom_id: int | None) -> dict[str, Any]:
         reading = self._sources.read()
         if reading.detection_failed:
             raise Refused("detection_failed", "Detecting the emulator sources failed.")
-        return {"switched_off": switched_off_starting_source(reading.sources)}
+        return {"switched_off": reading.switched_off_starting_for(self._system_of(rom_id))}
+
+    def _system_of(self, rom_id: int | None) -> str | None:
+        """The system game *rom_id*'s install record carries, or ``None`` without one."""
+        if rom_id is None:
+            return None
+        with self._uow_factory() as uow:
+            install = uow.rom_installs.get(rom_id)
+        return install.system if install is not None else None
 
     def _switch_io(self, kind: str, enabled: bool) -> dict[str, Any]:
         reading = self._sources.read()

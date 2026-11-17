@@ -377,13 +377,16 @@ class DownloadQueueCleanup(Protocol):
 
     Consumed by ``RomRemovalService`` to remove queue entries when a ROM
     is deleted. Exposing this as a Protocol avoids a service-to-service
-    concrete import and keeps the typed seam narrow to "evict one entry"
-    and "clear all entries".
+    concrete import and keeps the typed seam narrow to "evict one entry",
+    "clear all entries" and "which ROMs are downloading now", which a removal
+    of a game's extra content is refused against.
     """
 
     def evict(self, rom_id: int) -> None: ...
 
     def clear(self) -> None: ...
+
+    def active_download_rom_ids(self) -> set[int]: ...
 
 
 class PruneRunClaim(Protocol):

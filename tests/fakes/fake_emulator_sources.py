@@ -4,7 +4,14 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, TypeVar
 
-from domain.emulator_sources import ArrangedSource, answering_source, no_answering_source_reason
+from domain.emulator_sources import (
+    ArrangedSource,
+    SystemListing,
+    answering_source,
+    answering_source_for,
+    no_answering_source_reason,
+    switched_off_starting_source,
+)
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Hashable
@@ -16,21 +23,43 @@ _T = TypeVar("_T")
 
 
 class FakeSourcesReading:
-    """A reading over fixed sources, with the same answer memory the real one keeps."""
+    """A reading over fixed sources, with the same answer memory the real one keeps.
 
-    def __init__(self, sources: tuple[ArrangedSource, ...], installations: dict[str, Any]) -> None:
+    ``listings`` maps ``(kind, system)`` to how that source lists the system;
+    a pair it does not hold is not listed.
+    """
+
+    def __init__(
+        self,
+        sources: tuple[ArrangedSource, ...],
+        installations: dict[str, Any],
+        listings: dict[tuple[str, str], SystemListing] | None = None,
+    ) -> None:
         self.sources = sources
         self._installations = installations
+        self._listings = listings or {}
         self.installations = tuple(installations.values())
         self.answering = answering_source(sources)
         self.detection_failed = False
         self._answers: dict[Hashable, Any] = {}
 
+    def _listing(self, system: str) -> Callable[[str], SystemListing]:
+        return lambda kind: self._listings.get((kind, system), SystemListing.NOT_LISTED)
+
+    def answering_for(self, system: str) -> ArrangedSource | None:
+        return answering_source_for(self.sources, self._listing(system))
+
+    def switched_off_starting_for(self, system: str | None) -> str | None:
+        if system is None:
+            return switched_off_starting_source(self.sources)
+        return switched_off_starting_source(self.sources, self._listing(system))
+
     def no_answer_reason(self) -> str:
         return no_answering_source_reason(self.sources)
 
-    def answering_installation(self) -> Any:
-        return self._installations.get(self.answering.kind) if self.answering is not None else None
+    def answering_installation(self, system: str | None = None) -> Any:
+        answering = self.answering if system is None else self.answering_for(system)
+        return self._installations.get(answering.kind) if answering is not None else None
 
     def installation(self, kind: str) -> Any:
         return self._installations.get(kind)
@@ -58,8 +87,10 @@ class FakeEmulatorSources:
         installations: dict[str, Any] | None = None,
         reports: tuple[SourceReport, ...] = (),
         rom_folders: tuple[SourceRomFolders, ...] | None = (),
+        listings: dict[tuple[str, str], SystemListing] | None = None,
     ) -> None:
         self.sources = sources
+        self.listings = listings
         self.installations: dict[str, Any] = installations if installations is not None else {}
         self.reports = reports
         self.answered_rom_folders = rom_folders
@@ -68,7 +99,7 @@ class FakeEmulatorSources:
 
     def read(self) -> FakeSourcesReading:
         self.reads += 1
-        reading = FakeSourcesReading(self.sources, self.installations)
+        reading = FakeSourcesReading(self.sources, self.installations, self.listings)
         self.taken.append(reading)
         return reading
 

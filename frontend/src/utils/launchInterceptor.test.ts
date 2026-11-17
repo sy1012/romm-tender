@@ -625,7 +625,7 @@ describe("launchInterceptor — full funnel watcher", () => {
       expect(SteamClient.Apps.CancelGameAction).toHaveBeenCalledWith(77);
       expect(toaster.toast).toHaveBeenCalledWith({
         title: "Tender",
-        body: "RetroDECK is switched off in Settings › Emulator sources, and Tender can only start games through RetroDECK yet.",
+        body: "RetroDECK is switched off in Settings › Emulator sources, and Tender can only start this game through RetroDECK.",
       });
       expect(runGameMock()).not.toHaveBeenCalled();
       // Refused before the save-sync work: no sync for a start that never happens.
@@ -1366,7 +1366,7 @@ describe("launchInterceptor — full funnel watcher", () => {
 
       expect(toaster.toast).toHaveBeenCalledWith({
         title: "Tender",
-        body: "RetroDECK is switched off in Settings › Emulator sources, and Tender can only start games through RetroDECK yet.",
+        body: "RetroDECK is switched off in Settings › Emulator sources, and Tender can only start this game through RetroDECK.",
       });
       expect(runGameMock()).not.toHaveBeenCalled();
     });

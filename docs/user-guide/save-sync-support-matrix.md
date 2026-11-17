@@ -89,6 +89,15 @@ Android app, lays it out, so the two can share it. Restoring replaces only that 
 saves in the same folder are never touched, and the save it replaces is kept in `.romm-backup` first. This has not yet
 been observed on a device.
 
+**Switch syncs on a standalone Eden AppImage.** Tender finds the game's application ID in the file's name (a `[0100…]`
+tag), else in the tickets an NSP or NSZ lists, else in the tags of the other files in its folder (an update's or DLC's
+ID is taken back to its game), and the Eden user it runs as from Eden's own profile list. The save is that game's folder
+under `user/save/0000000000000000/<user>/<application id>` in Eden's NAND (or the save folder set in Eden's settings),
+carried to RomM as one `<game>.zip` laid out under the application ID, the way Argosy lays it out. Where the game's ID
+or the Eden user cannot be told — no tag, no readable package, no profile list yet — nothing is synced for that game and
+Tender says it could not be established. Start Eden once and set it up yourself first: Tender does not install Eden's
+keys or firmware, and does not download a game's updates or DLC. This has not yet been observed on a device.
+
 The systems whose default core has been **watched writing a save on a stock RetroDECK install** are Game Boy / Color /
 Advance, N64, Saturn, Neo Geo Pocket (Color) and Pokémon Mini. The rest of the ✅ rows follow the same standard `.srm`
 convention and are expected to behave identically, but haven't been observed one by one.
@@ -127,7 +136,7 @@ states still work locally). See the full table for specifics.
 
 ## Full platform list
 
-??? note "Every platform (149)"
+??? note "Every platform (150)"
 
     Status of each platform's default emulator core. Some platforms offer alternative cores that may behave differently.
 
@@ -175,6 +184,7 @@ states still work locally). See the full table for specifics.
     | `scummvm` | ❌ | Not synced |
     | `scv` | ❌ | Saves are stored separately by the emulator (MAME) |
     | `supracan` | ❌ | Saves are stored separately by the emulator (MAME) |
+    | `switch` | ✅ | Eden (AppImage): the game's save folder for the Eden user, as one zip — not yet observed on a device |
     | `vsmile` | ❌ | Saves are stored separately by the emulator (MAME) |
     | `wii` | ✅ | Dolphin (Standalone): the game's title folder in the NAND, as one zip — not yet observed on a device |
     | `x68000` | ❌ | Not synced |

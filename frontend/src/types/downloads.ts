@@ -23,6 +23,8 @@ export interface DownloadItem {
    */
   resumable: boolean;
   error?: string;
+  /** Set on a download of an installed game's extra content alone, which leaves the game's own files alone. */
+  extra_content_only?: boolean;
 }
 
 export interface DownloadProgressEvent {
@@ -36,6 +38,8 @@ export interface DownloadProgressEvent {
   total_bytes: number;
   /** Server's Range-support verdict; carried live once response headers arrive. */
   resumable?: boolean;
+  /** Set on a frame of a download of extra content alone; the game's own button leaves it alone. */
+  extra_content_only?: boolean;
 }
 
 export interface DownloadCompleteEvent {
@@ -45,6 +49,10 @@ export interface DownloadCompleteEvent {
   file_path: string;
   /** Whether the just-finished transfer was resumable (carried for store parity). */
   resumable?: boolean;
+  /** How many of the update and DLC files asked for did not arrive; absent where all did. */
+  extra_content_missing?: number;
+  /** Set where the download brought extra content alone, into a game already installed. */
+  extra_content_only?: boolean;
 }
 
 export interface DownloadFailedEvent {
@@ -52,6 +60,46 @@ export interface DownloadFailedEvent {
   rom_name: string;
   platform_name: string;
   error_message: string;
+  /** Set where the download that failed brought extra content alone; the game stays installed. */
+  extra_content_only?: boolean;
+}
+
+/** One update or DLC file RomM holds for a game, as the game page and a download's question show it. */
+export interface ExtraContentFile {
+  file_id: number;
+  file_name: string;
+  /** Where it lies inside the game's folder, on RomM and on this device. */
+  rel_path: string;
+  category: "update" | "dlc";
+  size_bytes: number;
+  /** Recorded on the install and still lying in the game's folder. */
+  on_device: boolean;
+  /** Ticked when a download asks which files to bring: the newest update and every DLC file. */
+  ticked: boolean;
+  /** Whether the emulator reads this file from a folder; `null` where that is not known. */
+  read_from_folders: boolean | null;
+}
+
+/**
+ * A game's extra content. `offered` is true only where the emulator the game
+ * starts with is stated to load updates and DLC from folders; otherwise
+ * `files` is empty. `game_folder_scanned` is whether the game's folder is one
+ * the emulator scans (`null`: not established). `rom_folder` is the system's ROM folder.
+ */
+export interface ExtraContentAnswer {
+  success: true;
+  offered: boolean;
+  installed: boolean;
+  files: ExtraContentFile[];
+  game_folder_scanned: boolean | null;
+  rom_folder: string | null;
+}
+
+/** What a removal of extra content answers: how many files it removed. */
+export interface RemoveExtraContentResult {
+  success: true;
+  removed: number;
+  message: string;
 }
 
 /**

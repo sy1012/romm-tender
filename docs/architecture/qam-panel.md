@@ -633,17 +633,21 @@ with `ownRegions` so the frame wraps its body in none either.
 ### The game page's tabs
 
 Tender's section on a RomM game's page ([frontend-bundles.md](frontend-bundles.md#tenders-section-on-steams-game-page))
-is not part of the panel, but its tabs are this same component: **GAME INFO**, **ACHIEVEMENTS**, **SAVES**, **BIOS** and
-**ARTWORK** are Steam's tabbed page (`bigpicture/GamePageTabs.tsx`), in that order (`buildPanelTabs`,
-`bigpicture/panelTabContent.tsx`). So L1 and R1, the wrap-around, the bumper glyphs, a tab switching as soon as focus
-lands on it, and each tab keeping where focus stood are Steam's. ACHIEVEMENTS is handed to it only for a game
-RetroAchievements knows (an `ra_id`), so a tab that is not shown is not stepped onto either. SAVES is handed to it with
-save sync on or off: the setting chooses its pane, the slots or this device's save files
+is not part of the panel, but its tabs are this same component: **GAME INFO**, **ACHIEVEMENTS**, **SAVES**, **BIOS**,
+**UPDATES & DLC** and **ARTWORK** are Steam's tabbed page (`bigpicture/GamePageTabs.tsx`), in that order
+(`buildPanelTabs`, `bigpicture/panelTabContent.tsx`). So L1 and R1, the wrap-around, the bumper glyphs, a tab switching
+as soon as focus lands on it, and each tab keeping where focus stood are Steam's. ACHIEVEMENTS is handed to it only for
+a game RetroAchievements knows (an `ra_id`), so a tab that is not shown is not stepped onto either. SAVES is handed to
+it with save sync on or off: the setting chooses its pane, the slots or this device's save files
 ([save-file-sync-architecture.md](save-file-sync-architecture.md#this-devices-save-files-save-sync-off)), and switching
 it while the tab is open switches the pane. Steam's own game page steps its own tabs with L1 and R1 the same way; on a
 RomM game Tender's section takes that panel's place, so nothing of Steam's is left handling the bumpers there (#2421
 D2). SAVES carries a warning mark beside its title (Steam's `renderTabAddon`) for a downloaded game whose saves cannot
 sync, while save sync is on ([save-file-sync-architecture.md](save-file-sync-architecture.md#where-the-check-happens)).
+UPDATES & DLC is handed to it only where the game's extra content is offered and RomM holds some (`showsExtraContent`,
+`utils/extraContent.ts`; [backend-architecture.md](backend-architecture.md#downloadservice-notes), "Extra content"): the
+panel reads the answer once per game and install state and again when a download of the game ends, and the pane
+(`bigpicture/ExtraContentTab.tsx`) downloads and removes files of an installed game, a removal behind a confirmation.
 
 **Height and scrolling are Steam's game page's.** The tabbed page has no height of its own — its tab row and its content
 are positioned absolutely (`steamui/css/sp.css`, `GamepadTabbedPage`) — and Steam's game page passes

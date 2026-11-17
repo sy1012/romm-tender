@@ -90,7 +90,7 @@ _CLAIMS_NAMED_BY_A_REASON: Mapping[str, WaitReason] = MappingProxyType(
             ("start_sync", "sync_preview", "sync_apply_delta", "report_unit_results", "sync_complete", "sync_stale"),
             WaitReason.LIBRARY_SYNC,
         ),
-        **dict.fromkeys(("start_download", "resume_download"), WaitReason.ROM_DOWNLOADS),
+        **dict.fromkeys(("start_download", "resume_download", "download_extra_content"), WaitReason.ROM_DOWNLOADS),
         **dict.fromkeys(
             (
                 "pre_launch_sync",
@@ -115,6 +115,7 @@ _CLAIMS_NAMED_BY_A_REASON: Mapping[str, WaitReason] = MappingProxyType(
                 # writes that follow.
                 "uninstall_all_roms",
                 "remove_rom",
+                "remove_extra_content",
                 "forget_download",
                 "forget_tender_folder_records",
                 "remove_all_shortcuts",

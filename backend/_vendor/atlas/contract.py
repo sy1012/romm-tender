@@ -54,6 +54,8 @@ from .installations import (
     Installation,
     Boot,
     Installer,
+    ExtraContentAnswer,
+    ExtraContentFolder,
     LaunchabilityAnswer,
     LaunchCommandAnswer,
     PlatformSystemsAnswer,
@@ -830,6 +832,36 @@ def launch_command_contract(answer: LaunchCommandAnswer) -> dict[str, Any]:
         "entry": emulator_contract(answer.entry) if answer.entry is not None else None,
         "command": _launch_command_body(answer.command) if answer.command is not None else None,
         "caveats": _caveats_contract(answer.caveats),
+    }
+
+
+def extra_content_contract(answer: ExtraContentAnswer) -> dict[str, Any]:
+    """The stable form of an extra-content answer — whether the entry's emulator loads updates and add-ons from folders.
+
+    ``loads_from_folders`` is three-valued and ``null`` is never a "no": it
+    says atlas has not established what the emulator does, and a caveat says
+    why. ``folders`` keeps the order the emulator's settings list them in,
+    each with whether its subfolders are read, whether what it holds is
+    registered before the game starts (``null`` where the scan runs beside
+    the launch), and the extensions read there. ``content_folder_scanned`` is
+    ``null`` where no content was asked about or the answer could not tell.
+    """
+    return {
+        "entry": emulator_contract(answer.entry) if answer.entry is not None else None,
+        "loads_from_folders": answer.loads_from_folders,
+        "folders": [_extra_folder_body(folder) for folder in answer.folders],
+        "content_folder_scanned": answer.content_folder_scanned,
+        "caveats": _caveats_contract(answer.caveats),
+    }
+
+
+def _extra_folder_body(folder: ExtraContentFolder) -> dict[str, Any]:
+    """One folder an emulator scans for updates and add-ons, as the extra-content answer carries it."""
+    return {
+        "path": folder.path,
+        "subfolders_scanned": folder.subfolders_scanned,
+        "registered_before_launch": folder.registered_before_launch,
+        "extensions": list(folder.extensions),
     }
 
 

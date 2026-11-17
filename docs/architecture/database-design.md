@@ -270,6 +270,7 @@ maps 1:1 onto these tables.
 | --------------------------- | -------------------------------- | ---------------------------------- | ------------------------------------------------------- |
 | `roms`                      | `Rom` (identity + shortcut)      | `rom_id`                           | ROM is synced from RomM                                 |
 | `rom_installs`              | `RomInstall`                     | `rom_id`                           | ROM is downloaded                                       |
+| `rom_install_extra_content` | `InstalledExtraContent` (1:N)    | `(rom_id, file_id)`                | a file of the game's extra content is on the device     |
 | `rom_metadata`              | `RomMetadata`                    | `rom_id`                           | metadata has been cached                                |
 | `rom_playtime`              | `Playtime` (scalars)             | `rom_id`                           | ROM has been played                                     |
 | `rom_playtime_sessions`     | `PendingPlaySession` (1:N child) | `(rom_id, start_time)`             | a session awaits native ingest                          |
@@ -340,8 +341,8 @@ uninstall's writer, no file touched).
 Most relationships are _not_ parent-child (an install record outlives its file on disk; playtime survives shortcut
 removal), so foreign keys are deliberately sparse:
 
-- **Per-ROM tables → `roms`, `ON DELETE CASCADE`** (`rom_installs`, `rom_metadata`, `rom_playtime`,
-  `rom_playtime_sessions`, `rom_save_sync_states`, `rom_save_files`, `answered_save_directories`,
+- **Per-ROM tables → `roms`, `ON DELETE CASCADE`** (`rom_installs`, `rom_install_extra_content`, `rom_metadata`,
+  `rom_playtime`, `rom_playtime_sessions`, `rom_save_sync_states`, `rom_save_files`, `answered_save_directories`,
   `artwork_slot_outcomes`, `artwork_slot_choices`, `artwork_slot_handovers`). Per-ROM state is genuinely owned by the
   ROM, so a `DELETE FROM roms WHERE …` cascades it all away in one statement. Per
   [ADR-0007](https://github.com/danielcopper/romm-tender/blob/main/docs/adr/0007-rom-retention-identity-anchor.md) this
@@ -900,6 +901,17 @@ kept before, or a server folder name — is moved by the next read of RomM's pla
 carries its name, else to the one listed `fs_slug` with that slug. Where several share the slug it stays where it is,
 and each of their platform pages offers it for deletion; one that nothing places, such as a folder name no file of the
 library names, stays where it is and no page offers it.
+
+`046_add_rom_install_extra_content.sql` (`user_version = 46`) creates `rom_install_extra_content`, the extra content of
+an install ([ADR-0048](../adr/0048-extra-content-lands-in-the-games-folder.md); GLOSSARY.md → Extra content): one row
+per update or DLC file downloaded into the game's folder, keyed `(rom_id, file_id)` — RomM's id for the file — with
+`rel_path`, its place inside the install's `rom_dir` (never empty), and `size_bytes`, RomM's size of it. It is a child
+of the `RomInstall` aggregate (`RomInstall.extra_content`, a tuple of `InstalledExtraContent` value objects, changed
+only through `add_extra_content` and `remove_extra_content`), and the install's repository writes the rows with the
+`rom_installs` row and drops them with it: a fresh install record saved over an old one carries none. The rows reference
+`roms` rather than `rom_installs`, whose `INSERT OR REPLACE` would otherwise put a cascade through every save of an
+install; a removed game's cascade takes them with it. Created empty: no download fetched extra content before it.
+Whether a game is installed reads `rom_installs` alone.
 
 ## The runtime Unit of Work
 

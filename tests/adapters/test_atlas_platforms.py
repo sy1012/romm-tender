@@ -218,6 +218,48 @@ class TestEachSourceIsAskedForItself:
         assert emudeck.asked == []
 
 
+class TestASourceThatStartsGamesHoldsWhatTheAnsweringOneLacks:
+    _SWITCH = PlatformIds(igdb_id=130)
+
+    def test_eden_holds_switch_where_retrodeck_has_none(self, traces):
+        retrodeck = _Installation("retrodeck", {})
+        eden = _Installation("eden_appimage", {("igdb", "130"): _matched("igdb", "130", "switch")})
+        adapter, _ = _adapter([retrodeck, eden], traces)
+
+        platform = _ask(adapter, self._SWITCH, "switch")
+
+        assert (platform.state, platform.system, _kind(platform)) == (FOUND, "switch", "eden_appimage")
+
+    def test_the_answering_sources_system_stands_where_it_has_one(self, traces):
+        retrodeck = _Installation("retrodeck", {("igdb", "130"): _matched("igdb", "130", "switch")})
+        eden = _Installation("eden_appimage", {("igdb", "130"): _matched("igdb", "130", "switch")})
+        adapter, _ = _adapter([retrodeck, eden], traces)
+
+        platform = _ask(adapter, self._SWITCH, "switch")
+
+        assert _kind(platform) == "retrodeck"
+        assert eden.asked == []
+
+    def test_where_no_source_has_one_the_answering_sources_answer_stands(self, traces):
+        retrodeck = _Installation("retrodeck", {})
+        eden = _Installation("eden_appimage", {})
+        adapter, _ = _adapter([retrodeck, eden], traces)
+
+        platform = _ask(adapter, self._SWITCH, "switch")
+
+        assert (platform.state, _kind(platform)) == (NO_SYSTEM, "retrodeck")
+
+    def test_a_named_source_is_never_passed_over(self, traces):
+        retrodeck = _Installation("retrodeck", {})
+        eden = _Installation("eden_appimage", {("igdb", "130"): _matched("igdb", "130", "switch")})
+        adapter, _ = _adapter([retrodeck, eden], traces)
+
+        platform = _ask(adapter, self._SWITCH, "switch", source="retrodeck")
+
+        assert _kind(platform) == "retrodeck"
+        assert eden.asked == []
+
+
 class TestTheSourceAQuestionGoesTo:
     def test_the_answering_source_or_the_one_named(self, traces):
         retrodeck, emudeck = _Installation("retrodeck", {}), _Installation("emudeck", {})

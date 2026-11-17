@@ -1,0 +1,935 @@
+{
+  "family": "machines",
+  "schema": 5,
+  "spec": "DESIGN.md 'Catalogue'; atlas/installations.py EdenAppImage; atlas/eden.py; atlas/switch_title.py; docs/how-to-use.md",
+  "description": "A standalone Eden AppImage: detection from the folders atlas searches, its one switch entry, its launch, its save named by the content's application id and the active user, and the holes and refusals where either is not established.",
+  "vectors": [
+    {
+      "name": "eden-appimage-catalogue-one-startable-entry",
+      "rationale": "An Eden AppImage in ~/Applications is detected as the eden_appimage arrangement; it answers switch with one standalone entry, emulator Eden, startable through the AppImage itself.",
+      "input": {
+        "home": "/home/deck",
+        "files": {
+          "/home/deck/Applications/Eden-Linux-v0.2.1-amd64.AppImage": {
+            "size": 4096
+          },
+          "/home/deck/.local/share/eden/nand/system/save/8000000000000010/su/avators/profiles.dat": {
+            "size": 4096
+          }
+        },
+        "eden_profiles": {
+          "/home/deck/.local/share/eden/nand/system/save/8000000000000010/su/avators/profiles.dat": [
+            "00112233445566778899aabbccddeeff"
+          ]
+        },
+        "catalogue_query": {
+          "system": "switch"
+        }
+      },
+      "expected": {
+        "installations": [
+          {
+            "kind": "eden_appimage",
+            "label": "Eden (AppImage)",
+            "kinds": [
+              "eden_appimage"
+            ],
+            "root": "/home/deck/.local/share/eden",
+            "health": []
+          }
+        ],
+        "catalogue": {
+          "entries": [
+            {
+              "system": "switch",
+              "label": "Eden (AppImage)",
+              "kind": "standalone",
+              "core_so": null,
+              "emulator": "EDEN",
+              "declared_index": 0,
+              "selection": null,
+              "availability": "startable",
+              "launcher": {
+                "path": "/home/deck/Applications/Eden-Linux-v0.2.1-amd64.AppImage",
+                "replacement_command": null,
+                "app_id": null,
+                "rule": "staticpath",
+                "entry": "/home/deck/Applications/Eden-Linux-v0.2.1-amd64.AppImage"
+              },
+              "core_path": null,
+              "caveats": []
+            }
+          ],
+          "caveats": [
+            {
+              "code": "arrangement-unverified",
+              "data": {
+                "kind": "eden_appimage"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "eden-appimage-launch-command-runs-the-appimage-with-f-g",
+      "rationale": "The launch is the AppImage with -f -g <content>, no environment of its own and an empty distribution environment, run in the AppImage's own folder so a portable user tree beside it is the one Eden reads.",
+      "input": {
+        "home": "/home/deck",
+        "files": {
+          "/home/deck/Applications/Eden-Linux-v0.2.1-amd64.AppImage": {
+            "size": 4096
+          },
+          "/home/deck/.local/share/eden/nand/system/save/8000000000000010/su/avators/profiles.dat": {
+            "size": 4096
+          },
+          "/home/deck/roms/switch/Zelda [01007EF00011E000].nsp": {
+            "size": 4096
+          }
+        },
+        "eden_profiles": {
+          "/home/deck/.local/share/eden/nand/system/save/8000000000000010/su/avators/profiles.dat": [
+            "00112233445566778899aabbccddeeff"
+          ]
+        },
+        "launch_command_query": {
+          "system": "switch",
+          "content_path": "/home/deck/roms/switch/Zelda [01007EF00011E000].nsp"
+        }
+      },
+      "expected": {
+        "installations": [
+          {
+            "kind": "eden_appimage",
+            "label": "Eden (AppImage)",
+            "kinds": [
+              "eden_appimage"
+            ],
+            "root": "/home/deck/.local/share/eden",
+            "health": []
+          }
+        ],
+        "launch_command": {
+          "entry": {
+            "system": "switch",
+            "label": "Eden (AppImage)",
+            "kind": "standalone",
+            "core_so": null,
+            "emulator": "EDEN",
+            "declared_index": 0,
+            "selection": null,
+            "availability": "startable",
+            "launcher": {
+              "path": "/home/deck/Applications/Eden-Linux-v0.2.1-amd64.AppImage",
+              "replacement_command": null,
+              "app_id": null,
+              "rule": "staticpath",
+              "entry": "/home/deck/Applications/Eden-Linux-v0.2.1-amd64.AppImage"
+            },
+            "core_path": null,
+            "caveats": []
+          },
+          "command": {
+            "program": {
+              "variant": "appimage",
+              "app_id": null,
+              "command": null,
+              "path": "/home/deck/Applications/Eden-Linux-v0.2.1-amd64.AppImage"
+            },
+            "arguments": [
+              "-f",
+              "-g",
+              "/home/deck/roms/switch/Zelda [01007EF00011E000].nsp"
+            ],
+            "environment": [],
+            "working_folder": {
+              "frontend_path": "/home/deck/Applications",
+              "host_path": "/home/deck/Applications",
+              "created_if_missing": false
+            },
+            "injections": [],
+            "launcher_script": null,
+            "distribution_environment": []
+          },
+          "caveats": [
+            {
+              "code": "arrangement-unverified",
+              "data": {
+                "kind": "eden_appimage"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "eden-appimage-save-named-by-the-tag-and-the-active-user",
+      "rationale": "The content's [01…] tag names the application, profiles.dat's only user is current_user 0's, so the answer is that user's folder for the game, stated as the game's own save folder with the application id as its archive folder.",
+      "input": {
+        "home": "/home/deck",
+        "files": {
+          "/home/deck/Applications/Eden-Linux-v0.2.1-amd64.AppImage": {
+            "size": 4096
+          },
+          "/home/deck/.local/share/eden/nand/system/save/8000000000000010/su/avators/profiles.dat": {
+            "size": 4096
+          },
+          "/home/deck/roms/switch/Zelda [01007EF00011E000].nsp": {
+            "size": 4096
+          }
+        },
+        "eden_profiles": {
+          "/home/deck/.local/share/eden/nand/system/save/8000000000000010/su/avators/profiles.dat": [
+            "00112233445566778899aabbccddeeff"
+          ]
+        },
+        "entry_savefile_query": {
+          "system": "switch",
+          "label": "Eden (AppImage)",
+          "content_path": "/home/deck/roms/switch/Zelda [01007EF00011E000].nsp"
+        }
+      },
+      "expected": {
+        "installations": [
+          {
+            "kind": "eden_appimage",
+            "label": "Eden (AppImage)",
+            "kinds": [
+              "eden_appimage"
+            ],
+            "root": "/home/deck/.local/share/eden",
+            "health": []
+          }
+        ],
+        "entry_savefile_location": {
+          "dir": "/home/deck/.local/share/eden/nand/user/save/0000000000000000/FFEEDDCCBBAA99887766554433221100/01007EF00011E000",
+          "root_kind": "emulator_directory",
+          "needs": [],
+          "fallback_dir": null,
+          "physical_dir": null,
+          "file_set": {
+            "state": "declared",
+            "files": [],
+            "complete": false,
+            "groups": [
+              {
+                "dir": "/home/deck/.local/share/eden/nand/user/save/0000000000000000/FFEEDDCCBBAA99887766554433221100/01007EF00011E000",
+                "files": null,
+                "granularity": "per-game-directory",
+                "role": "battery",
+                "size_fixed": false,
+                "unit": {
+                  "kind": "own-folder",
+                  "members": null,
+                  "archive_folder": "01007EF00011E000"
+                }
+              }
+            ]
+          },
+          "caveats": [
+            {
+              "code": "file-names-unestablished",
+              "data": {
+                "dir": "/home/deck/.local/share/eden/nand/user/save/0000000000000000/FFEEDDCCBBAA99887766554433221100/01007EF00011E000",
+                "role": "battery",
+                "citation": "savedata_factory.cpp:93-106 and :131-138 at eden-emu/eden v0.2.1 (58c1e20e)"
+              }
+            }
+          ],
+          "redirects": null,
+          "granularity": {
+            "value": "per-game-directory",
+            "mode": "user-save",
+            "readings": [],
+            "alternatives": []
+          }
+        }
+      }
+    },
+    {
+      "name": "eden-appimage-save-update-tag-is-taken-back-to-its-application",
+      "rationale": "An update's title id (application + 0x800) names its application's save folder; current_user 1 picks the second listed user.",
+      "input": {
+        "home": "/home/deck",
+        "files": {
+          "/home/deck/Applications/Eden-Linux-v0.2.1-amd64.AppImage": {
+            "size": 4096
+          },
+          "/home/deck/.local/share/eden/nand/system/save/8000000000000010/su/avators/profiles.dat": {
+            "size": 4096
+          },
+          "/home/deck/roms/switch/Zelda Update [01007EF00011E800].nsp": {
+            "size": 4096
+          },
+          "/home/deck/.config/eden/qt-config.ini": "[System]\ncurrent_user\\default=false\ncurrent_user=1\n"
+        },
+        "eden_profiles": {
+          "/home/deck/.local/share/eden/nand/system/save/8000000000000010/su/avators/profiles.dat": [
+            "00112233445566778899aabbccddeeff",
+            "0f1e2d3c4b5a69788796a5b4c3d2e1f0"
+          ]
+        },
+        "entry_savefile_query": {
+          "system": "switch",
+          "label": "Eden (AppImage)",
+          "content_path": "/home/deck/roms/switch/Zelda Update [01007EF00011E800].nsp"
+        }
+      },
+      "expected": {
+        "installations": [
+          {
+            "kind": "eden_appimage",
+            "label": "Eden (AppImage)",
+            "kinds": [
+              "eden_appimage"
+            ],
+            "root": "/home/deck/.local/share/eden",
+            "health": []
+          }
+        ],
+        "entry_savefile_location": {
+          "dir": "/home/deck/.local/share/eden/nand/user/save/0000000000000000/F0E1D2C3B4A5968778695A4B3C2D1E0F/01007EF00011E000",
+          "root_kind": "emulator_directory",
+          "needs": [],
+          "fallback_dir": null,
+          "physical_dir": null,
+          "file_set": {
+            "state": "declared",
+            "files": [],
+            "complete": false,
+            "groups": [
+              {
+                "dir": "/home/deck/.local/share/eden/nand/user/save/0000000000000000/F0E1D2C3B4A5968778695A4B3C2D1E0F/01007EF00011E000",
+                "files": null,
+                "granularity": "per-game-directory",
+                "role": "battery",
+                "size_fixed": false,
+                "unit": {
+                  "kind": "own-folder",
+                  "members": null,
+                  "archive_folder": "01007EF00011E000"
+                }
+              }
+            ]
+          },
+          "caveats": [
+            {
+              "code": "file-names-unestablished",
+              "data": {
+                "dir": "/home/deck/.local/share/eden/nand/user/save/0000000000000000/F0E1D2C3B4A5968778695A4B3C2D1E0F/01007EF00011E000",
+                "role": "battery",
+                "citation": "savedata_factory.cpp:93-106 and :131-138 at eden-emu/eden v0.2.1 (58c1e20e)"
+              }
+            }
+          ],
+          "redirects": null,
+          "granularity": {
+            "value": "per-game-directory",
+            "mode": "user-save",
+            "readings": [],
+            "alternatives": []
+          }
+        }
+      }
+    },
+    {
+      "name": "eden-appimage-save-named-by-the-package-ticket",
+      "rationale": "An untagged NSP is named by the ticket its PFS0 header lists: the rights id's first sixteen digits, an add-on's id taken back to its application.",
+      "input": {
+        "home": "/home/deck",
+        "files": {
+          "/home/deck/Applications/Eden-Linux-v0.2.1-amd64.AppImage": {
+            "size": 4096
+          },
+          "/home/deck/.local/share/eden/nand/system/save/8000000000000010/su/avators/profiles.dat": {
+            "size": 4096
+          },
+          "/home/deck/roms/switch/untagged.nsp": {
+            "size": 4096
+          }
+        },
+        "eden_profiles": {
+          "/home/deck/.local/share/eden/nand/system/save/8000000000000010/su/avators/profiles.dat": [
+            "00112233445566778899aabbccddeeff"
+          ]
+        },
+        "switch_packages": {
+          "/home/deck/roms/switch/untagged.nsp": [
+            "0123456789abcdef0123456789abcdef.nca",
+            "0100aaaa00011001000000000000000a.tik"
+          ]
+        },
+        "entry_savefile_query": {
+          "system": "switch",
+          "label": "Eden (AppImage)",
+          "content_path": "/home/deck/roms/switch/untagged.nsp"
+        }
+      },
+      "expected": {
+        "installations": [
+          {
+            "kind": "eden_appimage",
+            "label": "Eden (AppImage)",
+            "kinds": [
+              "eden_appimage"
+            ],
+            "root": "/home/deck/.local/share/eden",
+            "health": []
+          }
+        ],
+        "entry_savefile_location": {
+          "dir": "/home/deck/.local/share/eden/nand/user/save/0000000000000000/FFEEDDCCBBAA99887766554433221100/0100AAAA00010000",
+          "root_kind": "emulator_directory",
+          "needs": [],
+          "fallback_dir": null,
+          "physical_dir": null,
+          "file_set": {
+            "state": "declared",
+            "files": [],
+            "complete": false,
+            "groups": [
+              {
+                "dir": "/home/deck/.local/share/eden/nand/user/save/0000000000000000/FFEEDDCCBBAA99887766554433221100/0100AAAA00010000",
+                "files": null,
+                "granularity": "per-game-directory",
+                "role": "battery",
+                "size_fixed": false,
+                "unit": {
+                  "kind": "own-folder",
+                  "members": null,
+                  "archive_folder": "0100AAAA00010000"
+                }
+              }
+            ]
+          },
+          "caveats": [
+            {
+              "code": "file-names-unestablished",
+              "data": {
+                "dir": "/home/deck/.local/share/eden/nand/user/save/0000000000000000/FFEEDDCCBBAA99887766554433221100/0100AAAA00010000",
+                "role": "battery",
+                "citation": "savedata_factory.cpp:93-106 and :131-138 at eden-emu/eden v0.2.1 (58c1e20e)"
+              }
+            }
+          ],
+          "redirects": null,
+          "granularity": {
+            "value": "per-game-directory",
+            "mode": "user-save",
+            "readings": [],
+            "alternatives": []
+          }
+        }
+      }
+    },
+    {
+      "name": "eden-appimage-save-named-by-the-folders-other-files",
+      "rationale": "An untagged base file in a RomM multi-file folder whose update carries the tag; its own header is no package, so the neighbour's tag names the application.",
+      "input": {
+        "home": "/home/deck",
+        "files": {
+          "/home/deck/Applications/Eden-Linux-v0.2.1-amd64.AppImage": {
+            "size": 4096
+          },
+          "/home/deck/.local/share/eden/nand/system/save/8000000000000010/su/avators/profiles.dat": {
+            "size": 4096
+          },
+          "/home/deck/roms/switch/Mario Kart 8 Deluxe/base.nsp": {
+            "size": 4096
+          },
+          "/home/deck/roms/switch/Mario Kart 8 Deluxe/update [0100152000022800].nsp": {
+            "size": 4096
+          }
+        },
+        "eden_profiles": {
+          "/home/deck/.local/share/eden/nand/system/save/8000000000000010/su/avators/profiles.dat": [
+            "00112233445566778899aabbccddeeff"
+          ]
+        },
+        "switch_packages": {
+          "/home/deck/roms/switch/Mario Kart 8 Deluxe/base.nsp": "not-a-package"
+        },
+        "entry_savefile_query": {
+          "system": "switch",
+          "label": "Eden (AppImage)",
+          "content_path": "/home/deck/roms/switch/Mario Kart 8 Deluxe/base.nsp"
+        }
+      },
+      "expected": {
+        "installations": [
+          {
+            "kind": "eden_appimage",
+            "label": "Eden (AppImage)",
+            "kinds": [
+              "eden_appimage"
+            ],
+            "root": "/home/deck/.local/share/eden",
+            "health": []
+          }
+        ],
+        "entry_savefile_location": {
+          "dir": "/home/deck/.local/share/eden/nand/user/save/0000000000000000/FFEEDDCCBBAA99887766554433221100/0100152000022000",
+          "root_kind": "emulator_directory",
+          "needs": [],
+          "fallback_dir": null,
+          "physical_dir": null,
+          "file_set": {
+            "state": "declared",
+            "files": [],
+            "complete": false,
+            "groups": [
+              {
+                "dir": "/home/deck/.local/share/eden/nand/user/save/0000000000000000/FFEEDDCCBBAA99887766554433221100/0100152000022000",
+                "files": null,
+                "granularity": "per-game-directory",
+                "role": "battery",
+                "size_fixed": false,
+                "unit": {
+                  "kind": "own-folder",
+                  "members": null,
+                  "archive_folder": "0100152000022000"
+                }
+              }
+            ]
+          },
+          "caveats": [
+            {
+              "code": "file-names-unestablished",
+              "data": {
+                "dir": "/home/deck/.local/share/eden/nand/user/save/0000000000000000/FFEEDDCCBBAA99887766554433221100/0100152000022000",
+                "role": "battery",
+                "citation": "savedata_factory.cpp:93-106 and :131-138 at eden-emu/eden v0.2.1 (58c1e20e)"
+              }
+            }
+          ],
+          "redirects": null,
+          "granularity": {
+            "value": "per-game-directory",
+            "mode": "user-save",
+            "readings": [],
+            "alternatives": []
+          }
+        }
+      }
+    },
+    {
+      "name": "eden-appimage-save-keeps-the-holes-without-a-user-or-a-title",
+      "rationale": "profiles.dat is cut short, so Eden would create a fresh user — the profile_id hole stays, with the user folders found listed; no content names no title, so save_id stays too.",
+      "input": {
+        "home": "/home/deck",
+        "files": {
+          "/home/deck/Applications/Eden-Linux-v0.2.1-amd64.AppImage": {
+            "size": 4096
+          },
+          "/home/deck/.local/share/eden/nand/system/save/8000000000000010/su/avators/profiles.dat": {
+            "size": 4096
+          }
+        },
+        "dirs": [
+          "/home/deck/.local/share/eden/nand/user/save/0000000000000000/FFEEDDCCBBAA99887766554433221100"
+        ],
+        "eden_profiles": {
+          "/home/deck/.local/share/eden/nand/system/save/8000000000000010/su/avators/profiles.dat": "short"
+        },
+        "entry_savefile_query": {
+          "system": "switch",
+          "label": "Eden (AppImage)"
+        }
+      },
+      "expected": {
+        "installations": [
+          {
+            "kind": "eden_appimage",
+            "label": "Eden (AppImage)",
+            "kinds": [
+              "eden_appimage"
+            ],
+            "root": "/home/deck/.local/share/eden",
+            "health": []
+          }
+        ],
+        "entry_savefile_location": {
+          "dir": "/home/deck/.local/share/eden/nand/user/save/0000000000000000/<profile_id>/<save_id>",
+          "root_kind": "emulator_directory",
+          "needs": [
+            "profile_id",
+            "save_id"
+          ],
+          "fallback_dir": null,
+          "physical_dir": null,
+          "file_set": {
+            "state": "declared",
+            "files": [],
+            "complete": false,
+            "groups": [
+              {
+                "dir": "/home/deck/.local/share/eden/nand/user/save/0000000000000000/<profile_id>/<save_id>",
+                "files": null,
+                "granularity": "per-game-directory",
+                "role": "battery",
+                "size_fixed": false,
+                "unit": null
+              }
+            ]
+          },
+          "caveats": [
+            {
+              "code": "active-profile-unestablished",
+              "data": {
+                "file": "/home/deck/.local/share/eden/nand/system/save/8000000000000010/su/avators/profiles.dat",
+                "status": "short",
+                "users": [
+                  "FFEEDDCCBBAA99887766554433221100"
+                ],
+                "profile_id": "the user's save folder below /home/deck/.local/share/eden/nand/user/save/0000000000000000: thirty-two uppercase hex digits, the user id's high then low word"
+              }
+            },
+            {
+              "code": "file-names-unestablished",
+              "data": {
+                "dir": "/home/deck/.local/share/eden/nand/user/save/0000000000000000/<profile_id>/<save_id>",
+                "role": "battery",
+                "citation": "savedata_factory.cpp:93-106 and :131-138 at eden-emu/eden v0.2.1 (58c1e20e)",
+                "save_id": "the game's application id, sixteen uppercase hex digits ({:016X}) — a patch's or add-on's id taken back to its application",
+                "save_id_spelling": "path-segment"
+              }
+            }
+          ],
+          "redirects": null,
+          "granularity": {
+            "value": "per-game-directory",
+            "mode": "user-save",
+            "readings": [],
+            "alternatives": []
+          }
+        }
+      }
+    },
+    {
+      "name": "eden-appimage-portable-tree-and-configured-save-directory",
+      "rationale": "A 'user' directory beside the AppImage is Eden's whole data tree, and its qt-config.ini's [Data%20Storage] save_directory moves the saves while profiles.dat stays in the NAND.",
+      "input": {
+        "home": "/home/deck",
+        "files": {
+          "/home/deck/Applications/Eden-Linux-v0.2.1-amd64.AppImage": {
+            "size": 4096
+          },
+          "/home/deck/Applications/user/nand/system/save/8000000000000010/su/avators/profiles.dat": {
+            "size": 4096
+          },
+          "/home/deck/Applications/user/config/qt-config.ini": "[Data%20Storage]\nsave_directory=\"/run/media/sd/eden-saves\"\n",
+          "/home/deck/roms/switch/Zelda [01007EF00011E000].nsp": {
+            "size": 4096
+          }
+        },
+        "dirs": [
+          "/run/media/sd/eden-saves"
+        ],
+        "eden_profiles": {
+          "/home/deck/Applications/user/nand/system/save/8000000000000010/su/avators/profiles.dat": [
+            "00112233445566778899aabbccddeeff"
+          ]
+        },
+        "entry_savefile_query": {
+          "system": "switch",
+          "label": "Eden (AppImage)",
+          "content_path": "/home/deck/roms/switch/Zelda [01007EF00011E000].nsp"
+        }
+      },
+      "expected": {
+        "installations": [
+          {
+            "kind": "eden_appimage",
+            "label": "Eden (AppImage)",
+            "kinds": [
+              "eden_appimage"
+            ],
+            "root": "/home/deck/Applications/user",
+            "health": []
+          }
+        ],
+        "entry_savefile_location": {
+          "dir": "/run/media/sd/eden-saves/user/save/0000000000000000/FFEEDDCCBBAA99887766554433221100/01007EF00011E000",
+          "root_kind": "emulator_directory",
+          "needs": [],
+          "fallback_dir": null,
+          "physical_dir": null,
+          "file_set": {
+            "state": "declared",
+            "files": [],
+            "complete": false,
+            "groups": [
+              {
+                "dir": "/run/media/sd/eden-saves/user/save/0000000000000000/FFEEDDCCBBAA99887766554433221100/01007EF00011E000",
+                "files": null,
+                "granularity": "per-game-directory",
+                "role": "battery",
+                "size_fixed": false,
+                "unit": {
+                  "kind": "own-folder",
+                  "members": null,
+                  "archive_folder": "01007EF00011E000"
+                }
+              }
+            ]
+          },
+          "caveats": [
+            {
+              "code": "file-names-unestablished",
+              "data": {
+                "dir": "/run/media/sd/eden-saves/user/save/0000000000000000/FFEEDDCCBBAA99887766554433221100/01007EF00011E000",
+                "role": "battery",
+                "citation": "savedata_factory.cpp:93-106 and :131-138 at eden-emu/eden v0.2.1 (58c1e20e)"
+              }
+            }
+          ],
+          "redirects": null,
+          "granularity": {
+            "value": "per-game-directory",
+            "mode": "user-save",
+            "readings": [],
+            "alternatives": []
+          }
+        }
+      }
+    },
+    {
+      "name": "eden-appimage-two-appimages-are-not-picked-between",
+      "rationale": "Two Eden AppImages and none named: health says appimage-ambiguous, the entry is unestablished for that reason and the launch refuses — while the save, whose tree both would read, is still answered.",
+      "input": {
+        "home": "/home/deck",
+        "files": {
+          "/home/deck/Applications/Eden-Linux-v0.2.1-amd64.AppImage": {
+            "size": 4096
+          },
+          "/home/deck/.local/share/eden/nand/system/save/8000000000000010/su/avators/profiles.dat": {
+            "size": 4096
+          },
+          "/home/deck/AppImages/eden-nightly.AppImage": {
+            "size": 4096
+          },
+          "/home/deck/roms/switch/Zelda [01007EF00011E000].nsp": {
+            "size": 4096
+          }
+        },
+        "eden_profiles": {
+          "/home/deck/.local/share/eden/nand/system/save/8000000000000010/su/avators/profiles.dat": [
+            "00112233445566778899aabbccddeeff"
+          ]
+        },
+        "launch_command_query": {
+          "system": "switch",
+          "content_path": "/home/deck/roms/switch/Zelda [01007EF00011E000].nsp"
+        }
+      },
+      "expected": {
+        "installations": [
+          {
+            "kind": "eden_appimage",
+            "label": "Eden (AppImage)",
+            "kinds": [
+              "eden_appimage"
+            ],
+            "root": "/home/deck/.local/share/eden",
+            "health": [
+              {
+                "code": "appimage-ambiguous",
+                "data": {
+                  "candidates": [
+                    "/home/deck/AppImages/eden-nightly.AppImage",
+                    "/home/deck/Applications/Eden-Linux-v0.2.1-amd64.AppImage"
+                  ]
+                }
+              }
+            ]
+          }
+        ],
+        "launch_command": {
+          "entry": {
+            "system": "switch",
+            "label": "Eden (AppImage)",
+            "kind": "standalone",
+            "core_so": null,
+            "emulator": "EDEN",
+            "declared_index": 0,
+            "selection": null,
+            "availability": "unestablished",
+            "launcher": null,
+            "core_path": null,
+            "caveats": [
+              {
+                "code": "appimage-ambiguous",
+                "data": {
+                  "candidates": [
+                    "/home/deck/AppImages/eden-nightly.AppImage",
+                    "/home/deck/Applications/Eden-Linux-v0.2.1-amd64.AppImage"
+                  ]
+                }
+              }
+            ]
+          },
+          "command": null,
+          "caveats": [
+            {
+              "code": "appimage-ambiguous",
+              "data": {
+                "candidates": [
+                  "/home/deck/AppImages/eden-nightly.AppImage",
+                  "/home/deck/Applications/Eden-Linux-v0.2.1-amd64.AppImage"
+                ]
+              }
+            },
+            {
+              "code": "arrangement-unverified",
+              "data": {
+                "kind": "eden_appimage"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "eden-appimage-two-appimages-with-different-trees-refuse-the-save",
+      "rationale": "Two Eden AppImages, one with a portable user tree beside it: which tree holds the save depends on which runs, so the save question refuses with appimage-ambiguous.",
+      "input": {
+        "home": "/home/deck",
+        "files": {
+          "/home/deck/Applications/Eden-Linux-v0.2.1-amd64.AppImage": {
+            "size": 4096
+          },
+          "/home/deck/.local/share/eden/nand/system/save/8000000000000010/su/avators/profiles.dat": {
+            "size": 4096
+          },
+          "/home/deck/AppImages/eden-nightly.AppImage": {
+            "size": 4096
+          },
+          "/home/deck/roms/switch/Zelda [01007EF00011E000].nsp": {
+            "size": 4096
+          }
+        },
+        "dirs": [
+          "/home/deck/AppImages/user"
+        ],
+        "entry_savefile_query": {
+          "system": "switch",
+          "label": "Eden (AppImage)",
+          "content_path": "/home/deck/roms/switch/Zelda [01007EF00011E000].nsp"
+        }
+      },
+      "expected": {
+        "installations": [
+          {
+            "kind": "eden_appimage",
+            "label": "Eden (AppImage)",
+            "kinds": [
+              "eden_appimage"
+            ],
+            "root": "/home/deck/.local/share/eden",
+            "health": [
+              {
+                "code": "appimage-ambiguous",
+                "data": {
+                  "candidates": [
+                    "/home/deck/AppImages/eden-nightly.AppImage",
+                    "/home/deck/Applications/Eden-Linux-v0.2.1-amd64.AppImage"
+                  ]
+                }
+              }
+            ]
+          }
+        ],
+        "entry_savefile_location": {
+          "unresolved": {
+            "code": "appimage-ambiguous",
+            "data": {
+              "candidates": [
+                "/home/deck/AppImages/eden-nightly.AppImage",
+                "/home/deck/Applications/Eden-Linux-v0.2.1-amd64.AppImage"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "eden-appimage-firmware-is-unsupported",
+      "rationale": "Eden's keys and firmware are not read: the switch entry's declaration is unsupported, never an empty read.",
+      "input": {
+        "home": "/home/deck",
+        "files": {
+          "/home/deck/Applications/Eden-Linux-v0.2.1-amd64.AppImage": {
+            "size": 4096
+          },
+          "/home/deck/.local/share/eden/nand/system/save/8000000000000010/su/avators/profiles.dat": {
+            "size": 4096
+          }
+        },
+        "eden_profiles": {
+          "/home/deck/.local/share/eden/nand/system/save/8000000000000010/su/avators/profiles.dat": [
+            "00112233445566778899aabbccddeeff"
+          ]
+        },
+        "firmware_query": {
+          "kind": "system",
+          "system": "switch"
+        }
+      },
+      "expected": {
+        "installations": [
+          {
+            "kind": "eden_appimage",
+            "label": "Eden (AppImage)",
+            "kinds": [
+              "eden_appimage"
+            ],
+            "root": "/home/deck/.local/share/eden",
+            "health": []
+          }
+        ],
+        "firmware": {
+          "root": "/home/deck/.local/share/eden/keys",
+          "hash_checked": false,
+          "cores": [
+            {
+              "core_so": null,
+              "emulator": "EDEN",
+              "declared_index": 0,
+              "label": "Eden (AppImage)",
+              "declaration": "unsupported",
+              "locating": "unestablished",
+              "requirements_met": null,
+              "system_firmware": null,
+              "system_firmware_met": null,
+              "requirements": [],
+              "refused": [],
+              "caveats": [
+                {
+                  "code": "standalone-unsupported",
+                  "data": {
+                    "label": "Eden (AppImage)"
+                  }
+                }
+              ]
+            }
+          ],
+          "unclaimed": [],
+          "caveats": [
+            {
+              "code": "arrangement-unverified",
+              "data": {
+                "kind": "eden_appimage"
+              }
+            },
+            {
+              "code": "firmware-declaration-unknown",
+              "data": {
+                "system": "switch"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

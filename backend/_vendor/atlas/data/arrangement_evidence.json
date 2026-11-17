@@ -30,6 +30,11 @@
       "label": "a native RetroArch install",
       "verified": null,
       "note": "[D] The cfg location and RetroArch's own upstream defaults are source-verified; no native installation has been observed."
+    },
+    "eden_appimage": {
+      "label": "a standalone Eden AppImage",
+      "verified": null,
+      "note": "[D] Eden's data root, qt-config.ini settings, profiles.dat layout and save path are read from eden-emu/eden v0.2.1 (58c1e20e); no running Eden AppImage has been observed."
     }
   }
 }

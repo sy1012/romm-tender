@@ -135,6 +135,8 @@ from .find_rules import (
     CAVEAT_LAUNCHER_SCRIPT_MISSING,
     LAYER_CUSTOM,
     RULE_COMMAND,
+    RULE_STATICPATH,
+    CAVEAT_PROGRAM_NOT_FOUND,
     CAVEAT_FRONTEND_BUILD_UNPINNED,
     CAVEAT_FRONTEND_BUILD_SEALED,
     CAVEAT_LAUNCHER_SCRIPT_UNPINNED,
@@ -167,9 +169,12 @@ from .launch_command import (
     CommandView,
     DistributionVariable,
     LaunchCommand,
+    LaunchProgram,
     LauncherScript,
     LauncherStep,
     TooLarge,
+    VARIANT_APPIMAGE,
+    WorkingFolder,
     take_apart,
 )
 from .launch_environment import (
@@ -196,10 +201,13 @@ from .firmware import firmware_for_core as _resolve_for_core
 from .firmware import firmware_for_system as _resolve_for_system
 from .firmware import firmware_inventory as _resolve_inventory
 from .firmware import identify_firmware as _resolve_identification
-from . import dolphin_disc
+from . import dolphin_disc, eden, switch_title
 from .machine import (
     APPIMAGE_CAPABILITY_MISSING,
     DOLPHIN_DISC_OK,
+    EDEN_PROFILES_OK,
+    EDEN_PROFILES_UNREADABLE,
+    SWITCH_PACKAGE_OK,
     ARCHIVE_MISSING,
     claimed_extensions,
     FileStamp,
@@ -320,6 +328,9 @@ from .placement import (
     CAVEAT_PATCH_FORMATS_UNESTABLISHED,
     CAVEAT_SANDBOX_PATH_UNTRANSLATED,
     CAVEAT_SAVE_ID_CANDIDATES,
+    CAVEAT_ACTIVE_PROFILE_UNESTABLISHED,
+    HOLE_PROFILE_ID,
+    TEMPLATE_PROFILE_ID,
     CAVEAT_SOFT_PATCHING_APPLIES,
     CAVEAT_SAVE_DIR_LAUNCH_DEPENDENT,
     CAVEAT_SAVE_DIR_UNLISTABLE,
@@ -20007,6 +20018,74 @@ class LaunchCommandAnswer:
     """
 
 
+
+# The entry's emulator states nothing atlas reads about loading a game's
+# updates and add-on content from files lying in folders: whether it does is
+# not established. ``data`` names the ``installation`` and, where one was
+# chosen, the ``entry``'s label.
+CAVEAT_EXTRA_CONTENT_FOLDERS_UNSTATED = "extra-content-folders-unstated"
+# Some folders the answer lists are scanned by a thread the emulator runs
+# beside the launch, and it does not wait for that scan before it boots the
+# game: whether what lies there is registered in time is not established.
+# ``data`` carries those ``folders``.
+CAVEAT_EXTRA_CONTENT_SCANNED_BESIDE_LAUNCH = "extra-content-scanned-beside-launch"
+# The folder the asked content lies in — the content itself, where it is a
+# folder — is in none of the folders the emulator scans for extra content, so
+# an update or add-on put beside it is not loaded. ``data`` names that
+# ``folder``.
+CAVEAT_CONTENT_OUTSIDE_EXTRA_CONTENT_FOLDERS = "content-outside-extra-content-folders"
+
+
+@dataclass(frozen=True, slots=True)
+class ExtraContentFolder:
+    """One folder an emulator scans for a game's updates and add-on content, and how."""
+
+    path: str
+    """The folder, as a host path."""
+    subfolders_scanned: bool
+    """Whether files in its subfolders are read too, at any depth — ``false`` reads only the files directly in it."""
+    registered_before_launch: bool | None
+    """Whether what the folder holds is registered before the game starts — ``true`` where the emulator scans it at
+    its own start, ``null`` where the scan runs beside the launch and nothing establishes which finishes first.
+    """
+    extensions: tuple[str, ...]
+    """The file extensions, lowercase with their dot, the scan reads extra content from — compared
+    case-insensitively; a file under any other extension is not read, whatever it holds.
+    """
+
+
+@dataclass(frozen=True, slots=True)
+class ExtraContentAnswer:
+    """Whether an entry's emulator loads a game's updates and add-on content from files in folders, and which.
+
+    Some emulators register the updates and add-ons they find in packages lying
+    in folders, with no step that installs them; the rest want them installed.
+    ``loads_from_folders`` says which of the two the entry's emulator is,
+    ``folders`` where it looks on this machine, and ``content_folder_scanned``
+    whether the asked content's own folder is one of them.
+    """
+
+    entry: EmulatorEntry | None = None
+    """The catalogue entry the answer is about — the one a label names, or the frontend's first; ``null`` where none
+    was chosen.
+    """
+    loads_from_folders: bool | None = None
+    """``true`` where the entry's emulator registers updates and add-on content from files in folders without
+    installing them, ``false`` where it does not, ``null`` where that is not established — never ``false`` out of
+    ignorance. ``true`` is the emulator's behaviour, not a promise that a folder is configured: read ``folders``.
+    """
+    folders: tuple[ExtraContentFolder, ...] = ()
+    """The folders the emulator scans, as its settings on this machine name them — empty where it scans none, or
+    where ``loads_from_folders`` is not ``true``.
+    """
+    content_folder_scanned: bool | None = None
+    """Whether a package lying in the asked content's own folder — the content itself, where it is a folder — is in
+    a folder the emulator scans: ``null`` where no content was asked about or that is not established.
+    """
+    sources: tuple[str, ...] = ()
+    caveats: tuple[Caveat, ...] = ()
+    """Every degradation of this answer, stated structurally so a client branches on the code rather than on prose."""
+
 # Flatpak's per-app overrides are GKeyFile INI, and only the environment they
 # assign is read here — the [Environment] group's KEY=VALUE lines and the
 # [Context] group's unset-environment list. Value semantics follow
@@ -21899,6 +21978,11 @@ def _catalogue_with_caveats(answer: CatalogueAnswer, caveats: tuple[Caveat, ...]
     return cast(CatalogueAnswer, _dc_replace(answer, caveats=caveats))
 
 
+def _extra_content_with_caveats(answer: ExtraContentAnswer, caveats: tuple[Caveat, ...]) -> ExtraContentAnswer:
+    """*answer* with *caveats* as its caveat list — ``dataclasses.replace`` behind a concrete signature."""
+    return cast(ExtraContentAnswer, _dc_replace(answer, caveats=caveats))
+
+
 def _launchable_with_caveats(
     answer: LaunchabilityAnswer, caveats: tuple[Caveat, ...]
 ) -> LaunchabilityAnswer:
@@ -23329,6 +23413,31 @@ class _CatalogueQueries:
             answer, (*answer.caveats, *arrangement_caveats(self.kind, observed_version=version))
         )
 
+    @one_question
+    def extra_content_folders(
+        self, system: str, *, label: str | None = None, content_path: str | None = None
+    ) -> ExtraContentAnswer:
+        """Whether *system*'s entry loads a game's updates and add-on content from files in folders, and from which.
+
+        The entry is chosen the way :meth:`launch_command` chooses it: the one
+        *label* names, or the frontend's first. Only an emulator whose own
+        reading of this is stated answers ``loads_from_folders`` true or
+        false — a standalone Eden AppImage, today; every other entry answers
+        ``null`` with ``extra-content-folders-unstated``, which is a statement
+        about atlas and never a "no".
+
+        Given *content_path* — absolute, or this raises ``ValueError`` — the
+        answer also says whether the content's own folder is one the emulator
+        scans, which is where a caller that keeps a game's updates and
+        add-ons beside it puts them.
+        """
+        if content_path is not None and not os.path.isabs(content_path):
+            raise ValueError(f"content_path must be an absolute path, got {content_path!r}")
+        answer, version = self._extra_content_answer(system, content_path, label)
+        return _extra_content_with_caveats(
+            answer, (*answer.caveats, *arrangement_caveats(self.kind, observed_version=version))
+        )
+
     # The public questions above are the whole catalogue surface, and a
     # handle overrides the ``_…_answer`` methods below instead: what it
     # *answers* is its own, how the answer states its arrangement's evidence
@@ -23396,6 +23505,29 @@ class _CatalogueQueries:
             {"installation": self.kind},
         )
         return LaunchCommandAnswer(chosen, None, answer.sources, (*answer.caveats, unevaluated)), version
+
+    def _extra_content_answer(
+        self, system: str, content_path: str | None, label: str | None
+    ) -> tuple[ExtraContentAnswer, str | None]:
+        # The entry is chosen as the launch command chooses it; what its
+        # emulator does with folders is stated only where a handle reads it.
+        answer, version = self._catalogue_answer(system, content_path=content_path)
+        chosen = _chosen_entry(answer.entries, label, system)
+        if isinstance(chosen, Caveat):
+            return ExtraContentAnswer(sources=answer.sources, caveats=(*answer.caveats, chosen)), version
+        data: dict[str, DataValue] = {"installation": self.kind}
+        if chosen is not None:
+            data["entry"] = chosen.label
+        unstated = Caveat(
+            CAVEAT_EXTRA_CONTENT_FOLDERS_UNSTATED,
+            "whether this entry's emulator loads a game's updates and add-ons from files in folders is not "
+            "established — atlas reads it for no emulator of this arrangement",
+            data,
+        )
+        return (
+            ExtraContentAnswer(entry=chosen, sources=answer.sources, caveats=(*answer.caveats, unstated)),
+            version,
+        )
 
     def _rom_location_answer(self, system: str) -> tuple[RomPlacement, str | None]:
         # Same refusal as the two above, for the same reason: where a system's
@@ -29026,6 +29158,951 @@ class BareRetroArchNative(_RetroArchInstall):
         super().__init__(home, machine, NATIVE_CFG_SUFFIX)
 
 
+# ---------------------------------------------------------------------------
+# Eden as a standalone AppImage — the Switch emulator run as the one file the
+# user downloaded, with no frontend around it. The arrangement is the
+# AppImage and Eden's own trees: there is no catalogue to read, so the one
+# entry it answers with is atlas's statement that this program runs Switch
+# content, and every placement is read the way Eden reads it (atlas.eden for
+# the files' formats, atlas.switch_title for naming the game). Every Eden
+# citation is at eden.EDEN_BUILD.
+# ---------------------------------------------------------------------------
+
+EDEN_APPIMAGE_KIND = "eden_appimage"
+EDEN_SYSTEM = "switch"
+EDEN_LABEL = "Eden (AppImage)"
+# The identity ES-DE's own vocabulary gives Eden — its find rules' emulator
+# name, the ``X`` of ``%EMULATOR_X%`` — so an Eden entry here joins the one a
+# frontend catalogue declares for the same emulator.
+EDEN_EMULATOR = "EDEN"
+
+# More than one Eden AppImage was found where atlas looks for one, and nothing
+# named which runs — so no launch is stated and no tree that depends on the
+# AppImage's own folder (a portable ``user`` beside it) is chosen. ``data``
+# carries the ``candidates`` found, in path order. A caller names the one to
+# run (``detect(..., eden_appimage=...)``); atlas never picks.
+CAVEAT_APPIMAGE_AMBIGUOUS = "appimage-ambiguous"
+HEALTH_ISSUE_APPIMAGE_AMBIGUOUS = CAVEAT_APPIMAGE_AMBIGUOUS
+UNRESOLVED_APPIMAGE_AMBIGUOUS = CAVEAT_APPIMAGE_AMBIGUOUS
+
+# Where an Eden AppImage is looked for when the caller names none: the folders
+# the common AppImage managers and EmuDeck put one in, below the home.
+EDEN_APPIMAGE_FOLDERS = (
+    "Applications",
+    "AppImages",
+    os.path.join("Emulation", "tools"),
+    os.path.join(".local", "bin"),
+)
+
+# Eden's own launch arguments: ``-f`` fullscreen and ``-g <path>`` the game to
+# load (docs/user/CommandLine.md at eden.EDEN_BUILD) — the arguments ES-DE's
+# own Switch entry passes too, ``%EMULATOR_EDEN% -f -g %ROM%``
+# (``resources/systems/linux/es_systems.xml:2081`` @ ES-DE v3.4.1, where
+# ``es_find_rules.xml:422`` names the emulator ``EDEN``).
+_EDEN_ARGUMENTS = ("-f", "-g")
+
+# The extensions Eden's loader names a type for when it guesses from the name
+# (``GuessFromFilename``, ``src/core/loader/loader.cpp:133-154``) — it reads
+# the file's own magic first, so an extension is where it starts and not what
+# decides.
+_EDEN_EXTENSIONS = frozenset({".nro", ".nso", ".nca", ".xci", ".nsp", ".kip"})
+
+
+def eden_appimage_candidates(machine: Machine, home: str) -> tuple[str, ...]:
+    """Every Eden AppImage in the folders atlas looks in, in path order.
+
+    A name is Eden's where it starts with ``eden`` and ends with ``.appimage``,
+    both compared case-insensitively, and the entry is a file once links are
+    followed. A folder that cannot be listed contributes nothing.
+    """
+    found: list[str] = []
+    for folder in EDEN_APPIMAGE_FOLDERS:
+        directory = os.path.join(home, folder)
+        for name in _host_listing(machine, directory) or ():
+            lowered = name.lower()
+            if not (lowered.startswith("eden") and lowered.endswith(".appimage")):
+                continue
+            path = os.path.join(directory, name)
+            if machine.path_kind(path) == KIND_FILE:
+                found.append(path)
+    return tuple(sorted(found))
+
+
+@dataclass(frozen=True, slots=True)
+class _EdenTree:
+    """Eden's trees as one launch reads them: its data root, its settings, the NAND and the save directory."""
+
+    data_root: str
+    config_file: str
+    values: Mapping[tuple[str, str], str]
+    nand: str
+    save_root: str
+    sources: tuple[str, ...]
+    caveats: tuple[Caveat, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class _EdenProfile:
+    """The user a launch runs as — its save folder and UUID — or the statement of why it is not established."""
+
+    folder: str | None
+    uuid: bytes | None
+    source: str | None = None
+    refusal: Caveat | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class _SwitchApplication:
+    """A Switch game's application id, and the sentence saying how it was named."""
+
+    application: int
+    basis: str
+
+
+def _distinct_applications(title_ids: Sequence[int]) -> frozenset[int]:
+    return frozenset(app for app in map(switch_title.application_id, title_ids) if app is not None)
+
+
+def _switch_application(machine: Machine, content_path: str) -> _SwitchApplication | None:
+    """The application id *content_path*'s game saves under, or ``None`` where nothing names exactly one.
+
+    Three readings, in order, the first that names exactly one application
+    winning: a tag in the content's own name; the PFS0 header of the content,
+    where it is an NSP or NSZ, through its tickets' names; and the tags of the
+    other files beside it — or inside it, where the content is a folder, which
+    is how RomM keeps a game with its update and add-ons. The package is read
+    before the neighbours because it is the content's own statement, where a
+    neighbour may be another game's file in a shared folder. Every id is taken
+    back to its application (:func:`atlas.switch_title.application_id`).
+    """
+    name = os.path.basename(content_path.rstrip("/"))
+    kind = machine.path_kind(content_path)
+    own = _distinct_applications(switch_title.tagged_title_ids(name))
+    if len(own) == 1:
+        (app,) = own
+        return _SwitchApplication(
+            app, f"the application id {switch_title.spelled(app)} from the title-id tag in the content's name {name!r}"
+        )
+    if kind == KIND_FILE and os.path.splitext(name)[1].lower() in switch_title.PFS0_EXTENSIONS:
+        package = machine.read_switch_package(content_path)
+        if package.status == SWITCH_PACKAGE_OK and package.names is not None:
+            ticketed = _distinct_applications(switch_title.ticket_title_ids(package.names))
+            if len(ticketed) == 1:
+                (app,) = ticketed
+                return _SwitchApplication(
+                    app,
+                    f"the application id {switch_title.spelled(app)} from the ticket named in the package's PFS0 "
+                    "header (partition_filesystem.cpp:25-81 at "
+                    f"{eden.EDEN_BUILD}; the ticket's name is its rights id, the packers' convention — derived)",
+                )
+    folder = content_path if kind == KIND_DIRECTORY else os.path.dirname(content_path)
+    neighbours = [other for other in _host_listing(machine, folder) or () if other != name]
+    tagged = _distinct_applications([tid for other in neighbours for tid in switch_title.tagged_title_ids(other)])
+    if len(tagged) == 1:
+        (app,) = tagged
+        return _SwitchApplication(
+            app,
+            f"the application id {switch_title.spelled(app)} from the title-id tags of the files in {folder} — "
+            "a neighbour's name, not the content's own: derived",
+        )
+    return None
+
+
+def _eden_folder_names(directory: str, citation: str, *, title_named: bool) -> Caveat:
+    """The folder's files are the game's own writes; where no title is named, how ``<save_id>`` is filled."""
+    names: dict[str, DataValue] = {"dir": directory, "role": ROLE_BATTERY, "citation": citation}
+    if not title_named:
+        names["save_id"] = (
+            "the game's application id, sixteen uppercase hex digits ({:016X}) — a patch's or add-on's id "
+            "taken back to its application"
+        )
+        names["save_id_spelling"] = SAVE_ID_SPELLING_PATH_SEGMENT
+    return Caveat(
+        CAVEAT_FILE_NAMES_UNESTABLISHED,
+        "the files below a game's save folder are the game's own writes, so the folder moves whole",
+        names,
+    )
+
+
+def _placed_folder(path: str, launch_folder: str | None) -> str | None:
+    """*path* as a host folder — a relative one below *launch_folder*, ``None`` where there is none to be below."""
+    if os.path.isabs(path):
+        return os.path.normpath(path)
+    return None if launch_folder is None else os.path.normpath(os.path.join(launch_folder, path))
+
+
+def _extra_folder_covers(folder: ExtraContentFolder, own: str) -> bool:
+    """Whether a file lying directly in *own* is read by a scan of *folder* — compared as spelled, both normalised."""
+    if own == folder.path:
+        return True
+    return folder.subfolders_scanned and own.startswith(folder.path.rstrip(os.sep) + os.sep)
+
+
+class EdenAppImage(_FirmwareQueries, _CatalogueQueries):
+    """Eden, the Switch emulator, run as a standalone AppImage.
+
+    Detected from an AppImage the caller names (``detect(...,
+    eden_appimage=...)``) or found in the folders
+    :data:`EDEN_APPIMAGE_FOLDERS` names. The handle is live: a searched one
+    searches again on every question, so an AppImage added or removed shows up
+    in the next answer.
+
+    The arrangement has no frontend catalogue. It answers with one entry, for
+    ``switch``: a standalone entry whose ``emulator`` is ``EDEN``, startable
+    where one AppImage is established. Its launch is the AppImage with
+    ``-f -g <content>``, run in the AppImage's own folder: Eden takes a
+    ``user`` directory in its working directory as its whole data tree where
+    one exists (portable mode, ``PathManagerImpl::Reinitialize``,
+    ``src/common/fs/path_util.cpp:133-143``), and atlas resolves the data
+    root from that same folder, so the answer's trees are the launch's.
+    Otherwise the data root is ``$XDG_DATA_HOME/eden`` and the settings
+    ``$XDG_CONFIG_HOME/eden`` (:133-143, ``GetDataDirectory`` at :362-379),
+    taken at their defaults below the home (:153-155) — the environment of a launch is
+    not something atlas reads.
+
+    The save answer names one game's own folder,
+    ``<save root>/user/save/0000000000000000/<user>/<APPLICATION ID>``, where
+    the content names its application (:func:`_switch_application`) and the
+    active user is established from ``profiles.dat`` and ``current_user``;
+    either missing stays a hole (``save_id``, ``profile_id``). Firmware and
+    keys are not read: the entry's firmware answer is ``unsupported``.
+
+    Eden loads a game's updates and add-ons from packages lying in folders,
+    with no install step: :meth:`extra_content_folders` names the folders its
+    settings make it scan (:mod:`atlas.eden` says which and when).
+    """
+
+    kind = EDEN_APPIMAGE_KIND
+    kinds = (EDEN_APPIMAGE_KIND,)
+
+    def __init__(self, home: str, machine: Machine, *, appimage: str | None = None) -> None:
+        if appimage is not None and not os.path.isabs(appimage):
+            raise ValueError(f"eden_appimage must be an absolute path, got {appimage!r}")
+        self._home = home
+        self._machine = machine
+        self._named = appimage
+
+    # ── Which AppImage ────────────────────────────────────────────────
+
+    def _candidates(self) -> tuple[str, ...]:
+        if self._named is not None:
+            return (self._named,)
+        return eden_appimage_candidates(self._machine, self._home)
+
+    def _appimage(self) -> str | None:
+        """The one AppImage a launch runs — ``None`` where none or several are established."""
+        candidates = self._candidates()
+        if len(candidates) != 1:
+            return None
+        if self._named is not None and self._machine.path_kind(self._named) != KIND_FILE:
+            return None
+        return candidates[0]
+
+    @one_question
+    def appimage(self) -> str | None:
+        """The AppImage this handle runs — the named one where it is a file, else the one found — or ``None``."""
+        return self._appimage()
+
+    @one_question
+    def health(self) -> Health:
+        """What is wrong with the arrangement: a named AppImage that is not there, several found, an unreadable config."""
+        return Health(self._issues())
+
+    def _issues(self, tree: "_EdenTree | None" = None) -> tuple[Caveat, ...]:
+        issues: list[Caveat] = []
+        candidates = self._candidates()
+        if self._named is not None and self._machine.path_kind(self._named) != KIND_FILE:
+            issues.append(
+                Caveat(
+                    HEALTH_ISSUE_MARKER_MISSING,
+                    f"the Eden AppImage named, {self._named}, is not a file here",
+                    {"path": self._named},
+                )
+            )
+        elif len(candidates) > 1:
+            issues.append(self._ambiguity(candidates))
+        tree = tree if tree is not None else self._tree()
+        if tree is not None:
+            issues.extend(tree.caveats)
+        return tuple(issues)
+
+    @staticmethod
+    def _ambiguity(candidates: tuple[str, ...]) -> Caveat:
+        return Caveat(
+            HEALTH_ISSUE_APPIMAGE_AMBIGUOUS,
+            f"{len(candidates)} Eden AppImages were found and nothing names which one runs — name it "
+            "(detect(..., eden_appimage=...)); atlas does not pick one",
+            {"candidates": candidates},
+        )
+
+    # ── Eden's trees ──────────────────────────────────────────────────
+
+    def _data_root_for(self, appimage_dir: str | None) -> tuple[str, str, str]:
+        """``(data root, config dir, source)`` as a launch run in *appimage_dir* resolves them."""
+        if appimage_dir is not None:
+            portable = os.path.join(appimage_dir, eden.PORTABLE_DIR)
+            if self._machine.path_kind(portable) == KIND_DIRECTORY:
+                return (
+                    portable,
+                    os.path.join(portable, eden.CONFIG_DIR),
+                    f"Eden's data tree is the portable {portable}: a 'user' directory in the launch's working "
+                    "folder, the AppImage's own (path_util.cpp:133-143)",
+                )
+        return (
+            os.path.join(self._home, _XDG_DATA_SUFFIX, eden.EDEN_DIR),
+            os.path.join(self._home, _XDG_CONFIG_DIRNAME, eden.EDEN_DIR),
+            "Eden's data tree is $XDG_DATA_HOME/eden and its settings $XDG_CONFIG_HOME/eden, at their defaults "
+            "below the home (path_util.cpp:133-143, :362-379) — no portable 'user' directory beside the AppImage",
+        )
+
+    def _tree(self) -> _EdenTree | None:
+        """Eden's trees for the AppImage that runs — ``None`` where several AppImages put them in different places."""
+        appimage = self._appimage()
+        if appimage is not None:
+            roots = {self._data_root_for(os.path.dirname(appimage))}
+        else:
+            candidates = self._candidates()
+            roots = {self._data_root_for(os.path.dirname(c)) for c in candidates} or {self._data_root_for(None)}
+        if len(roots) != 1:
+            return None
+        ((data_root, config_dir, root_source),) = roots
+        config_file = os.path.join(config_dir, eden.CONFIG_FILE)
+        read = self._machine.read_text(config_file)
+        sources: list[str] = [root_source]
+        caveats: list[Caveat] = []
+        if read.status == READ_OK:
+            values = eden.ini_values(read.text or "")
+            sources.append(f"{config_file} read (qt_config.h:15, config.cpp:29-40)")
+        else:
+            values = {}
+            if read.status != READ_MISSING:
+                caveats.append(
+                    Caveat(
+                        HEALTH_ISSUE_CONFIG_UNREADABLE,
+                        f"config {config_file} cannot be read as text ({read.status}) — its settings are "
+                        "taken at Eden's defaults",
+                        {"path": config_file, "status": read.status},
+                    )
+                )
+            else:
+                sources.append(f"{config_file} does not exist — every setting at Eden's default")
+        nand = self._configured_dir(values, eden.KEY_NAND_DIRECTORY, data_root, os.path.join(data_root, eden.NAND_DIR))
+        save_root = self._configured_dir(values, eden.KEY_SAVE_DIRECTORY, data_root, nand)
+        sources.append(
+            f"NAND {nand}, saves below {save_root} ([Data%20Storage] nand_directory and save_directory, "
+            "Config::ReadDataStorageValues, config.cpp:278-302; a value that is not a directory is ignored, "
+            "SetEdenPath, path_util.cpp:297-304; saves open below SaveDir, filesystem.cpp:351-360)"
+        )
+        return _EdenTree(data_root, config_file, values, nand, save_root, tuple(sources), tuple(caveats))
+
+    def _configured_dir(
+        self, values: Mapping[tuple[str, str], str], key: str, data_root: str, default: str
+    ) -> str:
+        """A data-storage directory setting as Eden applies it: set and a directory, else *default*."""
+        configured = eden.ini_string(values, eden.SECTION_DATA_STORAGE, key)
+        if not configured:
+            return default
+        if not os.path.isabs(configured):
+            # A relative value is relative to the process's working directory,
+            # which the launch makes the AppImage's folder.
+            appimage = self._appimage()
+            if appimage is None:
+                return default
+            configured = os.path.join(os.path.dirname(appimage), configured)
+        return configured if self._machine.path_kind(configured) == KIND_DIRECTORY else default
+
+    def _profile(self, tree: _EdenTree) -> _EdenProfile:
+        """The user Eden opens: ``current_user`` among the users ``profiles.dat`` lists."""
+        profiles_file = os.path.join(tree.nand, *eden.PROFILES_FILE)
+        read = self._machine.read_eden_profiles(profiles_file)
+        users_dir = os.path.join(tree.save_root, *eden.USER_SAVE_TREE)
+        listed = _host_listing(self._machine, users_dir)
+        folders = tuple(
+            sorted(
+                name
+                for name in listed or ()
+                if len(name) == 32
+                and all(ch in "0123456789ABCDEF" for ch in name)
+                and name != eden.SYSTEM_USER_FOLDER
+            )
+        )
+        if read.status == EDEN_PROFILES_OK and read.users:
+            index = eden.current_user_index(tree.values)
+            slot = eden.active_user_slot(index, len(read.users))
+            if slot is not None:
+                uuid = read.users[slot]
+                return _EdenProfile(
+                    eden.user_folder(uuid),
+                    uuid,
+                    f"user {slot} of the {len(read.users)} {profiles_file} lists, by [System] current_user "
+                    f"{index} (ProfileManager::ProfileManager, profile_manager.cpp:53-72)",
+                )
+        if read.status == EDEN_PROFILES_UNREADABLE and len(folders) == 1:
+            return _EdenProfile(
+                folders[0],
+                None,
+                f"{profiles_file} cannot be read here, and {users_dir} holds one user folder, {folders[0]} — "
+                "taken as the user, derived rather than read",
+            )
+        if read.status == EDEN_PROFILES_OK:
+            why = "lists no user, so Eden creates one with a random id when it starts"
+        elif read.status == EDEN_PROFILES_UNREADABLE:
+            why = "cannot be read, and the save tree does not hold exactly one user folder to stand in for it"
+        else:
+            why = f"is {read.status}, so Eden creates a user with a random id when it starts"
+        return _EdenProfile(
+            None,
+            None,
+            refusal=Caveat(
+                CAVEAT_ACTIVE_PROFILE_UNESTABLISHED,
+                f"which user Eden runs the game as is not established: {profiles_file} {why} "
+                "(ProfileManager::ParseUserSaveFile and its constructor, profile_manager.cpp:53-72, :396-431)",
+                {
+                    "file": profiles_file,
+                    "status": read.status,
+                    "users": folders,
+                    "profile_id": (
+                        "the user's save folder below "
+                        f"{users_dir}: thirty-two uppercase hex digits, the user id's high then low word"
+                    ),
+                },
+            ),
+        )
+
+    # ── The catalogue ─────────────────────────────────────────────────
+
+    def _catalogue_absence(self) -> Caveat:
+        return Caveat(
+            CAVEAT_EMULATOR_CATALOGUE_UNAVAILABLE,
+            "a standalone Eden AppImage has no frontend catalogue, so there is no system ROM folder to answer with",
+            {"arrangement": EDEN_APPIMAGE_KIND},
+        )
+
+    def _spec(self) -> EmulatorSpec:
+        # The command in ES-DE's grammar, the program its token: what the entry
+        # runs is the launcher it states, which is the AppImage.
+        command = " ".join((f"%EMULATOR_{EDEN_EMULATOR}%", *_EDEN_ARGUMENTS, "%ROM%"))
+        return EmulatorSpec(
+            system=EDEN_SYSTEM,
+            label=EDEN_LABEL,
+            kind=KIND_STANDALONE,
+            core_so=None,
+            command=command,
+            provenance="atlas's own entry for a standalone Eden AppImage — no catalogue declares it",
+            emulator=EDEN_EMULATOR,
+            declared_index=0,
+        )
+
+    def _launch_resolution(self) -> LaunchResolution:
+        appimage = self._appimage()
+        if appimage is not None:
+            return LaunchResolution(
+                AVAILABILITY_STARTABLE,
+                Launcher(path=appimage, replacement_command=None, app_id=None, rule=RULE_STATICPATH, entry=appimage),
+            )
+        candidates = self._candidates()
+        if len(candidates) > 1:
+            return LaunchResolution(AVAILABILITY_UNESTABLISHED, caveats=(self._ambiguity(candidates),))
+        return LaunchResolution(
+            AVAILABILITY_NOT_INSTALLED,
+            caveats=(
+                Caveat(
+                    CAVEAT_PROGRAM_NOT_FOUND,
+                    "no Eden AppImage is here to run",
+                    {"program": EDEN_EMULATOR, "searched": candidates or tuple(
+                        os.path.join(self._home, folder) for folder in EDEN_APPIMAGE_FOLDERS
+                    )},
+                ),
+            ),
+        )
+
+    def _entry(self) -> EmulatorEntry:
+        return EmulatorEntry(self, self._spec(), (), self._launch_resolution())
+
+    def _systems_answer(self) -> tuple[SystemsAnswer, str | None]:
+        return (
+            SystemsAnswer(
+                (EDEN_SYSTEM,),
+                ("Eden runs Nintendo Switch content — atlas's entry for the AppImage, not a catalogue's",),
+                self._issues(),
+            ),
+            None,
+        )
+
+    def _platform_view(self) -> tuple[_PlatformView, str | None]:
+        return (
+            _PlatformView(
+                {EDEN_SYSTEM: vocabulary_platform_tags(EDEN_SYSTEM) or ()},
+                frozenset({EDEN_SYSTEM}),
+                {},
+                (),
+                self._issues(),
+            ),
+            None,
+        )
+
+    def _catalogue_answer(
+        self, system: str, *, content_path: str | None = None
+    ) -> tuple[CatalogueAnswer, str | None]:
+        del content_path  # no per-game choice exists without a frontend
+        entries = (self._entry(),) if system == EDEN_SYSTEM else ()
+        return (
+            CatalogueAnswer(
+                entries,
+                ("Eden runs Nintendo Switch content — atlas's entry for the AppImage, not a catalogue's",),
+                self._issues(),
+            ),
+            None,
+        )
+
+    def _launchable_answer(
+        self, system: str, content_path: str, label: str | None
+    ) -> tuple[LaunchabilityAnswer, str | None]:
+        answer, version = self._catalogue_answer(system)
+        extension = esde_extension(content_path)
+        chosen = _chosen_entry(answer.entries, label, system)
+        if not isinstance(chosen, EmulatorEntry):
+            refusal = (chosen,) if isinstance(chosen, Caveat) else ()
+            return (
+                LaunchabilityAnswer(VERDICT_UNKNOWN, extension, caveats=(*answer.caveats, *refusal)),
+                version,
+            )
+        if extension.lower() in _EDEN_EXTENSIONS:
+            note = Caveat(
+                CAVEAT_ENTRY_FORMAT_CONTENT_UNREAD,
+                f"{chosen.label!r} takes {extension!r} by its extension, and its loader then reads the file's "
+                "content, which atlas does not — whether the content passes is not established "
+                "(loader.cpp:133-154)",
+                {"entry": chosen.label, "extension": extension},
+            )
+            return (
+                LaunchabilityAnswer(
+                    VERDICT_LAUNCHABLE, extension, entry=chosen, sources=answer.sources, caveats=(*answer.caveats, note)
+                ),
+                version,
+            )
+        unread = Caveat(
+            CAVEAT_ENTRY_FORMAT_UNESTABLISHED,
+            f"whether {chosen.label!r} reads {extension!r} is not established — Eden decides by the file's own "
+            "bytes, which atlas does not read, and names no type for this extension (loader.cpp:133-154)",
+            {"entry": chosen.label, "extension": extension},
+        )
+        return LaunchabilityAnswer(VERDICT_UNKNOWN, extension, caveats=(*answer.caveats, unread)), version
+
+    def _launch_command_answer(
+        self, system: str, content_path: str, label: str | None
+    ) -> tuple[LaunchCommandAnswer, str | None]:
+        answer, version = self._catalogue_answer(system)
+        chosen = _chosen_entry(answer.entries, label, system)
+        if isinstance(chosen, Caveat):
+            return LaunchCommandAnswer(None, None, answer.sources, (*answer.caveats, chosen)), version
+        appimage = self._appimage()
+        if chosen is None or chosen.availability != AVAILABILITY_STARTABLE or appimage is None:
+            return LaunchCommandAnswer(chosen, None, answer.sources, answer.caveats), version
+        folder = os.path.dirname(appimage)
+        command = LaunchCommand(
+            program=LaunchProgram(VARIANT_APPIMAGE, path=appimage),
+            arguments=(*_EDEN_ARGUMENTS, content_path),
+            environment=(),
+            working_folder=WorkingFolder(frontend_path=folder, host_path=folder, created_if_missing=False),
+            injections=(),
+            distribution_environment=(),
+        )
+        return (
+            LaunchCommandAnswer(
+                chosen,
+                command,
+                (
+                    *answer.sources,
+                    "Eden's own arguments: -f fullscreen, -g the game to load (docs/user/CommandLine.md at "
+                    f"{eden.EDEN_BUILD}); run in the AppImage's folder so a portable 'user' tree beside it is read",
+                ),
+                answer.caveats,
+            ),
+            version,
+        )
+
+    # ── Updates and add-ons in folders ────────────────────────────────
+
+    def _launch_folder(self) -> str | None:
+        """The working folder every launch shares — the AppImages' one folder — or ``None`` where they differ."""
+        folders = {os.path.dirname(candidate) for candidate in self._candidates()}
+        return folders.pop() if len(folders) == 1 else None
+
+    def _extra_folders(self, tree: _EdenTree) -> tuple[tuple[ExtraContentFolder, ...], bool, tuple[str, ...]]:
+        """The folders Eden scans for updates and add-ons, whether one could not be placed, and how each was read.
+
+        A relative folder is relative to the process's working directory,
+        which the launch makes the AppImage's folder; where that is not one
+        folder, the relative one is not placed.
+        """
+        launch_folder = self._launch_folder()
+        from_game_dirs = eden.ext_content_from_game_dirs(tree.values)
+        # (configured path, subfolders scanned, registered before launch)
+        configured: list[tuple[str, bool, bool | None]] = [
+            (path, True, True) for path in eden.external_content_dirs(tree.values)
+        ]
+        if from_game_dirs:
+            configured.extend(
+                (row.path, row.deep_scan, None)
+                for row in eden.game_dirs(tree.values)
+                if row.path and row.path not in eden.VIRTUAL_GAME_DIRS
+            )
+        found: list[ExtraContentFolder] = []
+        unplaced = False
+        for path, deep, before in configured:
+            placed = _placed_folder(path, launch_folder)
+            if placed is None:
+                unplaced = True
+                continue
+            found.append(ExtraContentFolder(placed, deep, before, eden.EXTRA_CONTENT_EXTENSIONS))
+        sources = (
+            f"[Paths] external_content_dirs of {tree.config_file}: scanned when Eden starts, every subfolder "
+            "included, for .nsp and .xci packages (qt_config.cpp:234-242; main_window.cpp:421, :553; "
+            f"filesystem.cpp:725-754; registered_cache.cpp:1311-1368 at {eden.EDEN_BUILD})",
+            (
+                "[Data%20Storage] ext_content_from_game_dirs is on, so the game folders of [Paths] gamedirs are "
+                "scanned for the same packages, a folder's subfolders only where its deep_scan is set — by the game "
+                "list's worker thread, which Eden does not wait for before it boots the game it was handed "
+                "(game_list_worker.cpp:341-452, :383-386; game_list.cpp:1069-1093; main_window.cpp:572, :695-696)"
+                if from_game_dirs
+                else "[Data%20Storage] ext_content_from_game_dirs is off, so the game folders are not scanned for "
+                "updates or add-ons (game_list_worker.cpp:383-386)"
+            ),
+        )
+        return tuple(dict.fromkeys(found)), unplaced, sources
+
+    def _extra_content_answer(
+        self, system: str, content_path: str | None, label: str | None
+    ) -> tuple[ExtraContentAnswer, str | None]:
+        answer, version = self._catalogue_answer(system)
+        chosen = _chosen_entry(answer.entries, label, system)
+        if not isinstance(chosen, EmulatorEntry):
+            return super()._extra_content_answer(system, content_path, label)
+        tree = self._tree()
+        if tree is None:
+            # Which settings file the launch reads is not established; the
+            # ambiguity is among the answer's caveats already.
+            return ExtraContentAnswer(chosen, True, (), None, answer.sources, answer.caveats), version
+        folders, unplaced, read = self._extra_folders(tree)
+        sources = (*answer.sources, *tree.sources, *read)
+        caveats = list(answer.caveats)
+        beside = tuple(folder.path for folder in folders if folder.registered_before_launch is None)
+        if beside:
+            caveats.append(
+                Caveat(
+                    CAVEAT_EXTRA_CONTENT_SCANNED_BESIDE_LAUNCH,
+                    "Eden scans its game folders for updates and add-ons on a thread it does not wait for before "
+                    "booting the game it was handed, so whether a package there is registered in time is not "
+                    "established (game_list.cpp:1069-1093; main_window.cpp:572, :695-696)",
+                    {"folders": beside},
+                )
+            )
+        scanned: bool | None = None
+        if content_path is not None:
+            own = os.path.normpath(
+                content_path
+                if self._machine.path_kind(content_path) == KIND_DIRECTORY
+                else os.path.dirname(content_path)
+            )
+            if any(_extra_folder_covers(folder, own) for folder in folders):
+                scanned = True
+            elif not unplaced:
+                # A relative folder goes unplaced only where the AppImages sit
+                # in different folders, which the answer's ambiguity states.
+                scanned = False
+                caveats.append(
+                    Caveat(
+                        CAVEAT_CONTENT_OUTSIDE_EXTRA_CONTENT_FOLDERS,
+                        f"{own} is in none of the folders Eden scans for updates and add-ons, so a package put "
+                        "there is not loaded",
+                        {"folder": own},
+                    )
+                )
+        return ExtraContentAnswer(chosen, True, folders, scanned, sources, tuple(caveats)), version
+
+    # ── Root ──────────────────────────────────────────────────────────
+
+    @one_question
+    def root(self) -> str:
+        """Eden's data tree as the launch resolves it — the portable ``user`` beside the AppImage, or ``~/.local/share/eden``."""
+        tree = self._tree()
+        return tree.data_root if tree is not None else self._data_root_for(None)[0]
+
+    # ── Saves ─────────────────────────────────────────────────────────
+
+    def _eden_savefile(
+        self, content_path: str | None, extra_caveats: tuple[Caveat, ...]
+    ) -> SavefilePlacement | Unresolved:
+        tree = self._tree()
+        if tree is None:
+            candidates = self._candidates()
+            return Unresolved(
+                UNRESOLVED_APPIMAGE_AMBIGUOUS,
+                "the Eden AppImages found put Eden's data tree in different places, and nothing names which runs",
+                {"candidates": candidates},
+            )
+        caveats: list[Caveat] = [*extra_caveats, *self._issues(tree)]
+        sources: list[str] = list(tree.sources)
+        profile = self._profile(tree)
+        if profile.source is not None:
+            sources.append(profile.source)
+        if profile.refusal is not None:
+            caveats.append(profile.refusal)
+        title = _switch_application(self._machine, content_path) if content_path is not None else None
+        if title is not None:
+            sources.append(title.basis)
+        directory = self._save_folder(tree, profile, title, sources)
+        needs = (*((HOLE_PROFILE_ID,) if profile.folder is None else ()), *((HOLE_SAVE_ID,) if title is None else ()))
+        citation = f"savedata_factory.cpp:93-106 and :131-138 at {eden.EDEN_BUILD}"
+        caveats.append(_eden_folder_names(directory, citation, title_named=title is not None))
+        physical, link_caveats = _link_view(self._machine, tree.save_root)
+        caveats.extend(link_caveats)
+        if physical is not None:
+            physical = os.path.join(physical, os.path.relpath(directory, tree.save_root))
+        unit = (
+            SaveUnitStatement(SAVE_UNIT_FOLDER, None, switch_title.spelled(title.application))
+            if title is not None and profile.folder is not None
+            else None
+        )
+        return _labelled_per_title_placement(
+            EDEN_LABEL,
+            f"Eden's account save, <save root>/user/save/0000000000000000/<user>/<application id> ({citation})",
+            directory=directory,
+            physical=physical,
+            caveats=caveats,
+            mode="user-save",
+            readings=(),
+            provenance=f"{EDEN_LABEL}: one game's save folder below the user it runs as ({citation})",
+            needs=needs,
+            unit=unit,
+            extra_sources=tuple(sources),
+        )
+
+    def _save_folder(
+        self, tree: _EdenTree, profile: _EdenProfile, title: _SwitchApplication | None, sources: list[str]
+    ) -> str:
+        """The game's folder below the user, holes kept — or the layout Eden prefers where it already exists."""
+        users_dir = os.path.join(tree.save_root, *eden.USER_SAVE_TREE)
+        user = profile.folder or TEMPLATE_PROFILE_ID
+        title_id = switch_title.spelled(title.application) if title is not None else TEMPLATE_SAVE_ID
+        if profile.uuid is None or title is None:
+            return os.path.join(users_dir, user, title_id)
+        future = os.path.join(
+            tree.save_root,
+            *eden.FUTURE_ACCOUNT_TREE,
+            eden.uuid_raw(profile.uuid),
+            switch_title.spelled(title.application & ~0xFF),
+            "0",
+        )
+        if self._machine.path_kind(future) != KIND_DIRECTORY:
+            return os.path.join(users_dir, user, title_id)
+        sources.append(
+            f"{future} exists, and Eden prefers it to the account save's older path "
+            "(GetFutureSaveDataPath, savedata_factory.cpp:25-53, :117-126)"
+        )
+        return future
+
+    @one_question
+    def savefile_location(
+        self,
+        *,
+        content_path: str | None = None,
+        core_so: str | None = None,
+        system: str | None = None,
+        cwd: str | None = None,
+        appendconfig: Sequence[str] = (),
+    ) -> SavefilePlacement | Unresolved:
+        """Where Eden keeps the save for *content_path* — Eden runs no core, so *core_so* names none here."""
+        checked_cwd(cwd)
+        checked_appendconfig(appendconfig)
+        checked_content_path(content_path)
+        if core_so is not None:
+            return self._no_core(core_so)
+        if system is not None and system != EDEN_SYSTEM:
+            return _standalone_savefile_unresolved(self._spec_for(system))
+        return self._eden_savefile(content_path, ())
+
+    def _spec_for(self, system: str) -> EmulatorSpec:
+        spec = self._spec()
+        return EmulatorSpec(
+            system=system,
+            label=spec.label,
+            kind=spec.kind,
+            core_so=None,
+            command=spec.command,
+            provenance=spec.provenance,
+            emulator=spec.emulator,
+            declared_index=spec.declared_index,
+        )
+
+    @staticmethod
+    def _no_core(core_so: str) -> Unresolved:
+        return Unresolved(
+            UNRESOLVED_CORE_NOT_INSTALLED,
+            f"core {core_so!r} is not installed here — a standalone Eden AppImage loads no libretro core",
+            {"core_so": core_so},
+        )
+
+    @one_question
+    def savestate_location(
+        self,
+        *,
+        content_path: str | None = None,
+        core_so: str | None = None,
+        cwd: str | None = None,
+        appendconfig: Sequence[str] = (),
+    ) -> SavestatePlacement | Unresolved:
+        """Eden's savestates are not read — the standalone refusal, or the missing core's."""
+        del content_path
+        checked_cwd(cwd)
+        checked_appendconfig(appendconfig)
+        return self._no_core(core_so) if core_so is not None else _standalone_savestate_unresolved(self._spec())
+
+    @one_question
+    def screenshot_location(
+        self, *, content_path: str | None = None, core_so: str | None = None
+    ) -> ScreenshotPlacement | Unresolved:
+        """RetroArch's screenshot question — no RetroArch runs here."""
+        del content_path
+        return self._no_core(core_so or "none")
+
+    @one_question
+    def texture_pack_location(
+        self, *, content_path: str | None = None, core_so: str | None = None
+    ) -> TexturePlacement | Unresolved:
+        """Eden's texture packs are not read — the standalone refusal, or the missing core's."""
+        del content_path
+        return self._no_core(core_so) if core_so is not None else _standalone_texture_unresolved(self._spec())
+
+    @one_question
+    def mod_location(
+        self, *, content_path: str | None = None, core_so: str | None = None
+    ) -> ModPlacement | Unresolved:
+        """Eden's mods are not read — the standalone refusal, or the missing core's."""
+        del content_path
+        return self._no_core(core_so) if core_so is not None else _standalone_mod_unresolved(self._spec())
+
+    @one_question
+    def soft_patch_candidates(
+        self, content_path: str, *, core_so: str | None = None
+    ) -> SoftPatchAnswer | Unresolved:
+        """RetroArch's soft-patching — no RetroArch runs here."""
+        del content_path
+        return self._no_core(core_so or "none")
+
+    @one_question
+    def entry_savefile_location(
+        self,
+        spec: EmulatorSpec,
+        entry_caveats: tuple[Caveat, ...] = (),
+        *,
+        content_path: str | None = None,
+        cwd: str | None = None,
+        appendconfig: tuple[str, ...] = (),
+    ) -> SavefilePlacement | Unresolved:
+        """The Eden entry's save: one game's folder below the user it runs as."""
+        del appendconfig
+        checked_cwd(cwd)
+        checked_content_path(content_path)
+        if spec.system != EDEN_SYSTEM:
+            return _standalone_savefile_unresolved(spec)
+        return self._eden_savefile(content_path, entry_caveats)
+
+    @one_question
+    def entry_savestate_location(
+        self,
+        spec: EmulatorSpec,
+        entry_caveats: tuple[Caveat, ...] = (),
+        *,
+        content_path: str | None = None,
+        cwd: str | None = None,
+        appendconfig: tuple[str, ...] = (),
+    ) -> SavestatePlacement | Unresolved:
+        """Eden's savestates are not read."""
+        del entry_caveats, content_path, appendconfig
+        checked_cwd(cwd)
+        return _standalone_savestate_unresolved(spec)
+
+    @one_question
+    def entry_texture_pack_location(
+        self,
+        spec: EmulatorSpec,
+        entry_caveats: tuple[Caveat, ...] = (),
+        *,
+        content_path: str | None = None,
+    ) -> TexturePlacement | Unresolved:
+        """Eden's texture packs are not read."""
+        del entry_caveats, content_path
+        return _standalone_texture_unresolved(spec)
+
+    @one_question
+    def entry_mod_location(
+        self,
+        spec: EmulatorSpec,
+        entry_caveats: tuple[Caveat, ...] = (),
+        *,
+        content_path: str | None = None,
+    ) -> ModPlacement | Unresolved:
+        """Eden's mods are not read."""
+        del entry_caveats, content_path
+        return _standalone_mod_unresolved(spec)
+
+    # ── Firmware ──────────────────────────────────────────────────────
+
+    def _read_firmware_context(self) -> FirmwareContext:
+        # Eden ships no libretro core, so the core enumeration is complete and
+        # empty; its keys and firmware are not read, which the entry's own
+        # ``unsupported`` declaration states. The root named is the folder
+        # Eden reads its keys from (``KeysDir``, path_util.cpp:158; fs_paths.h:20), where
+        # a user puts what Eden asks for.
+        tree = self._tree()
+        data_root = tree.data_root if tree is not None else self._data_root_for(None)[0]
+        root = os.path.join(data_root, "keys")
+        return FirmwareContext(
+            root=root,
+            cores=(),
+            hashes=load_hashes(),
+            cores_read=True,
+            sources=(f"{root}: the folder Eden reads its keys from (path_util.cpp:158 at {eden.EDEN_BUILD})",),
+            caveats=self._issues(tree),
+        )
+
+    @one_question
+    def firmware_for_system(
+        self,
+        system: str,
+        *,
+        verify: bool = False,
+        cwd: str | None = None,
+        content_path: str | None = None,
+    ) -> FirmwareAnswer:
+        """The Eden entry for ``switch``, its firmware ``unsupported`` — atlas reads none of Eden's keys or firmware."""
+        checked_cwd(cwd)
+        checked_content_path(content_path)
+        entries = (
+            (
+                CatalogueEntry(
+                    label=EDEN_LABEL,
+                    kind=KIND_STANDALONE,
+                    core_so=None,
+                    emulator=EDEN_EMULATOR,
+                    declared_index=0,
+                ),
+            )
+            if system == EDEN_SYSTEM
+            else ()
+        )
+        return _resolve_for_system(
+            self._machine,
+            self._firmware_context(cwd=cwd),
+            system=system,
+            catalogue=Catalogue(entries=entries),
+            verify=verify,
+            content_path=content_path,
+        )
+
+
 @runtime_checkable
 class Installation(Protocol):
     """The surface every installation handle offers — identity, health, placement, catalogue.
@@ -29113,6 +30190,10 @@ class Installation(Protocol):
     def launch_command(
         self, system: str, content_path: str, *, label: str | None = None
     ) -> LaunchCommandAnswer: ...
+
+    def extra_content_folders(
+        self, system: str, *, label: str | None = None, content_path: str | None = None
+    ) -> ExtraContentAnswer: ...
 
     def rom_location(self, system: str) -> RomPlacement: ...
 

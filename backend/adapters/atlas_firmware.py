@@ -215,7 +215,7 @@ class AtlasFirmwareAdapter:
 
 
 class AtlasPlatformFirmwareAdapter:
-    """Reads what one system's emulators want, verified, live off the machine — in the answering source or in each."""
+    """Reads what one system's emulators want, verified, live off the machine — in its answering source or in each."""
 
     def __init__(self, *, sources: EmulatorSourcesAdapter, log_debug: Callable[[str], None]) -> None:
         self._sources = sources
@@ -225,8 +225,8 @@ class AtlasPlatformFirmwareAdapter:
     def __call__(self, system: str) -> FirmwareCatalogue:
         """*system*'s firmware demand in the source that answers for it, or an empty unresolved catalogue."""
         reading = self._sources.read()
-        kind = reading.answering_kind
-        installation = _installation(reading, self._log_debug)
+        kind = reading.answering_kind_for(system)
+        installation = _installation(reading, self._log_debug, system)
         if kind is None or installation is None:
             return _unresolved()
         return self._read(system, kind, installation)
@@ -330,9 +330,14 @@ class AtlasFirmwareIdentifier:
         return tuple(answer.known_as)
 
 
-def _installation(reading: DetectedSourcesReading, log_debug: Callable[[str], None]) -> Any | None:
-    """The answering source's installation from *reading*, or ``None`` where no source answers."""
-    installation = reading.answering_installation()
+def _installation(
+    reading: DetectedSourcesReading, log_debug: Callable[[str], None], system: str | None = None
+) -> Any | None:
+    """*system*'s answering source's installation from *reading* — the one answering for no system without one.
+
+    ``None`` where no source answers.
+    """
+    installation = reading.answering_installation(system)
     if installation is None:
         log_debug(f"[firmware] no emulator source answers ({reading.no_answer_reason()})")
     return installation

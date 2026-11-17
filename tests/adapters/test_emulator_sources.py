@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from _atlas_machines import fixture_machine
 from _vendor.atlas import (
     CAVEAT_EMULATOR_CATALOGUE_SEALED,
     CAVEAT_EMULATOR_CATALOGUE_UNAVAILABLE,
@@ -16,6 +17,7 @@ from _vendor.atlas import (
     HEALTH_ISSUE_MARKER_INVALID,
     HEALTH_ISSUE_NOT_SET_UP,
     HEALTH_ISSUE_ROOT_MISSING,
+    detect,
 )
 from _vendor.atlas import machine as atlas_machine
 from _vendor.atlas.installations import (
@@ -766,3 +768,137 @@ class TestOnlyTheHolderDetects:
         (tmp_path / "adapters" / "fine.py").write_text("from _vendor.atlas import KIND_LIBRETRO\n", encoding="utf-8")
 
         assert _modules_reaching_detection(tmp_path) == ["adapters/rogue.py"]
+
+
+_EDEN_MACHINES = Path(__file__).resolve().parent / "atlas_vectors" / "vectors" / "machines" / "eden-appimage.json"
+
+
+def _eden_vector(name: str) -> dict[str, Any]:
+    vectors = json.loads(_EDEN_MACHINES.read_text(encoding="utf-8"))["vectors"]
+    return next(vector for vector in vectors if vector["name"] == name)["input"]
+
+
+class _Recording:
+    """A detection that records the keywords it was asked with."""
+
+    def __init__(self) -> None:
+        self.keywords: list[dict[str, Any]] = []
+
+    def __call__(self, home: str, machine: Any, **keywords: Any) -> list[Any]:
+        self.keywords.append(keywords)
+        return []
+
+
+class TestTheEdenAppImageNamed:
+    def test_a_named_appimage_is_handed_to_every_detection(self, traces):
+        detect = _Recording()
+        settings: dict[str, Any] = {"eden_appimage": "/opt/Eden.AppImage"}
+        holder = _holder(detect, traces, settings=settings)
+
+        holder.read()
+        settings["eden_appimage"] = "/opt/Other.AppImage"
+        holder.read()
+
+        assert detect.keywords == [{"eden_appimage": "/opt/Eden.AppImage"}, {"eden_appimage": "/opt/Other.AppImage"}]
+
+    @pytest.mark.parametrize("stored", ["", None, 3])
+    def test_none_named_leaves_the_resolver_to_search(self, traces, stored):
+        detect = _Recording()
+        _holder(detect, traces, settings={"eden_appimage": stored}).read()
+        assert detect.keywords == [{}]
+
+    def test_a_stored_relative_path_is_not_handed_on(self, traces):
+        detect = _Recording()
+        _holder(detect, traces, settings={"eden_appimage": "Applications/Eden.AppImage"}).read()
+        assert detect.keywords == [{}]
+        assert any("not an absolute path" in line for line in traces)
+
+    def test_a_named_appimage_is_the_one_the_resolver_detects(self, traces):
+        inp = _eden_vector("eden-appimage-two-appimages-are-not-picked-between")
+        named = "/home/deck/AppImages/eden-nightly.AppImage"
+        holder = _holder(detect, traces, settings={"eden_appimage": named}, machine=fixture_machine(inp))
+
+        reading = holder.read()
+
+        eden = reading.installation("eden_appimage")
+        assert eden is not None
+        assert eden.appimage() == named
+        assert holder.describe(reading)[0].findings == ()
+
+
+class TestSeveralEdenAppImages:
+    def test_they_are_tenders_own_finding_with_one_candidate_per_line(self, traces):
+        inp = _eden_vector("eden-appimage-two-appimages-are-not-picked-between")
+        holder = _holder(detect, traces, machine=fixture_machine(inp))
+
+        (report,) = holder.describe()
+
+        assert report.kind == "eden_appimage"
+        assert report.starts_games is True
+        assert report.findings == (
+            SourceFinding(
+                code="several-appimages",
+                data={
+                    "candidates": "/home/deck/AppImages/eden-nightly.AppImage\n"
+                    "/home/deck/Applications/Eden-Linux-v0.2.1-amd64.AppImage"
+                },
+            ),
+        )
+
+
+class _Listing(_Installation):
+    """A source whose catalogue holds one entry per system it names, each with its availability."""
+
+    def __init__(self, kind: str, entries: dict[str, str], asked: list[str] | None = None) -> None:
+        super().__init__(kind)
+        self._entries = entries
+        self._asked = asked if asked is not None else []
+
+    def emulators_for(self, system: str, *, content_path: str | None = None) -> Any:
+        self._asked.append(f"{self.kind}:{system}")
+        if system == "raises":
+            raise RuntimeError("resolver blew up")
+        availability = self._entries.get(system)
+        entries = () if availability is None else (type("Entry", (), {"availability": availability})(),)
+        return type("Answer", (), {"entries": entries, "caveats": ()})()
+
+
+class TestTheSourceAnsweringASystem:
+    def _reading(self, traces, asked=None, settings=None):
+        detect = _Detect(
+            _Listing("retrodeck", {"snes": "startable", "switch": "not-installed"}, asked),
+            _Listing("eden_appimage", {"switch": "startable"}, asked),
+        )
+        return _holder(detect, traces, settings=settings).read()
+
+    def test_eden_answers_switch_and_retrodeck_everything_else(self, traces):
+        reading = self._reading(traces)
+
+        assert reading.answering_kind_for("switch") == "eden_appimage"
+        assert reading.answering_kind_for("snes") == "retrodeck"
+        assert getattr(reading.answering_installation("switch"), "kind", None) == "eden_appimage"
+        assert reading.answering_kind == "retrodeck"
+        assert getattr(reading.answering_installation(), "kind", None) == "retrodeck"
+
+    def test_each_catalogue_is_asked_once_per_reading(self, traces):
+        asked: list[str] = []
+        reading = self._reading(traces, asked)
+
+        reading.answering_for("switch")
+        reading.answering_for("switch")
+        reading.switched_off_starting_for("switch")
+
+        assert sorted(asked) == ["eden_appimage:switch", "retrodeck:switch"]
+
+    def test_a_catalogue_that_raises_lists_nothing(self, traces):
+        reading = self._reading(traces)
+
+        assert reading.answering_kind_for("raises") == "retrodeck"
+        assert any("emulators_for('raises')" in line for line in traces)
+
+    def test_a_switched_off_eden_refuses_switch_and_nothing_else(self, traces):
+        reading = self._reading(traces, settings={"emulator_sources_off": ["eden_appimage"]})
+
+        assert reading.switched_off_starting_for("switch") == "eden_appimage"
+        assert reading.switched_off_starting_for("snes") is None
+        assert reading.switched_off_starting_for(None) is None

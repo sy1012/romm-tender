@@ -52,6 +52,8 @@ import { scrollToTop } from "../utils/scrollHelpers";
 import { getEventTarget } from "../utils/events";
 import { handleButtonDownloadFailure } from "../utils/downloadFailure";
 import { runDownloadWithAdoption } from "../utils/adoptFlow";
+import { askExtraContent } from "../utils/extraContent";
+import { showExtraContentModal } from "./ExtraContentModal";
 import { RESUME_TARGET_OCCUPIED_TOAST } from "../utils/adoptWording";
 import {
   DOWNLOAD_AGAIN_LABEL,
@@ -275,7 +277,8 @@ export const CustomPlayButton: FC<CustomPlayButtonProps> = ({ appId, emulatorRef
       const queue = await getDownloadQueue();
       // No post-await `cancelled` guard needed: React 18 no-ops a setState on an
       // unmounted component, and a remount keeps its own state.
-      const entry = queue.downloads.find((d) => d.rom_id === rid);
+      // A download of extra content alone leaves the installed game's button as it is.
+      const entry = queue.downloads.find((d) => d.rom_id === rid && !d.extra_content_only);
       if (
         entry &&
         (entry.status === "downloading" ||
@@ -381,7 +384,7 @@ export const CustomPlayButton: FC<CustomPlayButtonProps> = ({ appId, emulatorRef
     const progressListener = addEventListener<DownloadProgressEvent>(
       "download_progress",
       (evt: DownloadProgressEvent) => {
-        if (evt.rom_id !== romIdRef.current) return;
+        if (evt.rom_id !== romIdRef.current || evt.extra_content_only) return;
         if (evt.status === "failed" || evt.status === "cancelled") {
           // A cancelled replace-download already removed a multi-file ROM's
           // directory at admission, so the stat behind the label is spent.
@@ -408,7 +411,7 @@ export const CustomPlayButton: FC<CustomPlayButtonProps> = ({ appId, emulatorRef
     const completeListener = addEventListener<DownloadCompleteEvent>(
       "download_complete",
       (evt: DownloadCompleteEvent) => {
-        if (evt.rom_id !== romIdRef.current) return;
+        if (evt.rom_id !== romIdRef.current || evt.extra_content_only) return;
         setDlProgress(null);
         setActionPending(false);
         setMissingPath(null);
@@ -427,12 +430,14 @@ export const CustomPlayButton: FC<CustomPlayButtonProps> = ({ appId, emulatorRef
       "download_failed",
       // The global listener in index.tsx owns the failure toast; here we only
       // reset local UI so the user can retry.
-      (evt: DownloadFailedEvent) =>
+      (evt: DownloadFailedEvent) => {
+        if (evt.extra_content_only) return;
         handleButtonDownloadFailure(evt, romIdRef.current, () => {
           setDlProgress(null);
           setActionPending(false);
           enterDownloadState();
-        }),
+        });
+      },
     );
 
     const uninstallProgressListener = addEventListener<UninstallProgressEvent>(
@@ -762,11 +767,18 @@ export const CustomPlayButton: FC<CustomPlayButtonProps> = ({ appId, emulatorRef
 
   const handleDownload = async () => {
     if (!romId || actionPending) return;
+    // Where the game's emulator loads updates and DLC from folders and RomM
+    // holds some, the press asks which to bring first; Cancel cancels it.
+    setActionPending(true);
+    const extraFileIds = await askExtraContent(romId, romName, showExtraContentModal);
+    setActionPending(false);
+    if (extraFileIds === null) return;
     await runDownloadWithAdoption({
       romId,
       romName,
       pageSawCandidate: candidatePresent,
       logContext: "CustomPlayButton",
+      ...(extraFileIds === undefined ? {} : { extraFileIds }),
       dialogs: {
         showExisting: showAdoptExistingModal,
         showCandidates: showAdoptCandidateModal,

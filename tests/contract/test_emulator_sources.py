@@ -6,7 +6,19 @@ listed, switched and answered here is what the real holder detects under it.
 
 from __future__ import annotations
 
-from ._seed import _retrodeck_marker_path, seed_es_systems, seed_retrodeck_not_set_up, seed_rom
+import os
+
+from ._seed import _retrodeck_marker_path, seed_es_systems, seed_install, seed_retrodeck_not_set_up, seed_rom
+
+
+def _seed_eden_appimage(harness, name: str = "Eden-Linux-amd64.AppImage") -> str:
+    """An Eden AppImage in ``~/Applications`` under the harness ``user_home``; its path."""
+    folder = os.path.join(str(harness.tmp_path), "home", "Applications")
+    os.makedirs(folder, exist_ok=True)
+    path = os.path.join(folder, name)
+    with open(path, "wb") as handle:
+        handle.write(b"\x7fELF")
+    return path
 
 
 async def test_the_listing_names_a_detected_retrodeck(harness):
@@ -141,3 +153,68 @@ async def test_the_start_check_answers_a_failed_detection_in_the_failure_shape(h
     assert result["success"] is False
     assert result["reason"] == "detection_failed"
     assert isinstance(result["message"], str)
+
+
+async def test_an_eden_appimage_is_listed_first_as_a_source_that_starts_games(harness):
+    seed_es_systems(harness)
+    _seed_eden_appimage(harness)
+
+    listing = await harness.endpoints.get_emulator_sources()
+
+    assert [(source["kind"], source["starts_games"]) for source in listing["sources"]] == [
+        ("eden_appimage", True),
+        ("retrodeck", True),
+    ]
+    assert listing["answering"] == "retrodeck"
+
+
+async def test_a_switched_off_eden_refuses_its_switch_game_and_no_other(harness):
+    seed_es_systems(harness)
+    _seed_eden_appimage(harness)
+    seed_install(harness, 7, system="switch", platform_slug="switch", file_name="Zelda [01007EF00011E000].nsp")
+    seed_install(harness, 8)
+
+    await harness.endpoints.set_emulator_source_enabled("eden_appimage", False)
+
+    assert await harness.endpoints.check_start_source(7) == {"switched_off": "eden_appimage"}
+    assert await harness.endpoints.check_start_source(8) == {"switched_off": None}
+
+
+async def test_a_rom_id_that_is_no_game_is_refused_in_the_failure_shape(harness):
+    result = await harness.endpoints.check_start_source("seven")
+
+    assert result["success"] is False
+    assert result["reason"] == "invalid_value"
+
+
+async def test_several_eden_appimages_are_a_finding_until_one_is_named(harness):
+    first = _seed_eden_appimage(harness, "Eden-stable.AppImage")
+    _seed_eden_appimage(harness, "eden-nightly.AppImage")
+
+    (several,) = (await harness.endpoints.get_emulator_sources())["sources"]
+    saved = harness.endpoints.save_eden_appimage(first)
+    (named,) = (await harness.endpoints.get_emulator_sources())["sources"]
+
+    assert [finding["code"] for finding in several["findings"]] == ["several-appimages"]
+    assert saved == {"success": True}
+    assert harness.settings["eden_appimage"] == first
+    assert named["findings"] == []
+
+
+async def test_a_named_eden_appimage_that_is_not_there_is_listed_with_its_finding(harness):
+    missing = os.path.join(str(harness.tmp_path), "nowhere", "Eden.AppImage")
+
+    harness.endpoints.save_eden_appimage(missing)
+    (source,) = (await harness.endpoints.get_emulator_sources())["sources"]
+
+    assert source["kind"] == "eden_appimage"
+    assert [finding["code"] for finding in source["findings"]] == ["marker-missing"]
+
+
+async def test_a_relative_eden_appimage_is_refused_in_the_failure_shape(harness):
+    result = harness.endpoints.save_eden_appimage("Applications/Eden.AppImage")
+
+    assert result["success"] is False
+    assert result["reason"] == "invalid_value"
+    assert isinstance(result["message"], str)
+    assert harness.settings.get("eden_appimage", "") == ""

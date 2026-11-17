@@ -75,8 +75,8 @@ def test_the_sweep_reaches_a_start_and_a_refusal_of_every_kind():
         else:
             shapes.add(f"starts as {command['program']['variant']}")
 
-    assert len(_VECTORS) == 89
-    assert len(_STARTING) == 26
+    assert len(_VECTORS) == 91
+    assert len(_STARTING) == 27
     assert shapes == {
         "refused",
         "environment not stated",

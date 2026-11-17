@@ -77,6 +77,62 @@ class TestRoundTrip:
         assert loaded.fetched_size_bytes == 1000
 
 
+class TestExtraContent:
+    @staticmethod
+    def _with_extra_content(rom_id: int) -> RomInstall:
+        install = _install(rom_id, path="/roms/switch/Game/Game.nsp", rom_dir="/roms/switch/Game")
+        install.add_extra_content(14, "dlc/D.nsp", 50)
+        install.add_extra_content(12, "update/U.nsp", 300)
+        return install
+
+    def test_the_extra_content_round_trips_with_the_install(self, uow: SqliteUnitOfWork):
+        _seed_rom(uow, 8)
+        uow.rom_installs.save(self._with_extra_content(8))
+
+        loaded = uow.rom_installs.get(8)
+
+        assert loaded is not None
+        assert [(e.file_id, e.rel_path, e.size_bytes) for e in loaded.extra_content] == [
+            (12, "update/U.nsp", 300),
+            (14, "dlc/D.nsp", 50),
+        ]
+        assert [i.extra_content for i in uow.rom_installs.iter_all()] == [loaded.extra_content]
+
+    def test_a_save_writes_the_extra_content_the_install_holds_now(self, uow: SqliteUnitOfWork):
+        _seed_rom(uow, 8)
+        uow.rom_installs.save(self._with_extra_content(8))
+        loaded = uow.rom_installs.get(8)
+        assert loaded is not None
+
+        loaded.remove_extra_content(14)
+        uow.rom_installs.save(loaded)
+
+        again = uow.rom_installs.get(8)
+        assert again is not None
+        assert [e.file_id for e in again.extra_content] == [12]
+
+    def test_a_fresh_install_record_saved_over_an_old_one_carries_none(self, uow: SqliteUnitOfWork):
+        _seed_rom(uow, 8)
+        uow.rom_installs.save(self._with_extra_content(8))
+
+        uow.rom_installs.save(_install(8, path="/roms/switch/Game/Game.nsp", rom_dir="/roms/switch/Game"))
+
+        loaded = uow.rom_installs.get(8)
+        assert loaded is not None
+        assert loaded.extra_content == ()
+
+    def test_a_delete_drops_the_extra_content_with_the_install(self, uow: SqliteUnitOfWork):
+        _seed_rom(uow, 8)
+        uow.rom_installs.save(self._with_extra_content(8))
+
+        uow.rom_installs.delete(8)
+        uow.rom_installs.save(_install(8, path="/roms/switch/Game/Game.nsp", rom_dir="/roms/switch/Game"))
+
+        loaded = uow.rom_installs.get(8)
+        assert loaded is not None
+        assert loaded.extra_content == ()
+
+
 class TestMiss:
     def test_get_absent_returns_none(self, uow: SqliteUnitOfWork):
         assert uow.rom_installs.get(999) is None

@@ -73,6 +73,10 @@ export interface Settings {
   // as off and none.
   steam_library_hidden?: boolean;
   steam_hidden_by_tender?: number[];
+  // The Eden AppImage the user named, an absolute path, or "" where the
+  // resolver searches for one. Optional: older payloads / test fixtures may
+  // omit it, treated as none named.
+  eden_appimage?: string;
   // Names of the extra headers sent to the RomM origin (#1822), in the order
   // they were entered. NAMES only — a stored value is a proxy credential and is
   // never sent to the frontend, so it can be replaced but never read back.

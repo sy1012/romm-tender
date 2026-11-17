@@ -103,3 +103,65 @@ class TestTheFetchedSize:
                 installed_at="t",
                 fetched_size_bytes=0,
             )
+
+
+class TestExtraContent:
+    @staticmethod
+    def _folder_install() -> RomInstall:
+        return RomInstall.mark_installed(
+            rom_id=1,
+            file_path="/roms/switch/Game/Game.nsp",
+            rom_dir="/roms/switch/Game",
+            platform_slug="switch",
+            system="switch",
+            installed_at="2026-11-17T00:00:00",
+        )
+
+    def test_a_fresh_install_records_none(self):
+        assert self._folder_install().extra_content == ()
+
+    def test_added_files_are_recorded_by_id_with_their_place_and_size(self):
+        install = self._folder_install()
+
+        install.add_extra_content(12, "update/U.nsp", 300)
+        install.add_extra_content(14, "dlc/D.nsp", 50)
+
+        assert [(e.file_id, e.rel_path, e.size_bytes) for e in install.extra_content] == [
+            (12, "update/U.nsp", 300),
+            (14, "dlc/D.nsp", 50),
+        ]
+        assert install.extra_content_bytes == 350
+
+    def test_a_file_added_again_is_recorded_once_at_its_new_place(self):
+        install = self._folder_install()
+        install.add_extra_content(12, "update/U.nsp", 300)
+
+        install.add_extra_content(12, "update/U2.nsp", 310)
+
+        assert [(e.file_id, e.rel_path) for e in install.extra_content] == [(12, "update/U2.nsp")]
+
+    def test_a_removed_file_is_forgotten_and_one_not_recorded_changes_nothing(self):
+        install = self._folder_install()
+        install.add_extra_content(12, "update/U.nsp", 300)
+
+        install.remove_extra_content(99)
+        install.remove_extra_content(12)
+
+        assert install.extra_content == ()
+
+    def test_a_game_kept_as_one_file_keeps_none(self):
+        install = RomInstall.mark_installed(
+            rom_id=1,
+            file_path="/roms/snes/Game.sfc",
+            rom_dir=None,
+            platform_slug="snes",
+            system="snes",
+            installed_at="2026-11-17T00:00:00",
+        )
+
+        with pytest.raises(ValueError, match="one file"):
+            install.add_extra_content(12, "update/U.nsp", 300)
+
+    def test_extra_content_needs_a_place(self):
+        with pytest.raises(ValueError, match="place"):
+            self._folder_install().add_extra_content(12, "", 300)

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from domain.download_frames import cancelled_frame, progress_frame, queue_answer
+from domain.download_frames import cancelled_frame, failed_frame, progress_frame, queue_answer
 
 
 class TestProgressFrame:
@@ -89,3 +89,25 @@ class TestCancelledFrame:
         frame = cancelled_frame(7, {"_target_path": "/roms/n64/g.z64", "_control": object()})
         assert "_target_path" not in frame
         assert "_control" not in frame
+
+
+class TestExtraContentOnly:
+    def test_a_frame_of_extra_content_alone_says_so_and_no_other_frame_carries_the_key(self):
+        common = {
+            "status": "downloading",
+            "progress": 0.5,
+            "bytes_downloaded": 5,
+            "total_bytes": 10,
+            "resumable": False,
+        }
+
+        marked = progress_frame(1, "Game", "Switch", "Updates & DLC", extra_content_only=True, **common)
+        plain = progress_frame(1, "Game", "Switch", "Game.nsp", **common)
+
+        assert marked["extra_content_only"] is True
+        assert "extra_content_only" not in plain
+
+    def test_a_failure_and_a_cancel_of_one_say_so_too(self):
+        assert failed_frame(1, "Game", "Switch", "boom", extra_content_only=True)["extra_content_only"] is True
+        assert "extra_content_only" not in failed_frame(1, "Game", "Switch", "boom")
+        assert cancelled_frame(1, {"extra_content_only": True})["extra_content_only"] is True

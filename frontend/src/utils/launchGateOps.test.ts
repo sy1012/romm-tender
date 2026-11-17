@@ -599,12 +599,13 @@ describe("makeLaunchGateOps", () => {
     expect(makeLaunchGateOps(ROM_ID, options()).migrationPending()).toBe(true);
   });
 
-  it("readStartingSource asks with the tag, and the unchecked-source question is the path's own", async () => {
+  it("readStartingSource asks about the game with the tag, and the unchecked-source question is the path's own", async () => {
     vi.mocked(backend.checkStartSource).mockRejectedValue(new Error("net"));
     const confirmUncheckedStartingSource = vi.fn(() => Promise.resolve(false));
     const ops = makeLaunchGateOps(ROM_ID, options({ confirmUncheckedStartingSource }));
 
     expect(await ops.readStartingSource()).toEqual({ checked: false });
+    expect(backend.checkStartSource).toHaveBeenCalledWith(ROM_ID);
     expect(backend.logError).toHaveBeenCalledWith(expect.stringContaining(`${TAG} start-source check got no answer`));
     expect(await ops.confirmUncheckedStartingSource()).toBe(false);
     expect(confirmUncheckedStartingSource).toHaveBeenCalledTimes(1);

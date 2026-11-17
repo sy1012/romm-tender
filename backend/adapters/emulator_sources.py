@@ -3,8 +3,10 @@
 Every adapter that puts a question to the vendored
 `emu-atlas <https://github.com/danielcopper/emu-atlas>`_ resolver gets its
 installation from here and never detects one itself. A question goes to the
-source :func:`domain.emulator_sources.answering_source` names; the order and
-the switches it decides by are the user's, read from the live settings.
+source :func:`domain.emulator_sources.answering_source_for` names for the
+game's system, or :func:`~domain.emulator_sources.answering_source` for a
+question about no one system; the order, the switches and the Eden AppImage
+named are the user's, read from the live settings.
 
 **Detected per reading, never at construction.** A reading
 (:class:`DetectedSourcesReading`) is taken per question a panel call puts, or
@@ -26,7 +28,13 @@ from __future__ import annotations
 import os
 from typing import TYPE_CHECKING, Any
 
-from _vendor.atlas import CAVEAT_EMULATOR_CATALOGUE_SEALED, detect
+from _vendor.atlas import (
+    AVAILABILITY_STARTABLE,
+    AVAILABILITY_UNESTABLISHED,
+    CAVEAT_EMULATOR_CATALOGUE_SEALED,
+    HEALTH_ISSUE_APPIMAGE_AMBIGUOUS,
+    detect,
+)
 from _vendor.atlas.machine import RealMachine
 
 from adapters.atlas_catalogue import catalogue_refused
@@ -34,15 +42,21 @@ from domain.emulator_sources import (
     CATALOGUE_READ,
     CATALOGUE_SEALED,
     CATALOGUE_UNAVAILABLE,
+    EDEN_APPIMAGE_SETTING,
     ORDER_SETTING,
+    SEVERAL_APPIMAGES,
     SWITCHED_OFF_SETTING,
     ArrangedSource,
     SourceFinding,
     SourceReport,
+    SystemListing,
     answering_source,
+    answering_source_for,
     arrange_sources,
+    is_absolute_path,
     no_answering_source_reason,
     stored_kinds,
+    switched_off_starting_source,
 )
 from domain.source_roots import (
     ROOT_INSTALLATION,
@@ -95,7 +109,9 @@ class DetectedSourcesReading:
         sources: tuple[ArrangedSource, ...],
         switched_off: frozenset[str] = frozenset(),
         detection_failed: bool = False,
+        log_debug: Callable[[str], None] = lambda _line: None,
     ) -> None:
+        self._log_debug = log_debug
         self._detected = installations
         self._installations = {installation.kind: installation for installation in installations}
         self._sources = sources
@@ -133,7 +149,7 @@ class DetectedSourcesReading:
 
     @property
     def answering(self) -> ArrangedSource | None:
-        """The source a game's questions go to, or ``None`` where none answers."""
+        """The source a question about no one system goes to, or ``None`` where none answers."""
         return self._answering
 
     @property
@@ -141,13 +157,65 @@ class DetectedSourcesReading:
         """The kind of :attr:`answering`, or ``None``."""
         return self._answering.kind if self._answering is not None else None
 
+    def answering_for(self, system: str) -> ArrangedSource | None:
+        """The source a question about one of *system*'s games goes to, or ``None`` where none answers."""
+        return self.remember(
+            ("answering_for", system),
+            lambda: answering_source_for(self._sources, lambda kind: self._listing(kind, system)),
+        )
+
+    def answering_kind_for(self, system: str | None) -> str | None:
+        """The kind of :meth:`answering_for` *system*, or of :attr:`answering` without one; or ``None``."""
+        source = self._answering if system is None else self.answering_for(system)
+        return source.kind if source is not None else None
+
+    def switched_off_starting_for(self, system: str | None) -> str | None:
+        """The kind of the switched-off source that would start a *system* game, or ``None``.
+
+        :func:`domain.emulator_sources.switched_off_starting_source`, asked for
+        *system* where one is named.
+        """
+        if system is None:
+            return switched_off_starting_source(self._sources)
+        return switched_off_starting_source(self._sources, lambda kind: self._listing(kind, system))
+
     def no_answer_reason(self) -> str:
         """Why no source answers: ``no_source`` or ``switched_off``."""
         return no_answering_source_reason(self._sources)
 
-    def answering_installation(self) -> Any | None:
-        """The resolver's handle for :attr:`answering`, or ``None``."""
-        return self._installations[self._answering.kind] if self._answering is not None else None
+    def answering_installation(self, system: str | None = None) -> Any | None:
+        """The resolver's handle for :meth:`answering_for` *system*, or for :attr:`answering` without one.
+
+        ``None`` where no source answers.
+        """
+        kind = self.answering_kind_for(system)
+        return self._installations[kind] if kind is not None else None
+
+    def _listing(self, kind: str, system: str) -> SystemListing:
+        """How the source of *kind* lists *system*: read off its catalogue's entries, once per reading.
+
+        A catalogue that raised, or that answered with one of the catalogue
+        refusals, lists nothing.
+        """
+        installation = self._installations.get(kind)
+        if installation is None:
+            return SystemListing.NOT_LISTED
+
+        def ask() -> SystemListing:
+            try:
+                answer = installation.emulators_for(system)
+            except Exception as exc:
+                # Deliberately broad, for the reason ``EmulatorSourcesAdapter.read`` gives.
+                self._log_debug(f"[sources] {kind}: resolver failed on emulators_for({system!r}): {exc!r}")
+                return SystemListing.NOT_LISTED
+            if catalogue_refused(answer):
+                return SystemListing.NOT_LISTED
+            said = {entry.availability for entry in answer.entries}
+            if AVAILABILITY_STARTABLE in said:
+                return SystemListing.STARTS
+            return SystemListing.UNESTABLISHED if AVAILABILITY_UNESTABLISHED in said else SystemListing.NOT_LISTED
+
+        return self.remember(("system_listing", kind, system), ask)
 
     def installation(self, kind: str) -> Any | None:
         """The resolver's handle for the detected source of *kind*, or ``None``."""
@@ -174,7 +242,7 @@ class EmulatorSourcesAdapter:
         user_home: str,
         settings: Mapping[str, Any],
         log_debug: Callable[[str], None],
-        detect_installations: Callable[[str, Any], list[Any]] = detect,
+        detect_installations: Callable[..., list[Any]] = detect,
         machine: Any = None,
     ) -> None:
         self._user_home = user_home
@@ -186,8 +254,12 @@ class EmulatorSourcesAdapter:
     def read(self) -> DetectedSourcesReading:
         """A fresh reading: detect the sources, and arrange them as the settings stand now."""
         failed = False
+        named = self._named_eden_appimage()
         try:
-            installations = tuple(self._detect(self._user_home, self._machine))
+            if named is None:
+                installations = tuple(self._detect(self._user_home, self._machine))
+            else:
+                installations = tuple(self._detect(self._user_home, self._machine, eden_appimage=named))
         except Exception as exc:
             # Deliberately broad: detection is the resolver's own, and the
             # honest answer to "could not detect" is the same whatever raised.
@@ -200,6 +272,16 @@ class EmulatorSourcesAdapter:
             f"answering={reading.answering_kind}"
         )
         return reading
+
+    def _named_eden_appimage(self) -> str | None:
+        """The Eden AppImage the user named, or ``None`` where none is, or the stored value is not an absolute path."""
+        value = self._settings.get(EDEN_APPIMAGE_SETTING)
+        if not isinstance(value, str) or value == "":
+            return None
+        if not is_absolute_path(value):
+            self._log_debug(f"[sources] the stored Eden AppImage {value!r} is not an absolute path; searching instead")
+            return None
+        return value
 
     def describe(self, reading: SourcesReading | None = None) -> tuple[SourceReport, ...]:
         """Every detected source as the settings list shows it.
@@ -245,6 +327,7 @@ class EmulatorSourcesAdapter:
             sources=sources,
             switched_off=switched_off,
             detection_failed=detection_failed,
+            log_debug=self._log_debug,
         )
 
     def _report(self, source: ArrangedSource, installation: Any) -> SourceReport:
@@ -275,10 +358,7 @@ class EmulatorSourcesAdapter:
         health = self._ask(kind, "health", installation.health)
         if health is None:
             return ()
-        return tuple(
-            SourceFinding(code=issue.code, data={str(key): str(value) for key, value in issue.data.items()})
-            for issue in health.issues
-        )
+        return tuple(_finding(issue) for issue in health.issues)
 
     def _catalogue_state(self, kind: str, installation: Any) -> str:
         answer = self._ask(kind, "systems", installation.systems)
@@ -294,6 +374,18 @@ class EmulatorSourcesAdapter:
         except Exception as exc:
             self._log_debug(f"[sources] {kind}: resolver failed on {subject}: {exc!r}")
             return None
+
+
+def _finding(issue: Any) -> SourceFinding:
+    """One health issue as a finding, its data restated as plain strings.
+
+    Several AppImages found is Tender's own :data:`~domain.emulator_sources.SEVERAL_APPIMAGES`,
+    its candidates one path per line.
+    """
+    if issue.code == HEALTH_ISSUE_APPIMAGE_AMBIGUOUS:
+        candidates = issue.data.get("candidates", ())
+        return SourceFinding(code=SEVERAL_APPIMAGES, data={"candidates": "\n".join(str(path) for path in candidates)})
+    return SourceFinding(code=issue.code, data={str(key): str(value) for key, value in issue.data.items()})
 
 
 def _rom_folders_of(installation: Any) -> SourceRomFolders:

@@ -313,7 +313,7 @@ export function makeLaunchGateOps(romId: number, options: LaunchGateOpsOptions):
   const { tag } = options;
   return {
     migrationPending: () => getMigrationState().pending,
-    readStartingSource: () => readStartingSource(tag),
+    readStartingSource: () => readStartingSource(tag, romId),
     confirmUncheckedStartingSource: options.confirmUncheckedStartingSource,
     ensureTrackingConfigured: options.ensureTrackingConfigured,
     checkCoreChange: () =>

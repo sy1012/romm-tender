@@ -15,8 +15,8 @@ import type { StartingSourceAnswer } from "./launchGate";
 import { withTimeout } from "./withTimeout";
 
 /**
- * What the backend says of the source that would start the game. `context`
- * names the caller in the error log.
+ * What the backend says of the source that would start game `romId`, which is
+ * decided per system. `context` names the caller in the error log.
  *
  * Unchecked — never on or off — wherever the backend did not say: a read that
  * gets no answer within {@link LOCAL_CALL_LIMIT_MS}, one that fails, and the
@@ -24,12 +24,12 @@ import { withTimeout } from "./withTimeout";
  * them as "switched on" would start a game through a source that may be
  * switched off, and as "switched off" would refuse one that may not be.
  */
-export async function readStartingSource(context: string): Promise<StartingSourceAnswer> {
+export async function readStartingSource(context: string, romId: number): Promise<StartingSourceAnswer> {
   // Read as `unknown`: an answer outside the typed shapes must read as
   // unchecked rather than throw, which the gate would take as a pass.
   let answer: unknown;
   try {
-    answer = await withTimeout(checkStartSource(), LOCAL_CALL_LIMIT_MS);
+    answer = await withTimeout(checkStartSource(romId), LOCAL_CALL_LIMIT_MS);
   } catch (e) {
     logError(`${context} start-source check got no answer: ${e}`);
     return { checked: false };

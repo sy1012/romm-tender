@@ -31,6 +31,7 @@ import sys
 from typing import Any, cast
 
 import pytest
+from _atlas_machines import fixture_machine
 from _vendor.atlas import (
     CAVEAT_EMULATOR_CATALOGUE_SEALED,
     CAVEAT_EMULATOR_CONFIG_MISSING,
@@ -76,6 +77,7 @@ from _vendor.atlas import (
     Unresolved,
     detect,
 )
+from _vendor.atlas import detect as atlas_detect
 from _vendor.atlas.installations import EmuDeck, Health, InstallationRoot, RetroDeck, RootsAnswer
 from _vendor.atlas.placement import (
     FILE_SET_DECLARED,
@@ -96,12 +98,14 @@ from _vendor.atlas.placement import (
 
 from adapters.atlas_saves import AtlasSaveLocationAdapter, describe_core_probe_interpreter
 from adapters.emulator_sources import EmulatorSourcesAdapter
+from domain.emulator_tag import build_emulator_tag
 from domain.save_answer import (
     CONFIGURATION_ROLES,
     HOLE_START_FOLDER,
     SAVE_STATE_HOLE,
     SAVE_STATE_INSIDE_CONTENT,
     SAVE_STATE_PER_GAME_FILES,
+    SAVE_STATE_PER_GAME_UNIT,
     SAVE_STATE_PLACE_NOT_READ,
     SAVE_STATE_SAVES_ROOT_MISSING,
     SAVE_STATE_SHARED,
@@ -1833,3 +1837,57 @@ class TestTheRealMachineAnswers:
         if "Game Title.smpc" not in names:
             pytest.skip("this machine's Saturn default does not state a settings file")
         assert "Game Title.smpc" not in answer.synced_names
+
+
+def _eden(vector_name: str, traces: list[str]) -> tuple[AtlasSaveLocationAdapter, str]:
+    """The save adapter over the recorded Eden AppImage machine *vector_name*, and the content its query names."""
+    path = os.path.join(os.path.dirname(__file__), "atlas_vectors", "vectors", "machines", "eden-appimage.json")
+    with open(path, encoding="utf-8") as handle:
+        vectors = json.load(handle)["vectors"]
+    inp = next(vector for vector in vectors if vector["name"] == vector_name)["input"]
+    sources = _sources(atlas_detect, traces, machine=fixture_machine(inp))
+    content = inp["entry_savefile_query"].get("content_path", "/home/deck/roms/switch/untagged.nsp")
+    return AtlasSaveLocationAdapter(sources=sources, log_debug=traces.append), content
+
+
+class TestAnEdenAppImageSave:
+    """A Switch game's save in a standalone Eden: one game's folder, synced as a unit, or honestly not established."""
+
+    def test_a_game_named_by_its_tag_for_the_active_user_is_one_folder_synced_as_a_unit(self, traces):
+        adapter, content = _eden("eden-appimage-save-named-by-the-tag-and-the-active-user", traces)
+
+        answer = adapter.resolve_save_answer(
+            system="switch", content_path=content, emulator_label="Eden (AppImage)", content_installed=True
+        )
+
+        assert answer.state == SAVE_STATE_PER_GAME_UNIT
+        assert answer.unit == SaveUnit(
+            root="/home/deck/.local/share/eden/nand/user/save/0000000000000000/"
+            "FFEEDDCCBBAA99887766554433221100/01007EF00011E000",
+            members=None,
+            archive_folder="01007EF00011E000",
+        )
+        assert build_emulator_tag(None, answer.emulator_identity) == "eden"
+
+    def test_no_user_and_no_title_is_a_hole_never_a_folder(self, traces):
+        adapter, _content = _eden("eden-appimage-save-keeps-the-holes-without-a-user-or-a-title", traces)
+
+        answer = adapter.resolve_save_answer(
+            system="switch",
+            content_path="/home/deck/roms/switch/untagged.nsp",
+            emulator_label="Eden (AppImage)",
+            content_installed=True,
+        )
+
+        assert answer.state == SAVE_STATE_HOLE
+        assert answer.unit is None
+
+    def test_two_appimages_with_different_trees_establish_nothing(self, traces):
+        adapter, content = _eden("eden-appimage-two-appimages-with-different-trees-refuse-the-save", traces)
+
+        answer = adapter.resolve_save_answer(
+            system="switch", content_path=content, emulator_label="Eden (AppImage)", content_installed=True
+        )
+
+        assert answer.state == SAVE_STATE_UNESTABLISHED
+        assert answer.unit is None

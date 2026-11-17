@@ -39,6 +39,8 @@ from services.downloads import (
     DownloadTransferConfig,
     DownloadUnpacker,
     DownloadUnpackerConfig,
+    ExtraContentOffer,
+    ExtraContentOfferConfig,
 )
 from services.emulator_sources import EmulatorSourcesService, EmulatorSourcesServiceConfig
 from services.firmware import FirmwareService, FirmwareServiceConfig
@@ -602,8 +604,24 @@ def wire_services(cfg: WiringConfig) -> ServicesBundle:
             queue=download_queue,
             unpacker=download_unpacker,
             romm_api=cfg.adapters.romm_api,
+            install_recorder=rom_install_recorder,
+            download_file_store=cfg.adapters.download_file_store,
+            uow_factory=cfg.callbacks.uow_factory,
             loop=cfg.runtime.loop,
             emit=cfg.runtime.emit,
+            logger=cfg.runtime.logger,
+        ),
+    )
+    extra_content_offer = ExtraContentOffer(
+        config=ExtraContentOfferConfig(
+            uow_factory=cfg.callbacks.uow_factory,
+            romm_api=cfg.adapters.romm_api,
+            platform_systems=platform_systems,
+            retrodeck_folders=cfg.callbacks.retrodeck_folders,
+            extra_content=cfg.adapters.extra_content,
+            active_core=active_core_resolver,
+            download_file_store=cfg.adapters.download_file_store,
+            loop=cfg.runtime.loop,
             logger=cfg.runtime.logger,
         ),
     )
@@ -623,6 +641,7 @@ def wire_services(cfg: WiringConfig) -> ServicesBundle:
             uow_factory=cfg.callbacks.uow_factory,
             rom_remover=rom_remover_binding.get,
             conflict_rules=conflict_rules,
+            extra_content_offer=extra_content_offer,
         ),
     )
 
@@ -734,6 +753,7 @@ def wire_services(cfg: WiringConfig) -> ServicesBundle:
             sources=cfg.adapters.emulator_sources,
             settings=cfg.stores.settings,
             settings_persister=cfg.callbacks.settings_persister,
+            uow_factory=cfg.callbacks.uow_factory,
             loop=cfg.runtime.loop,
             log_debug=cfg.callbacks.log_debug,
         ),

@@ -75,6 +75,8 @@ import type {
   CandidateVanishedResult,
   RenameCollisionsResult,
   CollisionChoice,
+  ExtraContentAnswer,
+  RemoveExtraContentResult,
   AdoptResult,
   VerifyContentResult,
   CustomHeaderEntry,
@@ -350,9 +352,13 @@ export const getSyncRuns = endpoint<[], SyncRunsAnswer>("get_sync_runs");
  * answered with Replace. A game served as a single zip can be in the way at two
  * paths — the zip and the folder it is unpacked into; what the backend removes
  * for which list is its `replace_covers` (`backend/domain/served_shape.py`).
+ *
+ * `extraFileIds` names the update and DLC files the user ticked
+ * (`getExtraContent`), which the download brings into the game's folder once
+ * the game is installed.
  */
 export const startDownload = endpoint<
-  [number, boolean, string | null, CollisionChoice | null, boolean, (string[] | null)?],
+  [number, boolean, string | null, CollisionChoice | null, boolean, (string[] | null)?, (number[] | null)?],
   | BackendResult
   | TargetOccupiedResult
   | CandidatesFoundResult
@@ -385,6 +391,18 @@ export const verifyExistingContent = endpoint<[number, string | null], VerifyCon
  * `size_bytes` is `null` where RomM states none.
  */
 export const getDownloadSize = endpoint<[number], { size_bytes: number | null } | EndpointFailure>("get_download_size");
+/**
+ * A game's extra content — its update and DLC files on RomM — and whether it is
+ * offered, which only the emulator the game starts with being stated to load
+ * them from folders makes it.
+ */
+export const getExtraContent = endpoint<[number], ExtraContentAnswer | EndpointFailure>("get_extra_content");
+/** Bring the named update and DLC files into an installed game's folder, leaving the game's own files alone. */
+export const downloadExtraContent = endpoint<[number, number[]], BackendResult>("download_extra_content");
+/** Delete the named update and DLC files from an installed game's folder; RomM keeps them. Ask first. */
+export const removeExtraContent = endpoint<[number, number[]], RemoveExtraContentResult | EndpointFailure>(
+  "remove_extra_content",
+);
 export const cancelDownload = endpoint<[number], BackendResult>("cancel_download");
 export const pauseDownload = endpoint<[number], BackendResult>("pause_download");
 /**
@@ -500,6 +518,10 @@ export const setCollectionNamingMode = endpoint<
   [CollectionNamingMode],
   { success: boolean; reason?: WireReason; message?: string }
 >("set_collection_naming_mode");
+// Read via getSettings().eden_appimage; "" names none, and the resolver searches.
+export const saveEdenAppimage = endpoint<[string], { success: boolean; reason?: WireReason; message?: string }>(
+  "save_eden_appimage",
+);
 // Read via getSettings().steam_library_hidden / steam_hidden_by_tender; the panel
 // changes Steam itself (utils/libraryHiding.ts), after this has been stored.
 export const saveSteamLibraryHiding = endpoint<
@@ -916,8 +938,8 @@ export const getSystemCoreInfo = endpoint<[string, string], SystemCoreInfo | End
 /** Every detected emulator source, in the user's order, with its health and its switch. */
 export const getEmulatorSources = endpoint<[], EmulatorSourcesListing>("get_emulator_sources");
 
-/** The switched-off source that would start a game, which refuses the start (the launch check's read). */
-export const checkStartSource = endpoint<[], StartSourceCheck | StartSourceRefusal>("check_start_source");
+/** The switched-off source that would start game `romId`, which refuses the start (the launch check's read). */
+export const checkStartSource = endpoint<[number], StartSourceCheck | StartSourceRefusal>("check_start_source");
 
 /** Why the launch check's read could not tell: detecting the emulator sources failed. */
 export type StartSourceRefusal = EndpointFailure & { reason: WireReasonSubset<"detection_failed"> };

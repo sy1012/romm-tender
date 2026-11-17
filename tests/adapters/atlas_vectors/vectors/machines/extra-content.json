@@ -1,0 +1,444 @@
+{
+  "family": "machines",
+  "schema": 5,
+  "spec": "atlas/installations.py ExtraContentAnswer, EdenAppImage; atlas/eden.py; docs/how-to-use.md",
+  "description": "Whether a catalogue entry's emulator loads a game's updates and add-on content from files in folders, which folders, and whether the asked content's own folder is one of them.",
+  "vectors": [
+    {
+      "name": "extra-content-eden-scans-its-game-folder-and-its-external-folder",
+      "rationale": "Eden registers updates and add-ons from .nsp and .xci packages in its external content folders, scanned at its start with every subfolder, and - ext_content_from_game_dirs being on by default - in its game folders, scanned only at their top without deep_scan and by a thread the launch does not wait for. The SDMC row is installed content, not a folder. The content lies directly in a game folder, so a package beside it is scanned.",
+      "input": {
+        "home": "/home/deck",
+        "files": {
+          "/home/deck/Applications/Eden-Linux-v0.2.1-amd64.AppImage": {
+            "size": 4096
+          },
+          "/home/deck/.local/share/eden/nand/system/save/8000000000000010/su/avators/profiles.dat": {
+            "size": 4096
+          },
+          "/home/deck/.config/eden/qt-config.ini": "[Paths]\ngamedirs\\1\\deep_scan\\default=true\ngamedirs\\1\\deep_scan=false\ngamedirs\\1\\expanded=true\ngamedirs\\1\\path=SDMC\ngamedirs\\2\\deep_scan\\default=true\ngamedirs\\2\\deep_scan=false\ngamedirs\\2\\path=/home/deck/roms/switch\ngamedirs\\size=2\nexternal_content_dirs\\1\\path=/home/deck/switch-extras\nexternal_content_dirs\\size=1\n",
+          "/home/deck/roms/switch/Zelda [01007EF00011E000].nsp": {
+            "size": 4096
+          }
+        },
+        "eden_profiles": {
+          "/home/deck/.local/share/eden/nand/system/save/8000000000000010/su/avators/profiles.dat": [
+            "00112233445566778899aabbccddeeff"
+          ]
+        },
+        "extra_content_query": {
+          "system": "switch",
+          "content_path": "/home/deck/roms/switch/Zelda [01007EF00011E000].nsp"
+        }
+      },
+      "expected": {
+        "installations": [
+          {
+            "kind": "eden_appimage",
+            "label": "Eden (AppImage)",
+            "kinds": [
+              "eden_appimage"
+            ],
+            "root": "/home/deck/.local/share/eden",
+            "health": []
+          }
+        ],
+        "extra_content_folders": {
+          "entry": {
+            "system": "switch",
+            "label": "Eden (AppImage)",
+            "kind": "standalone",
+            "core_so": null,
+            "emulator": "EDEN",
+            "declared_index": 0,
+            "selection": null,
+            "availability": "startable",
+            "launcher": {
+              "path": "/home/deck/Applications/Eden-Linux-v0.2.1-amd64.AppImage",
+              "replacement_command": null,
+              "app_id": null,
+              "rule": "staticpath",
+              "entry": "/home/deck/Applications/Eden-Linux-v0.2.1-amd64.AppImage"
+            },
+            "core_path": null,
+            "caveats": []
+          },
+          "loads_from_folders": true,
+          "folders": [
+            {
+              "path": "/home/deck/switch-extras",
+              "subfolders_scanned": true,
+              "registered_before_launch": true,
+              "extensions": [
+                ".nsp",
+                ".xci"
+              ]
+            },
+            {
+              "path": "/home/deck/roms/switch",
+              "subfolders_scanned": false,
+              "registered_before_launch": null,
+              "extensions": [
+                ".nsp",
+                ".xci"
+              ]
+            }
+          ],
+          "content_folder_scanned": true,
+          "caveats": [
+            {
+              "code": "extra-content-scanned-beside-launch",
+              "data": {
+                "folders": [
+                  "/home/deck/roms/switch"
+                ]
+              }
+            },
+            {
+              "code": "arrangement-unverified",
+              "data": {
+                "kind": "eden_appimage"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "extra-content-eden-game-folder-without-deep-scan-misses-a-subfolder",
+      "rationale": "A game folder without deep_scan is read only at its top, so a game kept in a folder of its own below it - RomM's layout for a game with its update and add-ons - is not scanned there: the answer says the content's folder is outside, though the external folder still scans every subfolder of its own.",
+      "input": {
+        "home": "/home/deck",
+        "files": {
+          "/home/deck/Applications/Eden-Linux-v0.2.1-amd64.AppImage": {
+            "size": 4096
+          },
+          "/home/deck/.local/share/eden/nand/system/save/8000000000000010/su/avators/profiles.dat": {
+            "size": 4096
+          },
+          "/home/deck/.config/eden/qt-config.ini": "[Paths]\ngamedirs\\1\\deep_scan\\default=true\ngamedirs\\1\\deep_scan=false\ngamedirs\\1\\expanded=true\ngamedirs\\1\\path=SDMC\ngamedirs\\2\\deep_scan\\default=true\ngamedirs\\2\\deep_scan=false\ngamedirs\\2\\path=/home/deck/roms/switch\ngamedirs\\size=2\nexternal_content_dirs\\1\\path=/home/deck/switch-extras\nexternal_content_dirs\\size=1\n",
+          "/home/deck/roms/switch/Zelda [01007EF00011E000]/Zelda.nsp": {
+            "size": 4096
+          }
+        },
+        "eden_profiles": {
+          "/home/deck/.local/share/eden/nand/system/save/8000000000000010/su/avators/profiles.dat": [
+            "00112233445566778899aabbccddeeff"
+          ]
+        },
+        "extra_content_query": {
+          "system": "switch",
+          "content_path": "/home/deck/roms/switch/Zelda [01007EF00011E000]"
+        }
+      },
+      "expected": {
+        "installations": [
+          {
+            "kind": "eden_appimage",
+            "label": "Eden (AppImage)",
+            "kinds": [
+              "eden_appimage"
+            ],
+            "root": "/home/deck/.local/share/eden",
+            "health": []
+          }
+        ],
+        "extra_content_folders": {
+          "entry": {
+            "system": "switch",
+            "label": "Eden (AppImage)",
+            "kind": "standalone",
+            "core_so": null,
+            "emulator": "EDEN",
+            "declared_index": 0,
+            "selection": null,
+            "availability": "startable",
+            "launcher": {
+              "path": "/home/deck/Applications/Eden-Linux-v0.2.1-amd64.AppImage",
+              "replacement_command": null,
+              "app_id": null,
+              "rule": "staticpath",
+              "entry": "/home/deck/Applications/Eden-Linux-v0.2.1-amd64.AppImage"
+            },
+            "core_path": null,
+            "caveats": []
+          },
+          "loads_from_folders": true,
+          "folders": [
+            {
+              "path": "/home/deck/switch-extras",
+              "subfolders_scanned": true,
+              "registered_before_launch": true,
+              "extensions": [
+                ".nsp",
+                ".xci"
+              ]
+            },
+            {
+              "path": "/home/deck/roms/switch",
+              "subfolders_scanned": false,
+              "registered_before_launch": null,
+              "extensions": [
+                ".nsp",
+                ".xci"
+              ]
+            }
+          ],
+          "content_folder_scanned": false,
+          "caveats": [
+            {
+              "code": "extra-content-scanned-beside-launch",
+              "data": {
+                "folders": [
+                  "/home/deck/roms/switch"
+                ]
+              }
+            },
+            {
+              "code": "content-outside-extra-content-folders",
+              "data": {
+                "folder": "/home/deck/roms/switch/Zelda [01007EF00011E000]"
+              }
+            },
+            {
+              "code": "arrangement-unverified",
+              "data": {
+                "kind": "eden_appimage"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "extra-content-eden-with-game-folders-off-scans-only-its-external-folders",
+      "rationale": "With ext_content_from_game_dirs off, the game folders are not scanned for updates or add-ons whatever their deep_scan says; only the external content folders are, the quotes Eden writes around a path with a space dropped as it reads it. The content's folder is in none of them.",
+      "input": {
+        "home": "/home/deck",
+        "files": {
+          "/home/deck/Applications/Eden-Linux-v0.2.1-amd64.AppImage": {
+            "size": 4096
+          },
+          "/home/deck/.local/share/eden/nand/system/save/8000000000000010/su/avators/profiles.dat": {
+            "size": 4096
+          },
+          "/home/deck/.config/eden/qt-config.ini": "[Data%20Storage]\next_content_from_game_dirs\\default=false\next_content_from_game_dirs=false\n[Paths]\ngamedirs\\1\\deep_scan\\default=false\ngamedirs\\1\\deep_scan=true\ngamedirs\\1\\path=/home/deck/roms/switch\ngamedirs\\size=1\nexternal_content_dirs\\1\\path=\"/run/media/deck/SD card/extras\"\nexternal_content_dirs\\size=1\n",
+          "/home/deck/roms/switch/Zelda [01007EF00011E000].nsp": {
+            "size": 4096
+          }
+        },
+        "eden_profiles": {
+          "/home/deck/.local/share/eden/nand/system/save/8000000000000010/su/avators/profiles.dat": [
+            "00112233445566778899aabbccddeeff"
+          ]
+        },
+        "extra_content_query": {
+          "system": "switch",
+          "content_path": "/home/deck/roms/switch/Zelda [01007EF00011E000].nsp"
+        }
+      },
+      "expected": {
+        "installations": [
+          {
+            "kind": "eden_appimage",
+            "label": "Eden (AppImage)",
+            "kinds": [
+              "eden_appimage"
+            ],
+            "root": "/home/deck/.local/share/eden",
+            "health": []
+          }
+        ],
+        "extra_content_folders": {
+          "entry": {
+            "system": "switch",
+            "label": "Eden (AppImage)",
+            "kind": "standalone",
+            "core_so": null,
+            "emulator": "EDEN",
+            "declared_index": 0,
+            "selection": null,
+            "availability": "startable",
+            "launcher": {
+              "path": "/home/deck/Applications/Eden-Linux-v0.2.1-amd64.AppImage",
+              "replacement_command": null,
+              "app_id": null,
+              "rule": "staticpath",
+              "entry": "/home/deck/Applications/Eden-Linux-v0.2.1-amd64.AppImage"
+            },
+            "core_path": null,
+            "caveats": []
+          },
+          "loads_from_folders": true,
+          "folders": [
+            {
+              "path": "/run/media/deck/SD card/extras",
+              "subfolders_scanned": true,
+              "registered_before_launch": true,
+              "extensions": [
+                ".nsp",
+                ".xci"
+              ]
+            }
+          ],
+          "content_folder_scanned": false,
+          "caveats": [
+            {
+              "code": "content-outside-extra-content-folders",
+              "data": {
+                "folder": "/home/deck/roms/switch"
+              }
+            },
+            {
+              "code": "arrangement-unverified",
+              "data": {
+                "kind": "eden_appimage"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "extra-content-eden-with-no-settings-file-scans-nothing",
+      "rationale": "Without a settings file Eden's game list holds only its installed-content rows and no external folder is set: the emulator still loads extras from folders, and none is configured.",
+      "input": {
+        "home": "/home/deck",
+        "files": {
+          "/home/deck/Applications/Eden-Linux-v0.2.1-amd64.AppImage": {
+            "size": 4096
+          }
+        },
+        "extra_content_query": {
+          "system": "switch"
+        }
+      },
+      "expected": {
+        "installations": [
+          {
+            "kind": "eden_appimage",
+            "label": "Eden (AppImage)",
+            "kinds": [
+              "eden_appimage"
+            ],
+            "root": "/home/deck/.local/share/eden",
+            "health": []
+          }
+        ],
+        "extra_content_folders": {
+          "entry": {
+            "system": "switch",
+            "label": "Eden (AppImage)",
+            "kind": "standalone",
+            "core_so": null,
+            "emulator": "EDEN",
+            "declared_index": 0,
+            "selection": null,
+            "availability": "startable",
+            "launcher": {
+              "path": "/home/deck/Applications/Eden-Linux-v0.2.1-amd64.AppImage",
+              "replacement_command": null,
+              "app_id": null,
+              "rule": "staticpath",
+              "entry": "/home/deck/Applications/Eden-Linux-v0.2.1-amd64.AppImage"
+            },
+            "core_path": null,
+            "caveats": []
+          },
+          "loads_from_folders": true,
+          "folders": [],
+          "content_folder_scanned": null,
+          "caveats": [
+            {
+              "code": "arrangement-unverified",
+              "data": {
+                "kind": "eden_appimage"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "extra-content-a-retrodeck-entry-does-not-state-it",
+      "rationale": "atlas reads what an emulator does with updates and add-ons in folders for a standalone Eden AppImage alone; any other arrangement's entry answers neither yes nor no, and says that it is not established.",
+      "input": {
+        "home": "/home/deck",
+        "files": {
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retrodeck/retrodeck.json": "{\"paths\": {\"rd_home_path\": \"/home/deck/retrodeck\", \"saves_path\": \"/home/deck/retrodeck/saves\"}}",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retroarch/retroarch.cfg": "",
+          "/home/deck/retrodeck/roms/systeminfo.txt": "",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/files/retrodeck/components/es-de/share/es-de/resources/systems/linux/es_systems.xml": "<?xml version=\"1.0\"?>\n<systemList>\n  <system><name>gba</name><path>%ROMPATH%/gba</path><extension>.gba</extension>\n    <command label=\"mGBA\">%EMULATOR_RETROARCH% -L %CORE_RETROARCH%/mgba_libretro.so %ROM%</command>\n  </system>\n</systemList>\n",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/files/retrodeck/components/es-de/share/es-de/resources/systems/linux/es_find_rules.xml": "<?xml version=\"1.0\"?>\n<ruleList>\n    <emulator name=\"RETROARCH\">\n        <rule type=\"staticpath\">\n            <entry>/app/retrodeck/components/retroarch/component_launcher.sh</entry>\n        </rule>\n    </emulator>\n    <emulator name=\"DOLPHIN\">\n        <rule type=\"staticpath\">\n            <entry>/app/retrodeck/components/dolphin/component_launcher.sh</entry>\n        </rule>\n    </emulator>\n    <emulator name=\"MAME\">\n        <rule type=\"staticpath\">\n            <entry>/app/retrodeck/components/mame/component_launcher.sh</entry>\n        </rule>\n    </emulator>\n    <emulator name=\"XEMU\">\n        <rule type=\"staticpath\">\n            <entry>/app/retrodeck/components/xemu/component_launcher.sh</entry>\n        </rule>\n    </emulator>\n    <emulator name=\"RPCS3\">\n        <rule type=\"staticpath\">\n            <entry>/app/retrodeck/components/rpcs3/component_launcher.sh</entry>\n        </rule>\n    </emulator>\n    <emulator name=\"OS-SHELL\">\n        <rule type=\"systempath\">\n            <entry>bash</entry>\n        </rule>\n    </emulator>\n    <emulator name=\"EMPTYPIPE\">\n        <rule type=\"staticpath\">\n            <entry>/app/retrodeck/components/xemu/component_launcher.sh|</entry>\n        </rule>\n    </emulator>\n    <emulator name=\"BLANKPIPE\">\n        <rule type=\"staticpath\">\n            <entry>/app/retrodeck/components/xemu/component_launcher.sh|   </entry>\n        </rule>\n    </emulator>\n    <emulator name=\"MISSING\">\n        <rule type=\"staticpath\">\n            <entry>/app/retrodeck/components/missing/component_launcher.sh</entry>\n        </rule>\n    </emulator>\n    <core name=\"RETROARCH\">\n        <rule type=\"corepath\">\n            <entry>/var/config/retroarch/cores</entry>\n        </rule>\n    </core>\n</ruleList>\n",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/files/retrodeck/components/es-de/component_version": "retrodeck-main-20260926-172324\n",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/metadata": "[Application]\nname=net.retrodeck.retrodeck\nruntime=org.kde.Platform/x86_64/6.11\nsdk=org.kde.Sdk/x86_64/6.11\ncommand=retrodeck\n\n[Context]\nfilesystems=host;\n",
+          "/var/lib/flatpak/runtime/org.kde.Platform/x86_64/6.11/active/files/bin/bash": "",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/files/retrodeck/components/retroarch/component_launcher.sh": "#!/bin/bash\n",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/files/retrodeck/components/dolphin/component_launcher.sh": "#!/bin/bash\n",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/files/retrodeck/components/mame/component_launcher.sh": "#!/bin/bash\n",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/files/retrodeck/components/xemu/component_launcher.sh": "#!/bin/bash\n",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/files/retrodeck/components/rpcs3/component_launcher.sh": "#!/bin/bash\n",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/files/retrodeck/components/retroarch/cores/mgba_libretro.so": "",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/files/retrodeck/components/retroarch/cores/mame_libretro.so": ""
+        },
+        "dirs": [
+          "/home/deck/retrodeck/saves",
+          "/home/deck/retrodeck/bios",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/ROMs"
+        ],
+        "symlinks": {
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retroarch/cores": "/app/retrodeck/components/retroarch/cores"
+        },
+        "extra_content_query": {
+          "system": "gba"
+        }
+      },
+      "expected": {
+        "installations": [
+          {
+            "kind": "retrodeck",
+            "label": "RetroDECK",
+            "kinds": [
+              "retrodeck"
+            ],
+            "root": "/home/deck/retrodeck",
+            "health": []
+          }
+        ],
+        "extra_content_folders": {
+          "entry": {
+            "system": "gba",
+            "label": "mGBA",
+            "kind": "libretro",
+            "core_so": "mgba_libretro.so",
+            "emulator": "mgba_libretro.so",
+            "declared_index": 0,
+            "selection": null,
+            "availability": "startable",
+            "launcher": {
+              "path": "/app/retrodeck/components/retroarch/component_launcher.sh",
+              "replacement_command": null,
+              "app_id": "net.retrodeck.retrodeck",
+              "rule": "staticpath",
+              "entry": "/app/retrodeck/components/retroarch/component_launcher.sh"
+            },
+            "core_path": "/var/config/retroarch/cores/mgba_libretro.so",
+            "caveats": []
+          },
+          "loads_from_folders": null,
+          "folders": [],
+          "content_folder_scanned": null,
+          "caveats": [
+            {
+              "code": "extra-content-folders-unstated",
+              "data": {
+                "installation": "retrodeck",
+                "entry": "mGBA"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

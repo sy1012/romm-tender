@@ -19,7 +19,7 @@ MACHINES = Path(__file__).resolve().parent / "adapters" / "atlas_vectors" / "vec
 
 
 def fixture_machine(inp: dict[str, Any]) -> FixtureMachine:
-    """The vector's machine, as upstream's ``fixture_machine`` builds it (lines 68-84)."""
+    """The vector's machine, as upstream's ``fixture_machine`` builds it (lines 68-87)."""
     return FixtureMachine(
         inp["files"],
         symlinks=inp.get("symlinks"),
@@ -31,6 +31,9 @@ def fixture_machine(inp: dict[str, Any]) -> FixtureMachine:
         appimage_stamps=inp.get("appimage_stamps"),
         ps2_bios_headers=inp.get("ps2_bios_headers"),
         ps3_files=inp.get("ps3_files"),
+        dolphin_discs=inp.get("dolphin_discs"),
+        switch_packages=inp.get("switch_packages"),
+        eden_profiles=inp.get("eden_profiles"),
         disc_identities=inp.get("disc_identities"),
         archive_texts=inp.get("archive_texts"),
         archives=inp.get("archives"),
@@ -39,7 +42,7 @@ def fixture_machine(inp: dict[str, Any]) -> FixtureMachine:
 
 
 def select(installs: list[Any], selector: str | None) -> Any:
-    """The installation a question names, else the first detected — upstream's ``_select`` (lines 87-94)."""
+    """The installation a question names, else the first detected — upstream's ``_select`` (lines 90-97)."""
     if selector is None:
         assert installs, "no installation detected to answer the query"
         return installs[0]

@@ -10,11 +10,28 @@ lives as a bare file in the shared system directory and owns no folder. The
 denormalized ``platform_slug``/``system`` let the home migration and the save
 answer read this record without joining the registry. Whether that launch file
 starts is not recorded: it is the resolver's answer, asked when it is read.
+The game's extra content downloaded into its folder is recorded with it
+(``extra_content``), each file by its place inside ``rom_dir``; whether the
+game is installed does not depend on it.
 """
 
 from __future__ import annotations
 
+from dataclasses import dataclass
+
 from domain._aggregate import cosmic_aggregate
+
+
+@dataclass(frozen=True, slots=True)
+class InstalledExtraContent:
+    """One file of a game's extra content on this device.
+
+    RomM's id for it, where it lies inside the game's folder, and RomM's size of it.
+    """
+
+    file_id: int
+    rel_path: str
+    size_bytes: int
 
 
 @cosmic_aggregate
@@ -28,6 +45,7 @@ class RomInstall:
     system: str
     installed_at: str
     fetched_size_bytes: int | None = None
+    extra_content: tuple[InstalledExtraContent, ...] = ()
 
     @classmethod
     def mark_installed(
@@ -72,3 +90,26 @@ class RomInstall:
         """
         self.rom_dir = new_rom_dir
         self.file_path = new_file_path
+
+    def add_extra_content(self, file_id: int, rel_path: str, size_bytes: int) -> None:
+        """Record a file of the game's extra content downloaded to *rel_path* inside the game's folder.
+
+        A game with no folder of its own keeps none, and a *rel_path* that is
+        empty names no place: both raise ``ValueError``. A file already recorded
+        under *file_id* is recorded again at its new place.
+        """
+        if self.rom_dir is None:
+            raise ValueError("a game kept as one file keeps no extra content")
+        if not rel_path:
+            raise ValueError("extra content needs a place inside the game's folder")
+        kept = tuple(entry for entry in self.extra_content if entry.file_id != file_id)
+        self.extra_content = (*kept, InstalledExtraContent(file_id, rel_path, max(int(size_bytes), 0)))
+
+    def remove_extra_content(self, file_id: int) -> None:
+        """Forget the file of extra content recorded under *file_id*; one not recorded changes nothing."""
+        self.extra_content = tuple(entry for entry in self.extra_content if entry.file_id != file_id)
+
+    @property
+    def extra_content_bytes(self) -> int:
+        """RomM's size of the extra content recorded on this device."""
+        return sum(entry.size_bytes for entry in self.extra_content)

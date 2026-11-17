@@ -53,6 +53,7 @@ def disk_space_verdict(
     multi_file: bool,
     already_on_disk: int = 0,
     unpacked_size: int = 0,
+    extra_bytes: int = 0,
 ) -> DiskSpaceVerdict:
     """Decide whether *file_size* still fits once every other claim is counted.
 
@@ -63,13 +64,15 @@ def disk_space_verdict(
     have claimed but not yet written — without it two concurrent pre-flights
     could each pass on space only one of them fits (#1053). *already_on_disk* is
     what a resumable transfer already wrote, which is not needed a second time,
-    so a near-complete resume is not refused for the full size.
+    so a near-complete resume is not refused for the full size. *extra_bytes*
+    is the extra content the download brings after the game, each file as it
+    arrives, which is counted once.
 
     A ROM whose size the server did not state (*file_size* of 0) always fits:
     there is nothing to weigh, and refusing on an absent number would be a claim
     Tender cannot make.
     """
-    arriving = file_size * 2 if multi_file else file_size + unpacked_size
+    arriving = (file_size * 2 if multi_file else file_size + unpacked_size) + extra_bytes
     needed = max(arriving + _HEADROOM_BYTES - already_on_disk, 0)
     available = free_space - reserved_bytes
     return DiskSpaceVerdict(

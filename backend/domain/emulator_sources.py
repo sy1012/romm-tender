@@ -11,7 +11,9 @@ Pure compute — no I/O, no state mutation.
 
 from __future__ import annotations
 
+import posixpath
 from dataclasses import dataclass
+from enum import Enum
 from typing import TYPE_CHECKING, Any, Protocol
 
 from domain.refusal import DomainRefused
@@ -21,15 +23,36 @@ if TYPE_CHECKING:
 
 RETRODECK = "retrodeck"
 EMUDECK = "emudeck"
+EDEN_APPIMAGE = "eden_appimage"
 
 # Where the order and the switched-off kinds are stored in ``settings.json``.
 ORDER_SETTING = "emulator_source_order"
 SWITCHED_OFF_SETTING = "emulator_sources_off"
 
-# Every game starts through RetroDECK until Tender starts emulators itself, so
-# it is the one source a game's answers come from while it is detected and
-# switched on, wherever the user put it in the order.
-_STARTING_KIND = RETRODECK
+# Where the Eden AppImage the user named is stored in ``settings.json``: an
+# absolute path, or ``""`` for none, which leaves the resolver to search for one.
+EDEN_APPIMAGE_SETTING = "eden_appimage"
+
+# The kinds Tender starts games through.
+_STARTING_KINDS = frozenset({RETRODECK, EDEN_APPIMAGE})
+
+# The kinds whose catalogue the resolver states for one system only: such a
+# source answers that system's games and never a question about the whole
+# machine, wherever the user put it in the order.
+_SINGLE_SYSTEM_KINDS = frozenset({EDEN_APPIMAGE})
+
+
+class SystemListing(Enum):
+    """How a source's catalogue lists one system, as far as choosing the source that answers it goes.
+
+    ``STARTS``: an entry for the system whose program is there. ``UNESTABLISHED``:
+    an entry, and whether its program is there is not established. ``NOT_LISTED``:
+    no entry, every entry not installed, or a catalogue that could not be read.
+    """
+
+    STARTS = "starts"
+    UNESTABLISHED = "unconfirmed"
+    NOT_LISTED = "not_listed"
 
 
 @dataclass(frozen=True, slots=True)
@@ -68,7 +91,18 @@ class SourcesReading(Protocol):
 
     @property
     def answering(self) -> ArrangedSource | None:
-        """The source a game's questions go to, or ``None`` where none answers."""
+        """The source a question about no one system goes to, or ``None`` where none answers."""
+        ...
+
+    def answering_for(self, system: str) -> ArrangedSource | None:
+        """The source a question about one of *system*'s games goes to (:func:`answering_source_for`)."""
+        ...
+
+    def switched_off_starting_for(self, system: str | None) -> str | None:
+        """The kind of the switched-off source that would start a *system* game, or ``None``.
+
+        :func:`switched_off_starting_source`, with *system*'s listing where one is named.
+        """
         ...
 
     @property
@@ -80,8 +114,11 @@ class SourcesReading(Protocol):
         """Why no source answers: :data:`NO_SOURCE_DETECTED` or :data:`ALL_SOURCES_SWITCHED_OFF`."""
         ...
 
-    def answering_installation(self) -> Any:
-        """The resolver's handle for :attr:`answering`, or ``None``."""
+    def answering_installation(self, system: str | None = None) -> Any:
+        """The resolver's handle for :meth:`answering_for` *system*, or for :attr:`answering` without one.
+
+        ``None`` where no source answers.
+        """
         ...
 
     def installation(self, kind: str) -> Any:
@@ -101,44 +138,90 @@ def arrange_sources(
     *detected* is in the resolver's probe order, which is the default order.
     A stored order ranks the kinds it names; a detected kind it does not name
     follows them, in probe order, so a source seen for the first time joins at
-    the end. Switched-off is a deny-list, so a source seen for the first time is
+    the end — except a single-system source, which joins at the front
+    (:func:`_merged_order`). Switched-off is a deny-list, so a source seen for the first time is
     on. A stored kind that is not detected now keeps its place in the stored
     order but is not listed.
     """
     off = frozenset(switched_off)
     return tuple(
-        ArrangedSource(kind=kind, enabled=kind not in off, starts_games=kind == _STARTING_KIND)
+        ArrangedSource(kind=kind, enabled=kind not in off, starts_games=kind in _STARTING_KINDS)
         for kind in _merged_order(detected=detected, stored_order=stored_order)
         if kind in detected
     )
 
 
 def answering_source(sources: Sequence[ArrangedSource]) -> ArrangedSource | None:
-    """The source a game's emulator, firmware and save answers come from, or ``None``.
+    """The source a question about no one system goes to, or ``None``.
 
-    RetroDECK while it is listed and switched on, because every start goes
-    through it; otherwise the first switched-on source in the order, which
-    answers for a start through that source's own frontend
-    (``starts_games`` is false on it). ``None`` when nothing is detected or every
-    detected source is switched off — :func:`no_answering_source_reason` tells
-    the two apart.
+    The first switched-on source in the order that starts games and answers
+    for more than one system; otherwise the first switched-on source that
+    answers for more than one, which answers for a start through that source's
+    own frontend (``starts_games`` is false on it); otherwise the first
+    switched-on source. ``None`` when nothing is detected or every detected
+    source is switched off — :func:`no_answering_source_reason` tells the two
+    apart.
     """
     enabled = [source for source in sources if source.enabled]
-    starting = next((source for source in enabled if source.starts_games), None)
+    whole_machine = [source for source in enabled if source.kind not in _SINGLE_SYSTEM_KINDS]
+    starting = next((source for source in whole_machine if source.starts_games), None)
     if starting is not None:
         return starting
+    if whole_machine:
+        return whole_machine[0]
     return enabled[0] if enabled else None
 
 
-def switched_off_starting_source(sources: Sequence[ArrangedSource]) -> str | None:
+def answering_source_for(
+    sources: Sequence[ArrangedSource], listing: Callable[[str], SystemListing]
+) -> ArrangedSource | None:
+    """The source a question about one system's games goes to, or ``None``.
+
+    *listing* answers a kind's :class:`SystemListing` for that system, and is
+    asked only where more than one source could answer. The first switched-on
+    source in the order that starts games and whose catalogue holds an entry
+    for the system whose program is there (:attr:`SystemListing.STARTS`);
+    otherwise the first such source holding one whose program is not
+    established; otherwise :func:`answering_source`.
+    """
+    fallback = answering_source(sources)
+    starting = [source for source in sources if source.enabled and source.starts_games]
+    if not starting or starting == [fallback]:
+        return fallback
+    listed = [(source, listing(source.kind)) for source in starting]
+    for wanted in (SystemListing.STARTS, SystemListing.UNESTABLISHED):
+        found = next((source for source, said in listed if said is wanted), None)
+        if found is not None:
+            return found
+    return fallback
+
+
+def switched_off_starting_source(
+    sources: Sequence[ArrangedSource], listing: Callable[[str], SystemListing] | None = None
+) -> str | None:
     """The kind of the detected source that would start a game while it is switched off, or ``None``.
 
-    A start is refused while this answers a kind — today always RetroDECK, the
-    one source with ``starts_games``. ``None`` while a switched-on source starts
-    games, which then takes the start over, and also where no source that starts
-    games is detected at all: that start goes ahead and fails on its own,
-    because a source that is not listed has no switch to turn back on.
+    A start is refused while this answers a kind. With the *listing* of the
+    game's system, the source is the first switched-off one that starts games
+    and lists the system (:attr:`SystemListing.STARTS` or ``UNESTABLISHED``),
+    unless the source :func:`answering_source_for` names lists it too, which
+    then takes the start over. Without one, or where no switched-off source
+    lists it: ``None`` while a switched-on source starts games, and also where
+    no source that starts games is detected at all — that start goes ahead and
+    fails on its own, because a source that is not listed has no switch to
+    turn back on; otherwise the first switched-off source that starts games.
     """
+    if listing is not None:
+        listed = (SystemListing.STARTS, SystemListing.UNESTABLISHED)
+        answering = answering_source_for(sources, listing)
+        if answering is not None and answering.starts_games and listing(answering.kind) in listed:
+            return None
+        off = next(
+            (s.kind for s in sources if not s.enabled and s.starts_games and listing(s.kind) in listed),
+            None,
+        )
+        if off is not None:
+            return off
     if any(source.enabled and source.starts_games for source in sources):
         return None
     return next((source.kind for source in sources if source.starts_games), None)
@@ -164,6 +247,12 @@ CATALOGUE_READ = "read"
 def no_answering_source_reason(sources: Sequence[ArrangedSource]) -> str:
     """Why :func:`answering_source` found none: nothing detected, or everything switched off."""
     return ALL_SOURCES_SWITCHED_OFF if sources else NO_SOURCE_DETECTED
+
+
+# Tender's own finding for a source that found several AppImages of its
+# emulator and runs none of them until the user names one; ``data`` holds the
+# ``candidates``, one path per line.
+SEVERAL_APPIMAGES = "several-appimages"
 
 
 @dataclass(frozen=True, slots=True)
@@ -240,8 +329,20 @@ def stored_kinds(value: object) -> tuple[str, ...]:
     return tuple(kind for kind in value if isinstance(kind, str))
 
 
+def is_absolute_path(value: str) -> bool:
+    """Whether *value* is an absolute path on this host, which is what the resolver takes an AppImage's name as."""
+    return posixpath.isabs(value)
+
+
 def _merged_order(*, detected: Sequence[str], stored_order: Sequence[str]) -> tuple[str, ...]:
-    """The stored order, deduplicated, then every detected kind it does not name, in probe order."""
-    merged = list(dict.fromkeys(stored_order))
-    merged.extend(kind for kind in detected if kind not in merged)
-    return tuple(merged)
+    """Every detected single-system kind the stored order does not name, then the stored order, then the rest.
+
+    Both unnamed groups keep probe order. A single-system source goes first because a whole-machine
+    frontend can list that system with an entry Tender cannot start (RetroDECK's ES-DE finds an Eden
+    AppImage itself and answers it as "Eden (Standalone)", whose start through RetroDECK is not
+    established), and whichever stands first for the system answers it.
+    """
+    stored = list(dict.fromkeys(stored_order))
+    unnamed = [kind for kind in detected if kind not in stored]
+    single = [kind for kind in unnamed if kind in _SINGLE_SYSTEM_KINDS]
+    return (*single, *stored, *(kind for kind in unnamed if kind not in _SINGLE_SYSTEM_KINDS))

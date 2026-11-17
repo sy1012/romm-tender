@@ -107,6 +107,9 @@ _MIGRATION_RULE_WHITELIST: set[str] = {
     # Hiding synced games — a settings.json-only write; the Steam side is the
     # panel's, applied before the call.
     "save_steam_library_hiding",
+    # The Eden AppImage named — a settings.json-only write; the next reading of
+    # the emulator sources takes it.
+    "save_eden_appimage",
     # Preferred sibling-group region — a settings.json-only write (ADR-0021 §3),
     # never touches RetroDECK state; takes effect on the next sync. Its companion
     # read (distinct regions in the local library) is a pure local DB read.
@@ -290,6 +293,9 @@ _MIGRATION_RULE_WHITELIST: set[str] = {
     "get_installed_rom",
     # Reads RomM's ROM detail and answers the size a download would fetch.
     "get_download_size",
+    # Reads the resolver's answer about extra content in folders and RomM's
+    # update and DLC files of a game; it writes nothing.
+    "get_extra_content",
     # Probes that change no RetroDECK state: a local-only drift hash check, a
     # version-free reachability heartbeat and a fire-and-forget save-status
     # refresh. None mutate RetroDECK state, so they are never refused during a

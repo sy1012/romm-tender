@@ -6,6 +6,8 @@ import { FaCheckCircle, FaChevronDown, FaExclamationTriangle, FaInfoCircle } fro
 import { EmulatorSourcesSection } from "./EmulatorSourcesSection";
 import { throbberIn } from "../../test-utils/throbber";
 import { SOURCES_READING, SOURCES_UNREAD } from "../../utils/emulatorSourceWording";
+import { showModal } from "@decky/ui";
+import type { ReactElement } from "react";
 import { ENTRY_FOCUS_DELAY_MS, FOCUS_STOPS } from "../../utils/entryFocus";
 import { AMBER, GREEN, MUTED, SELECTION_ACCENT } from "../layout/pane";
 import type { EmulatorSource, EmulatorSourcesListing } from "../../types";
@@ -40,14 +42,27 @@ function listed(...sources: EmulatorSource[]): EmulatorSourcesListing {
   return { sources, answering: "retrodeck" };
 }
 
-function renderSection(listing: EmulatorSourcesListing | null | undefined, busy = false) {
+function renderSection(listing: EmulatorSourcesListing | null | undefined, busy = false, edenAppImage = "") {
   const onSwitch = vi.fn();
   const onMove = vi.fn();
-  const view = render(<EmulatorSourcesSection listing={listing} busy={busy} onSwitch={onSwitch} onMove={onMove} />);
+  const onSaveEdenAppImage = vi.fn(async () => {});
+  const onClearEdenAppImage = vi.fn();
+  const section = (next: EmulatorSourcesListing | null | undefined, nextBusy: boolean) => (
+    <EmulatorSourcesSection
+      listing={next}
+      busy={nextBusy}
+      onSwitch={onSwitch}
+      onMove={onMove}
+      edenAppImage={edenAppImage}
+      onSaveEdenAppImage={onSaveEdenAppImage}
+      onClearEdenAppImage={onClearEdenAppImage}
+    />
+  );
+  const view = render(section(listing, busy));
   /** Render the section again with what the parent now holds. */
   const answer = (next: EmulatorSourcesListing | null | undefined, nextBusy = false) =>
-    view.rerender(<EmulatorSourcesSection listing={next} busy={nextBusy} onSwitch={onSwitch} onMove={onMove} />);
-  return { ...view, onSwitch, onMove, answer };
+    view.rerender(section(next, nextBusy));
+  return { ...view, onSwitch, onMove, onSaveEdenAppImage, onClearEdenAppImage, answer };
 }
 
 /**
@@ -234,7 +249,9 @@ describe("EmulatorSourcesSection", () => {
 
   it("names each arrow after the source and the direction, and shows no text on it", () => {
     const { container } = renderSection(BOTH);
-    const labels = [...container.querySelectorAll("button")].map((button) => button.getAttribute("aria-label"));
+    const labels = [...container.querySelectorAll("[data-move] button")].map((button) =>
+      button.getAttribute("aria-label"),
+    );
 
     expect(labels).toEqual(["Move RetroDECK up", "Move RetroDECK down", "Move EmuDeck up", "Move EmuDeck down"]);
     expect(arrow(container, "EmuDeck", "up")).toHaveTextContent(/^$/);
@@ -503,5 +520,48 @@ describe("EmulatorSourcesSection", () => {
     const notice = getByTestId("sources-notice");
     expect(notice).toHaveTextContent(line);
     expect(within(notice.closest('[data-testid="field"]')!).getByText(line)).toBeInTheDocument();
+  });
+});
+
+describe("the Eden AppImage row", () => {
+  afterEach(() => {
+    vi.mocked(showModal).mockClear();
+  });
+
+  it("says none is set, that it is optional, and where Tender looks instead", () => {
+    const { getByTestId, getByText } = renderSection(BOTH);
+    expect(getByTestId("eden-appimage-line")).toHaveTextContent(
+      "Optional. None set: Tender looks for one in ~/Applications, ~/AppImages, ~/Emulation/tools and ~/.local/bin.",
+    );
+    expect(getByText("Set")).toBeInTheDocument();
+  });
+
+  it("shows the path set, with Edit and Clear", () => {
+    const { getByTestId, getByText } = renderSection(BOTH, false, "/opt/Eden.AppImage");
+    expect(getByTestId("eden-appimage-line")).toHaveTextContent(
+      "/opt/Eden.AppImage — used instead of looking for one.",
+    );
+    expect(getByText("Edit")).toBeInTheDocument();
+    expect(getByText("Clear")).toBeInTheDocument();
+  });
+
+  it("is there while no source is detected, since setting it is how an Eden Tender did not find is detected", () => {
+    const { getByTestId } = renderSection(listed());
+    expect(getByTestId("sources-notice")).toBeInTheDocument();
+    expect(getByTestId("eden-appimage-line")).toBeInTheDocument();
+  });
+
+  it("opens the prompt prefilled with the path set, handing it the save", () => {
+    const { getByText, onSaveEdenAppImage } = renderSection(BOTH, false, "/opt/Eden.AppImage");
+    fireEvent.click(getByText("Edit"));
+    const modal = vi.mocked(showModal).mock.calls[0]?.[0] as ReactElement<{ current: string; onSave: unknown }>;
+    expect(modal.props.current).toBe("/opt/Eden.AppImage");
+    expect(modal.props.onSave).toBe(onSaveEdenAppImage);
+  });
+
+  it("clears through the parent", () => {
+    const { getByText, onClearEdenAppImage } = renderSection(BOTH, false, "/opt/Eden.AppImage");
+    fireEvent.click(getByText("Clear"));
+    expect(onClearEdenAppImage).toHaveBeenCalledTimes(1);
   });
 });

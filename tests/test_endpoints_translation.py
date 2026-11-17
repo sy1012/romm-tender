@@ -2091,6 +2091,9 @@ def _dispatcher_over_adoption(world: _AdoptionWorld) -> CallDispatcher:
             queue=queue,
             unpacker=unpacker,
             romm_api=world.romm_api,
+            install_recorder=recorder,
+            download_file_store=world.store,
+            uow_factory=uow_factory,
             loop=loop,
             emit=download_emit,
             logger=LOGGER,
@@ -2112,6 +2115,7 @@ def _dispatcher_over_adoption(world: _AdoptionWorld) -> CallDispatcher:
             uow_factory=uow_factory,
             rom_remover=lambda: _remove_nothing,
             conflict_rules=download_rules,
+            extra_content_offer=MagicMock(),
         )
     )
     services = _make_services_bundle(download_service=downloads, rom_adoption_service=adoption)

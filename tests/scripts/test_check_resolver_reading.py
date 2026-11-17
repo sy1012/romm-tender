@@ -265,6 +265,7 @@ class TestTheRealTree:
     def test_the_reading_modules_and_the_grants_are_the_decided_ones(self):
         assert set(check.READING_MODULES) == {
             "adapters/atlas_catalogue.py",
+            "adapters/atlas_extra_content.py",
             "adapters/atlas_firmware.py",
             "adapters/atlas_launch.py",
             "adapters/atlas_platforms.py",

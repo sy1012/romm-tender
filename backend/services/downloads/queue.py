@@ -204,6 +204,7 @@ class DownloadQueue:
                 bytes_downloaded=done,
                 total_bytes=total,
                 resumable=False if extracting else entry.get("resumable", False),
+                extra_content_only=bool(entry.get("extra_content_only", False)),
             )
         )
 
@@ -235,6 +236,7 @@ class DownloadQueue:
                         bytes_downloaded=entry.get("bytes_downloaded", 0),
                         total_bytes=entry.get("total_bytes", 0),
                         resumable=range_supported,
+                        extra_content_only=bool(entry.get("extra_content_only", False)),
                     )
                 )
 
@@ -262,8 +264,23 @@ class DownloadQueue:
                 bytes_downloaded=0,
                 total_bytes=total_bytes,
                 resumable=entry.get("resumable", False),
+                extra_content_only=bool(entry.get("extra_content_only", False)),
             ),
         )
+
+    def report_extra_content(self, rom_id, rom_name, platform_name, file_name, *, total_bytes) -> None:
+        """Start *rom_id*'s entry over for the extra content its download brings once the game is in place.
+
+        The bar counts the extra content's bytes from zero, and the entry is no
+        longer resumable: a file of extra content is fetched whole or not at all.
+        """
+        entry = self._live_entry(rom_id)
+        if entry is None:
+            return
+        entry.update({"status": "downloading", "progress": 0, "bytes_downloaded": 0, "total_bytes": total_bytes})
+        entry["resumable"] = False
+        entry["_transferred"] = 0
+        self.spawn_frame(self._frame_from_entry(rom_id, rom_name, platform_name, file_name, status="downloading"))
 
     def mark_downloading(self, rom_id: int) -> None:
         """Mark *rom_id*'s entry downloading: its download holds a transfer slot."""
@@ -329,6 +346,7 @@ class DownloadQueue:
             bytes_downloaded=entry.get("bytes_downloaded", 0),
             total_bytes=entry.get("total_bytes", 0),
             resumable=entry.get("resumable", False),
+            extra_content_only=bool(entry.get("extra_content_only", False)),
         )
 
     def get_download_queue(self) -> dict[str, Any]:

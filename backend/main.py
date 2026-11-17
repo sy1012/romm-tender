@@ -248,8 +248,8 @@ class Endpoints:
         return await self._services.emulator_sources_service.get_emulator_sources()
 
     @route
-    async def check_start_source(self):
-        return await self._services.emulator_sources_service.check_start_source()
+    async def check_start_source(self, rom_id=None):
+        return await self._services.emulator_sources_service.check_start_source(rom_id)
 
     @route
     async def set_emulator_source_enabled(self, kind, enabled):
@@ -437,6 +437,10 @@ class Endpoints:
         return self._services.settings_service.save_steam_library_hiding(enabled, hidden_by_tender)
 
     @route
+    def save_eden_appimage(self, path):
+        return self._services.settings_service.save_eden_appimage(path)
+
+    @route
     def set_qam_entry_position(self, position):
         return self._services.settings_service.set_qam_entry_position(position)
 
@@ -585,6 +589,7 @@ class Endpoints:
         collision_choice=None,
         page_saw_candidate=False,
         confirmed_paths=None,
+        extra_file_ids=None,
     ):
         """Start a download, refusing when this game is already on the device.
 
@@ -598,10 +603,17 @@ class Endpoints:
         reports what the game page told the user, so a page that found a copy
         can never end in a silent download. ``confirmed_paths`` lists the
         occupied paths whose dialogs the user answered with Replace, for a game
-        that claims two.
+        that claims two. ``extra_file_ids`` names the game's extra content the
+        user ticked, which the download brings once the game is installed.
         """
         return await self._services.download_service.start_download(
-            rom_id, replace_existing, candidate_path, collision_choice, page_saw_candidate, confirmed_paths
+            rom_id,
+            replace_existing,
+            candidate_path,
+            collision_choice,
+            page_saw_candidate,
+            confirmed_paths,
+            extra_file_ids,
         )
 
     @route
@@ -628,6 +640,21 @@ class Endpoints:
     @route
     async def get_download_size(self, rom_id):
         return await self._services.download_service.get_download_size(rom_id)
+
+    @route
+    async def get_extra_content(self, rom_id):
+        """The game's extra content — its update and DLC files on RomM — and whether it is offered."""
+        return await self._services.download_service.get_extra_content(rom_id)
+
+    @route
+    async def download_extra_content(self, rom_id, file_ids):
+        """Bring the extra content *file_ids* name into an installed game's folder."""
+        return await self._services.download_service.download_extra_content(rom_id, file_ids)
+
+    @route
+    async def remove_extra_content(self, rom_id, file_ids):
+        """Delete files of an installed game's extra content; the panel has asked first, and RomM keeps them."""
+        return await self._services.rom_removal_service.remove_extra_content(rom_id, file_ids)
 
     @route
     def cancel_download(self, rom_id):

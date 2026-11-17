@@ -527,9 +527,9 @@ class TestDownloadEndpointDelegation:
     async def test_start_download_delegates(self, endpoints, services):
         services.download_service.start_download = AsyncMock(return_value={"queued": True})
         result = await endpoints.start_download(42)
-        # No candidate named, no collision answered, nothing reported by the page
-        # and no path confirmed: the plain Download press.
-        services.download_service.start_download.assert_awaited_once_with(42, False, None, None, False, None)
+        # No candidate named, no collision answered, nothing reported by the page,
+        # no path confirmed and no extra content ticked: the plain Download press.
+        services.download_service.start_download.assert_awaited_once_with(42, False, None, None, False, None, None)
         assert result == {"queued": True}
 
     @pytest.mark.asyncio
@@ -545,6 +545,30 @@ class TestDownloadEndpointDelegation:
         result = endpoints.get_download_queue()
         services.download_service.get_download_queue.assert_called_once_with()
         assert result == []
+
+    @pytest.mark.asyncio
+    async def test_start_download_hands_the_ticked_extra_content_on(self, endpoints, services):
+        services.download_service.start_download = AsyncMock(return_value={"success": True})
+        await endpoints.start_download(42, False, None, None, False, None, [7, 8])
+        services.download_service.start_download.assert_awaited_once_with(42, False, None, None, False, None, [7, 8])
+
+    @pytest.mark.asyncio
+    async def test_get_extra_content_delegates(self, endpoints, services):
+        services.download_service.get_extra_content = AsyncMock(return_value={"success": True, "offered": False})
+        assert await endpoints.get_extra_content(42) == {"success": True, "offered": False}
+        services.download_service.get_extra_content.assert_awaited_once_with(42)
+
+    @pytest.mark.asyncio
+    async def test_download_extra_content_delegates(self, endpoints, services):
+        services.download_service.download_extra_content = AsyncMock(return_value={"success": True})
+        assert await endpoints.download_extra_content(42, [7]) == {"success": True}
+        services.download_service.download_extra_content.assert_awaited_once_with(42, [7])
+
+    @pytest.mark.asyncio
+    async def test_remove_extra_content_delegates(self, endpoints, services):
+        services.rom_removal_service.remove_extra_content = AsyncMock(return_value={"success": True, "removed": 1})
+        assert await endpoints.remove_extra_content(42, [7]) == {"success": True, "removed": 1}
+        services.rom_removal_service.remove_extra_content.assert_awaited_once_with(42, [7])
 
     @pytest.mark.asyncio
     async def test_get_installed_rom_delegates(self, endpoints, services):
