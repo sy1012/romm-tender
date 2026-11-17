@@ -135,6 +135,7 @@ class RomDispatchContext:
     system: str
     core_so: str | None
     stop: SyncStop | None = None
+    emulator_identity: str | None = None
 
 
 class MatrixExecutor:
@@ -343,6 +344,7 @@ class MatrixExecutor:
                 autocleanup_limit=options.autocleanup_limit,
                 overwrite=False,
                 planned_group=server_candidates,
+                emulator_identity=ctx.emulator_identity,
             )
             return TransferDirection.UPLOAD
         except RommConflictError:
@@ -769,6 +771,7 @@ class MatrixExecutor:
             system=system,
             core_so=core_so,
             stop=stop,
+            emulator_identity=answer.emulator_identity,
         )
         uploaded = 0
         downloaded = 0

@@ -289,6 +289,7 @@ class VersionsService:
                 core_so,
                 target_save,
                 default_slot,
+                emulator_identity=info["save_answer"].emulator_identity,
             )
         except Exception as e:
             # Download already mutated local state to reflect ``save_id``, so

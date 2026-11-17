@@ -398,10 +398,15 @@ class AdoptionRenamer:
         return tuple(found)
 
     def _save_dir(self, system: str, content_path: str, emulator_label: str | None, *, installed: bool) -> str | None:
-        """The folder the resolver answers for the save of the game at *content_path*; ``None`` where it names none."""
-        return self._save_locations.resolve_save_answer(
+        """The folder the resolver answers for the save of the game at *content_path*; ``None`` where it names none.
+
+        ``None`` for a save unit too: its files are named by the emulator, not
+        after the game, so the rename leaves them where they are.
+        """
+        answer = self._save_locations.resolve_save_answer(
             system=system, content_path=content_path, emulator_label=emulator_label, content_installed=installed
-        ).concrete_directory
+        )
+        return None if answer.unit is not None else answer.concrete_directory
 
     def _savestate_dir(self, system: str, content_path: str, emulator_label: str | None) -> str | NoSavestates | None:
         """The directory the resolver answers for the savestates of the game at *content_path*.

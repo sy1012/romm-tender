@@ -61,6 +61,7 @@ from services.rom_install_recorder import RomInstallRecorder, RomInstallRecorder
 from services.rom_removal import RomRemovalService, RomRemovalServiceConfig
 from services.running_games import RunningGames, RunningGamesConfig
 from services.saves import SaveService, SaveServiceConfig
+from services.saves.save_units import SAVE_UNITS_FOLDER
 from services.session_lifecycle import SessionLifecycleService, SessionLifecycleServiceConfig
 from services.settings import SettingsService, SettingsServiceConfig
 from services.shortcut_artwork import ShortcutArtworkService, ShortcutArtworkServiceConfig
@@ -416,6 +417,8 @@ def wire_services(cfg: WiringConfig) -> ServicesBundle:
         conflict_rules=conflict_rules,
         running_rom_ids=running_games.running_rom_ids,
         uow_factory=cfg.callbacks.uow_factory,
+        save_unit_store=cfg.adapters.save_unit_store,
+        save_units_dir=os.path.join(cfg.directories.data_dir, SAVE_UNITS_FOLDER),
     )
     save_sync_service = SaveService(config=save_service_config)
     save_directories_binding.set(lambda: save_sync_service.rerecord_save_directories)

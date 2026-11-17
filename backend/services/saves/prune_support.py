@@ -25,6 +25,7 @@ if TYPE_CHECKING:
     from services.protocols import RetroDeckFolders, SaveFileStore, UnitOfWorkFactory
     from services.saves.rom_info import RomInfoService
     from services.saves.save_backup import SaveBackup
+    from services.saves.save_units import SaveUnits
     from services.saves.sync_engine import SyncEngine
 
 
@@ -57,7 +58,11 @@ def _current_save_artifact(path: str, saves_root: str, rom_id: int) -> dict[str,
 
 @dataclass(frozen=True)
 class PruneSaveSupportConfig:
-    """Construction-time wiring for the removed-game-cleanup save collaborator."""
+    """Construction-time wiring for the removed-game-cleanup save collaborator.
+
+    ``save_units`` names the staging folder a save unit's zip is kept in, the
+    one place outside RetroDECK's saves root the cleanup reaches.
+    """
 
     uow_factory: UnitOfWorkFactory
     save_file_store: SaveFileStore
@@ -65,6 +70,7 @@ class PruneSaveSupportConfig:
     rom_info: RomInfoService
     sync_engine: SyncEngine
     save_backup: SaveBackup
+    save_units: SaveUnits
 
 
 class PruneSaveSupport:
@@ -77,6 +83,7 @@ class PruneSaveSupport:
         self._rom_info = config.rom_info
         self._sync_engine = config.sync_engine
         self._save_backup = config.save_backup
+        self._save_units = config.save_units
 
     @contextlib.asynccontextmanager
     async def lock_prune_roms(self, rom_ids: list[int]) -> AsyncIterator[None]:
@@ -171,6 +178,15 @@ class PruneSaveSupport:
             raise root
         return root
 
+    def _safe_root(self, path: str, saves_root: str | None) -> str | None:
+        """The root the save at *path* must lie in: the save units' staging folder for a staged zip, else *saves_root*.
+
+        A save unit is projected as its staged zip alone, so the cleanup backs
+        that zip up and never reaches the unit's own files.
+        """
+        staging_root = self._save_units.staging_root
+        return staging_root if self._save_file_store.is_within(path, staging_root) else saves_root
+
     def _inventory_for(
         self,
         purge_ids: set[int],
@@ -197,19 +213,20 @@ class PruneSaveSupport:
                 continue
             for item in expected:
                 path = item["path"]
-                if saves_root is None or not self._save_file_store.is_within(path, saves_root):
+                root = self._safe_root(path, saves_root)
+                if root is None or not self._save_file_store.is_within(path, root):
                     warnings.append(f"ROM {rom_id}: save path is outside the supported saves root; left untouched")
                     continue
                 owners = ownership.get(self._save_file_store.canonical_path(path), {rom_id})
                 lock_ids.update(owners)
                 if owners <= purge_ids:
-                    artifacts.append(_current_save_artifact(path, saves_root, rom_id))
+                    artifacts.append(_current_save_artifact(path, root, rom_id))
                     exclusive.append(item)
-                    source_claims[path] = self._save_file_store.claim_source(path, saves_root)
+                    source_claims[path] = self._save_file_store.claim_source(path, root)
                 elif self._save_file_store.is_file(path):
-                    artifacts.append(_current_save_artifact(path, saves_root, rom_id))
+                    artifacts.append(_current_save_artifact(path, root, rom_id))
                     shared.append(path)
-                artifacts.extend(self._backup_artifacts(item, rom_id, saves_root))
+                artifacts.extend(self._backup_artifacts(item, rom_id, root))
         return {
             "artifacts": artifacts,
             "exclusive": exclusive,
@@ -268,7 +285,8 @@ class PruneSaveSupport:
     def _back_up_one(
         self, item: dict[str, str], claims: dict[str, SourceClaim] | None, saves_root: str
     ) -> MutationOutcome:
-        """Back one projected save up under *saves_root*, through its claim when one was sealed."""
+        """Back one projected save up under its safe root, through its claim when one was sealed."""
+        saves_root = self._safe_root(item["path"], saves_root) or saves_root
         backup_dir = os.path.join(item["saves_dir"], BACKUP_DIR_NAME)
         if (
             not self._save_file_store.is_within(item["path"], saves_root)
@@ -292,7 +310,7 @@ class PruneSaveSupport:
             if saves_root is None:
                 return False
             for path in claims:
-                current = self._save_file_store.claim_source(path, saves_root)
+                current = self._save_file_store.claim_source(path, self._safe_root(path, saves_root) or saves_root)
                 if current["source_identity"]["exists"]:
                     return False
         except Exception:

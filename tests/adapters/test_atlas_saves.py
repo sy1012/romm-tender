@@ -42,6 +42,7 @@ from _vendor.atlas import (
     CAVEAT_SAVE_INSIDE_CONTENT,
     CAVEAT_SAVE_INSIDE_IMAGE,
     CAVEAT_SORTED_DIR_MISSING,
+    GRANULARITY_PER_GAME_DIRECTORY,
     GRANULARITY_PER_GAME_FILE,
     GRANULARITY_PER_GAME_FILES,
     GRANULARITY_SHARED_CARD,
@@ -513,7 +514,7 @@ class TestAMissingSavesRoot:
 
     def test_a_saves_root_the_source_only_assumed_refuses_nothing(self, traces):
         # Why an assumed root refuses nothing: docs/architecture/save-sync-coverage.md,
-        # "The seven save states".
+        # "The eight save states".
         answer, _entry = self._answer(traces, roots=_roots(provenance=PROVENANCE_ASSUMED, findings=(self._MISSING,)))
 
         assert answer.state == SAVE_STATE_PER_GAME_FILES
@@ -653,7 +654,7 @@ class TestAPlaceNotReadFromTheSettings:
     @pytest.mark.parametrize("kind", ["retrodeck", "emudeck"])
     @pytest.mark.parametrize("code", _MARKERS)
     def test_retrodeck_s_and_emudeck_s_marker_finding_alone_refuses_nothing(self, traces, code: str, kind: str):
-        # Why: docs/architecture/save-sync-coverage.md, "The seven save states".
+        # Why: docs/architecture/save-sync-coverage.md, "The eight save states".
         answer = self._answer(traces, _placement(caveats=(code,)), kind=kind)
 
         assert answer.state == SAVE_STATE_PER_GAME_FILES
@@ -661,7 +662,7 @@ class TestAPlaceNotReadFromTheSettings:
     @pytest.mark.parametrize("kind", ["bare_retroarch_flatpak", "bare_retroarch_native"])
     @pytest.mark.parametrize("code", _MARKERS)
     def test_a_bare_retroarch_s_marker_finding_refuses(self, traces, code: str, kind: str):
-        # Why: docs/architecture/save-sync-coverage.md, "The seven save states".
+        # Why: docs/architecture/save-sync-coverage.md, "The eight save states".
         answer = self._answer(traces, _placement(caveats=(code,)), kind=kind)
 
         assert answer.state == SAVE_STATE_PLACE_NOT_READ
@@ -712,7 +713,7 @@ class TestAPlaceNotReadFromTheSettings:
         assert answer.unestablished == UNESTABLISHED_NOT_ASKED
 
     def test_a_finding_in_the_source_s_health_alone_is_not_read(self, traces):
-        # Why: docs/architecture/save-sync-coverage.md, "The seven save states".
+        # Why: docs/architecture/save-sync-coverage.md, "The eight save states".
         entry = _Entry("Cemu (Standalone)", _placement())
         adapter = _adapter(
             _Installation(
@@ -881,6 +882,28 @@ class TestTheTwoShapesAnAnswerReaches:
 
     def test_the_two_shapes_are_not_the_same_value(self):
         assert UNESTABLISHED_NOTHING != UNESTABLISHED_DIRECTORY_KNOWN
+
+
+class TestNoAnswerIsASaveUnitYet:
+    """Only an explicit statement that a folder is the game's own makes a save unit, and none is read yet."""
+
+    def test_a_per_game_directory_answer_is_not_a_unit(self, traces):
+        # RPCS3 answers this granularity with the PARENT of every title's
+        # folder, so the granularity alone says nothing about whose folder it is.
+        answer = _ask(
+            _placement(
+                files=(),
+                groups=(
+                    FileGroup(dir=_SAVES, files=None, granularity=GRANULARITY_PER_GAME_DIRECTORY, role=ROLE_BATTERY),
+                ),
+                granularity=GRANULARITY_PER_GAME_DIRECTORY,
+            ),
+            traces,
+        )
+
+        assert answer.unit is None
+        assert answer.state != "per_game_unit"
+        assert answer.sync_directory is None
 
 
 class TestAnArcadeSaveIsSyncedWhole:

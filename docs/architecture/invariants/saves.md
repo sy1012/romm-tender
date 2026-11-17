@@ -78,14 +78,15 @@ and binds, and the other areas: [the register's index](index.md).
   (`test_status.py::TestCheckLocalDriftWithSaveSyncOn::test_the_check_waits_for_the_roms_sync_lock`) and the read with
   save sync off (`tests/services/saves/test_local_saves.py::TestTheRomsLock`); prompt-only: every other holder and any
   new read-mutate-write — mechanize via a call-site audit of `rom_save_sync_states.save` and `write_save_state`
-- **Which files a game's save consists of is the EMULATOR's answer, read live, and six of its seven states refuse the
+- **Which files a game's save consists of is the EMULATOR's answer, read live, and six of its eight states refuse the
   sync — no probe, no state written; a place not read from the emulator's own settings is one of them** — test +
-  prompt-only — `tests/adapters/test_atlas_saves.py` pins the seven states and every way the question cannot be put,
-  `tests/domain/test_save_answer.py` pins the precedence that makes "exactly one" well defined, and
-  `tests/services/saves/test_save_shape_gate.py` pins the absences **each beside a control that asserts the same probe
-  DOES happen for a syncable answer** — without those controls a service that had stopped probing entirely would pass.
-  The answered save directory is not sync state: it lives in its own table (`answered_save_directories`) and may be
-  recorded for a refusing answer, whose files are then followed when that directory moves — a move, not a sync
+  prompt-only — `tests/adapters/test_atlas_saves.py` pins the states, every way the question cannot be put, and that no
+  answer it translates today is a save unit (`TestNoAnswerIsASaveUnitYet`), `tests/domain/test_save_answer.py` pins the
+  precedence that makes "exactly one" well defined, and `tests/services/saves/test_save_shape_gate.py` pins the absences
+  **each beside a control that asserts the same probe DOES happen for a syncable answer** — without those controls a
+  service that had stopped probing entirely would pass. The answered save directory is not sync state: it lives in its
+  own table (`answered_save_directories`) and may be recorded for a refusing answer, whose files are then followed when
+  that directory moves — a move, not a sync
   ([Following a Moved Save Directory](../save-file-sync-architecture.md#following-a-moved-save-directory)). The rule
   spans seven modules and no diff-scoped review sees it whole: `AtlasSaveLocationAdapter` reads the machine,
   `domain/save_answer.py` decides what the reading means, `RomInfoService.save_answer` turns it into names,
@@ -176,6 +177,24 @@ and binds, and the other areas: [the register's index](index.md).
   anything else that moves files by `SaveAnswer.directory` checks the state first, as
   `services/saves/save_directory.py::_followable_directory` does. Detail: `docs/architecture/save-sync-coverage.md`,
   GLOSSARY.md → Save state / Save scope
+- **A save unit's staged zip is packed from the unit before any reader looks at it, and unpacked into the unit after any
+  step writes it; nothing but the staged zip is reached by a step that does not know units** — test + prompt-only — the
+  pack is `RomInfoService.get_rom_save_info`, the one place every reader of a game's local saves gets its directory and
+  names from, and the unpack is `SaveUnits.unpack_placed`, called by `SaveTransfer.download_save_file` (every download,
+  conflict resolution, slot switch, copy and version rollback) and by the slot setup's migration where it places a
+  fetched copy. A unit's own files are removed (`SaveUnits.clear_placed`) only after the slot switch's set-aside moved
+  the zip into `.romm-backup`, or with the zip in the confirmed delete of local saves. `test_save_units.py` pins upload,
+  download into a missing folder, a replacement whose previous zip `.romm-backup` keeps, a skip on an unchanged unit, a
+  refused unpack that fails the download with the unit intact, a rollback restoring every member, a switch to an empty
+  slot (unit emptied, its files in the backed-up zip) and to one with a save, a failed set-aside leaving the unit, both
+  deletes, and the control that a plain answer makes no staging folder; `tests/adapters/test_save_unit.py` pins the
+  zip's bytes, its RomM content hash, and every refused entry. **Prompt-only:** a new reader that builds a save path
+  without `get_rom_save_info` reads the zip as it was last packed, and a new step that writes a save file other than
+  through `download_save_file` leaves the unit unchanged under a zip that says otherwise — nothing finds either. The
+  directory follow, the adoption rename and the removed-game cleanup skip a unit's own files explicitly
+  (`test_save_directory.py::TestASaveUnitIsNotFollowed`, `test_rom_adoption.py`'s
+  `test_a_save_unit_s_files_are_never_carried_and_the_states_still_are`, `test_prune_support.py::TestASaveUnit`).
+  Detail: `docs/architecture/save-file-sync-architecture.md`, "Save units"
 - **A save place whose directory still holds a resolver template (`<cwd>`, `<region>`, `<save_id>`) is never followed,
   recorded, renamed into or used as a save-state place** — test + prompt-only — the resolver answers a place it cannot
   complete as a template and lists the holes in `needs`: a RetroArch save folder set as a relative path answers

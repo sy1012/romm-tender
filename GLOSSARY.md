@@ -122,8 +122,10 @@ rungs are for a start by hand.
   of the database and settings — `update-backup/`, which every update replaces, and `rollback-backup/`, which a rollback
   by hand replaces, each of which can have a `.new` or `.prev` sibling beside it — and, on a machine updated from an
   install that kept covers there, a `covers/` or `artwork/` holding the files the move into the cache root did not take
-  — and, where a start found the database under both names, the `romm_sync.db` it left as it was. This list is the one
-  complete inventory of that root; the user guide names only what a user meets there.
+  — and, where a start found the database under both names, the `romm_sync.db` it left as it was — and `save-units/`,
+  one staging folder per ROM holding a [save unit](#save-unit)'s zip and that zip's `.romm-backup/`, the only copy of
+  what a download replaced in the unit. This list is the one complete inventory of that root; the user guide names only
+  what a user meets there.
 - **cache root** — what can: the cover and artwork caches.
 - **state root** — the log file.
 - **runtime root** — the port file, in a directory the session clears at logout.
@@ -1035,12 +1037,12 @@ path it WOULD occupy, because `roms.fs_name` carries the extension the answer tu
 a prediction. `content_installed` says which it is, and a surface that renders the names without reading it tells a user
 their uninstalled game already has save files.
 
-### Save state: per-game files / shared / inside the content / hole / not established / saves root missing / place not read
+### Save state: per-game files / shared / inside the content / hole / not established / saves root missing / place not read / per-game unit
 
-The seven values a save answer classifies a ROM into, **exactly one of which holds**. Only the first is a save Tender
-can carry; the other six **refuse** — the sync probes no path and writes no sync state. Five refuse with the benign
-skip; saves root missing refuses as a failure, `saves_root_missing`. A refusing answer can still have its directory
-recorded as the [answered save directory](#answered-save-directory), which is not sync state.
+The eight values a save answer classifies a ROM into, **exactly one of which holds**. Only the first and the last are
+saves Tender can carry; the other six **refuse** — the sync probes no path and writes no sync state. Five refuse with
+the benign skip; saves root missing refuses as a failure, `saves_root_missing`. A refusing answer can still have its
+directory recorded as the [answered save directory](#answered-save-directory), which is not sync state.
 
 - **per-game files** — the answer names concrete files with no hole. Sync as usual, any number of files.
 - **shared** — the emulator's granularity is a shared card or a shared file, so one file holds many games' progress and
@@ -1059,9 +1061,23 @@ recorded as the [answered save directory](#answered-save-directory), which is no
 - **place not read** — the answer says its place was not read from the emulator's own settings: the settings file is
   missing or cannot be read, or the source is not set up, so the emulator's defaults stand in. RetroDECK's and EmuDeck's
   marker findings alone are not this.
+- **per-game unit** — the answer says a folder, or a named set of files in a shared folder, is the game's own: a
+  [save unit](#save-unit), synced as one staged zip.
 
 Detail, including which systems land where on a stock RetroDECK, is in
 [Save sync coverage](docs/architecture/save-sync-coverage.md).
+
+### Save unit
+
+A save of several files the emulator's answer says are one game's own, moved together: a root folder and either every
+file below it (a folder per game, such as a Wii title's `data/`) or a named set of files directly in it (a game's `.gci`
+files in a GameCube card folder other games share). It syncs as one zip Tender stages for it, `<rom stem>.zip` in
+`save-units/<rom id>/` under the data root, packed from the unit before anything reads the game's saves and unpacked
+into the unit after anything writes the zip. A `per-game-directory` granularity alone does not make one: only an
+explicit statement that the folder is the game's own does. Detail:
+[Save units](docs/architecture/save-file-sync-architecture.md#save-units).
+
+_Avoid_: calling the staged zip the save — it is the unit's stand-in, rebuilt on every read.
 
 ### Save scope: per ROM and per emulator, never per platform
 

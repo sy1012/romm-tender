@@ -10,9 +10,10 @@ platform and never was: it belongs to the **emulator** that opens the game, and 
 vendored [emu-atlas](https://github.com/danielcopper/emu-atlas) resolver through `adapters/atlas_saves.py`. Services see
 a `domain.save_answer.SaveAnswer` and never a resolver type.
 
-That answer classifies every ROM into exactly one of **seven save states**, and the sync runs in only the first of them
-— see [Save sync coverage](save-sync-coverage.md), which owns the states and the reasoning. Every file in a syncable set
-syncs **independently against the server save sharing its own canonical target**, so a multi-file set never cross-mixes
+That answer classifies every ROM into exactly one of **eight save states**, and the sync runs in only two of them —
+per-game files, and a save unit carried as one staged zip ([Save units](#save-units)) — see
+[Save sync coverage](save-sync-coverage.md), which owns the states and the reasoning. Every file in a syncable set syncs
+**independently against the server save sharing its own canonical target**, so a multi-file set never cross-mixes
 extensions.
 
 Tender used to hold its own per-system extension table (`domain/save_extensions.py`, retired). It was written from a
@@ -554,13 +555,19 @@ The `emulator` parameter on RomM save uploads determines the server-side folder 
 **Format:** `retroarch-{core}` where core is the libretro core name without `_libretro` suffix, lowercased.
 
 - Examples: `retroarch-mgba`, `retroarch-snes9x`, `retroarch-swanstation`
-- Fallback: `retroarch` if core resolution fails (e.g., ES-DE config parse error)
+- **A standalone emulator** (no libretro core) is tagged by the save answer's `emulator` identity, lowercased —
+  `dolphin`, `pcsx2` (`build_emulator_tag(core_so, emulator_identity)` in `domain/emulator_tag.py`). The answer carries
+  that identity (`SaveAnswer.emulator_identity`) only where it states a [save unit](#save-units) today; every other
+  answer carries none, so its tag is unchanged.
+- Fallback: `retroarch` if core resolution fails (e.g., ES-DE config parse error) and the answer names no identity
 
 **Important:** Emulator tag is **immutable** on RomM — set on creation, cannot be changed later. This means saves
 created before v2 have `emulator=retroarch` and will keep that tag. New saves created with slots get the correct
 `retroarch-{core}` tag.
 
-For future standalone emulator support (Phase 9): just the emulator name, e.g. `duckstation`.
+The tag an upload computes is the one it records on the ROM's save state. A download and an adopt record no tag of their
+own and keep the one already recorded (`RomSaveSyncState.reach_sync_boundary`), so a ROM whose state carries a tag keeps
+it until its next upload.
 
 ## Sync Decision Algorithm
 
@@ -1089,7 +1096,7 @@ rollback, slot switch and conflict resolution refuse — with `savefiles_in_cont
 without a migration, refuses as a sync of the game does, a missing saves root with `saves_root_missing`
 ([Confirming a slot](#confirming-a-slot-confirm_slot_choice)). A place not read from the settings also carries the
 resolver's finding, the source's kind and the emulator's label, which the panel words the refusal from
-([The seven save states](save-sync-coverage.md#the-seven-save-states)). Two notes the resolver states change nothing
+([The eight save states](save-sync-coverage.md#the-eight-save-states)). Two notes the resolver states change nothing
 here: `redirect-outranked`, since Tender reads no redirect route and moves no save by a launch's flags, environment or
 working directory, and `save-files-shared-with-core`, which stands beside a card folder the two PlayStation 2 libretro
 cores share and so on an answer already refused as shared
@@ -1139,6 +1146,75 @@ answers differently for a different game file, and three of the rows a table lik
 
 The per-state picture, and which systems land where on a stock RetroDECK, is in
 [Save sync coverage](save-sync-coverage.md).
+
+## Save units
+
+A save of several files — a Wii title's `data/` folder, a game's `.gci` files in Dolphin's shared GameCube card folder —
+is a **save unit** (`domain.save_answer.SaveUnit`): a root folder and which of its files are the save, every file below
+the root (`members=None`) or a named set directly in it. The answer's state is `per_game_unit`, and both what the root
+is and which files are members are the emulator's answer. **No answer the vendored resolver gives today is a unit**:
+only an explicit statement that a folder, or a member set, is the game's own makes one
+([ADR-0046](../adr/0046-a-save-of-several-files-syncs-as-one-staged-zip.md)), and `adapters/atlas_saves.py` translates
+none yet (`tests/adapters/test_atlas_saves.py::TestNoAnswerIsASaveUnitYet`).
+
+**The staged zip.** A unit is carried as one file, `<rom stem>.zip`, in a staging folder of Tender's own,
+`<data root>/save-units/<rom id>/`. `RomInfoService` stages every unit answer it reads (`SaveUnits.stage`), so the
+answer's `directory` is that staging folder and its one component the zip (role `progress`, no fixed size), and every
+step downstream — matching by name, the decision, upload, download, the `.romm-backup` backup, slots, rollback, version
+history — handles the zip as the one file it already handles. The upload sends it under its own name, so RomM files it
+as `<rom stem>.zip`. Being one name, a unit keeps version history and rollback, and a rollback restores every member
+together.
+
+**Packed before it is read.** `RomInfoService.get_rom_save_info` rebuilds the zip from the unit (`SaveUnits.pack`)
+before returning, and every reader of a game's local saves reaches them through it: the matrix (`sync_rom_saves`, so the
+four sync paths), `find_save_files` and `synced_save_names` (the status read, the local-save check, the read with save
+sync off, the negotiate inventory, the counting reads, the two deletes, slot switching and setup), `expected_save_files`
+(the removed-game cleanup), and the five write paths, which read the answer first. The pack only reads the unit, so it
+runs while the game is running too. Entries are sorted, named by their path below the root with `/` separators — under
+the unit's `archive_folder` where it has one — each stamped 1980-01-01 with fixed attributes and deflated, and the zip's
+mtime is the newest member's — so the same files always give the same bytes and the decision's mtime comparisons keep
+their meaning. A unit with no files has no zip, which reads as no local save. A link below the root is never packed (it
+could name a file outside the root); it is logged. The pack is written beside the zip and moved over it once complete
+(`adapters/save_unit.py`).
+
+**Unpacked after it is written.** `SaveTransfer.download_save_file` — which every download, conflict resolution, slot
+switch, copy and version rollback writes through — unpacks the zip into the unit once it is in place
+(`SaveUnits.unpack_placed`), and so does the slot setup's migration where it places a fetched copy. Every entry passes
+`safe_join` against the root (an absolute name, `..`, a backslash or an empty segment is refused first), and a member
+set's entries must be plain names. The entries are written to a temporary folder beside the root. A folder unit's old
+root is moved aside, the new one moved in, and the old one deleted only once that succeeded; a failure puts the old root
+back and removes the temporary folder, and a root that is itself a link is not replaced at all — the unpack refuses. A
+member set has each entry moved over its file, then the named members the zip lacks removed; no other file in the folder
+is touched, and an entry that would replace a file there that is not a named member is refused. A refused or failed
+unpack fails the download loudly, with nothing recorded, and the unit stays as it was. After an unpack the zip is packed
+again, so it carries the mtime the next pack gives it.
+
+**Laid out as other clients lay it.** RomM offers a save to every client by game, slot and file name — the emulator tag
+is only the folder RomM stores it in — so a unit's zip meets another client's only if both name it and lay it out alike.
+Argosy, RomM's Android client, zips a folder save with the folder's own name at the top (`SaveArchiver.zipFolder`): a
+Wii save's entries read `<title id>/data/…`. `SaveUnit.archive_folder` carries that top-level name, so a unit packs
+under it, and an unpack refuses a zip with any entry outside it rather than landing files where the emulator does not
+read. Which name a unit uses, and its root, are the emulator's answer like the rest of it.
+
+**The backup is the zip's.** The download's `.romm-backup` step moves the previous zip aside before the new one lands,
+and that zip was packed from the unit at the start of the same operation, so the files an unpack replaces are always
+kept — in `<data root>/save-units/<rom id>/.romm-backup/`.
+
+**What leaves a unit alone.** Following a moved save directory carries nothing for a unit answer and records nothing
+(the staging folder never moves); the adoption rename renames none of the unit's files; and the removed-game cleanup
+reaches the staged zip — its safe root for that path is `<data root>/save-units` rather than RetroDECK's saves root —
+and never the unit's own files.
+
+**Clearing a unit.** Two steps remove a game's local saves rather than replace them, and for a unit both remove the
+unit's own files with the zip (`SaveUnits.clear_placed`, `SaveUnitAdapter.clear`): a folder unit loses its root and
+everything below it — a root that is a link is refused with nothing removed — and a member set loses only its named
+members, never another file in the folder. A **slot switch** clears the unit only once its set-aside moved the zip,
+packed from the unit a moment before, into `.romm-backup`; where the zip was not moved, the unit is not touched, and a
+clear that fails stops the switch as a failed backup does. The new slot's save, if it has one, is then downloaded and
+unpacked into the emptied unit; a slot with none leaves it empty, as it would a single file. **Deleting local saves**
+(`delete_local_saves`, `delete_platform_saves`) removes the zip and then clears the unit, under the confirmation those
+deletes ask for, as for a single file; a zip that could not be removed leaves the unit as it was. Both run under the
+ROM's `rom_lock` and refuse while its game is running.
 
 ## The Local-Save Check
 
@@ -2061,7 +2137,7 @@ The Play button's path:
    button to Play. The benign skips (`savefiles_in_content_dir`, `save_shape_unsupported`) proceed silently; a missing
    saves folder (`saves_root_missing`) is a failure, so the dialog asks with the sentence Main's notice shows for the
    folder — when it asks, and when the exit's toast says so, is
-   [The seven save states](save-sync-coverage.md#the-seven-save-states). With "Sync before launch" off the sync answers
+   [The eight save states](save-sync-coverage.md#the-eight-save-states). With "Sync before launch" off the sync answers
    that before it raises the save answer's refusal, so the dialog never asks about a sync that was switched off. When
    the sync moved something, the per-direction completion toast above reports it (uploaded / downloaded / both); a
    failure's classified message appears in the dialog instead.

@@ -20,6 +20,7 @@ if TYPE_CHECKING:
 
     from domain.firmware_places import PlaceLook
     from domain.prune import BundleReadmeContext
+    from domain.save_answer import SaveUnit
     from domain.save_measure import SaveFileMeasure
     from domain.tender_folder import Drive, TenderPlace
     from domain.update_install import UpdateAttemptRecord
@@ -644,6 +645,41 @@ class RomFileStore(Protocol):
         Reports ``changed`` false when the parent holds no such entry. The
         caller must hold its own proof that *path* is the ROM's, because a
         partially consumed claim can no longer be revalidated.
+        """
+        ...
+
+
+class SaveUnitStore(Protocol):
+    """Filesystem seam that packs a save unit into its staged zip and unpacks a zip into the unit.
+
+    Which files are the unit is the save answer's; this seam only reads and
+    writes them. Synchronous.
+    """
+
+    def pack(self, unit: SaveUnit, zip_path: str) -> bool:
+        """Rebuild *zip_path* from *unit*'s files, answering whether it had any.
+
+        The same files always give the same bytes, and the zip's mtime is its
+        newest member's. A unit with no files leaves no zip at *zip_path*.
+        """
+        ...
+
+    def unpack(self, zip_path: str, unit: SaveUnit) -> None:
+        """Replace *unit*'s files with the entries of *zip_path*, or raise with the unit as it was.
+
+        Every entry must name a file below the unit's root; a member set's
+        entries must be plain names. Raises ``PathTraversalError`` or
+        ``ValueError`` for an entry that may not be written, ``OSError`` for
+        a write that failed.
+        """
+        ...
+
+    def clear(self, unit: SaveUnit) -> None:
+        """Remove *unit*'s files and nothing else; files already gone are no error.
+
+        A folder unit loses its root and everything below it, and a root that
+        is a link raises ``OSError`` with nothing removed. A member set loses
+        only its named members directly in the root.
         """
         ...
 

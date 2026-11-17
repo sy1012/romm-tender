@@ -1,6 +1,6 @@
 """A save Tender cannot carry per game is refused, and the refusal costs nothing.
 
-Six of the seven states refuse, and a refusal has to be a real one: no file is
+Six of the eight states refuse, and a refusal has to be a real one: no file is
 probed for, no sync state is written, and the result is the benign-skip shape
 rather than a failure — except a missing saves root, which a sync refuses as
 one. Probing anyway is not merely wasted work — it is how Tender used to

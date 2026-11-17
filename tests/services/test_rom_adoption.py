@@ -43,7 +43,7 @@ from domain.rom import Rom
 from domain.rom_adoption import TargetOccupied
 from domain.rom_candidates import CANDIDATE_LIMIT, AdoptionCandidates, CandidateVanished, UnusableNamesake
 from domain.rom_install import RomInstall
-from domain.save_answer import build_save_answer, unestablished_answer
+from domain.save_answer import SaveUnit, build_save_answer, stage_unit, unestablished_answer, unit_answer
 from domain.savestate_location import NoSavestates, SavestateLocation
 from lib.errors import Refused, RommAuthError, RommConnectionError, classify_error
 from services.rom_adoption import RomAdoptionService, RomAdoptionServiceConfig
@@ -2948,6 +2948,32 @@ class TestAdoptCandidate:
         await h.service.adopt_existing_rom(_ROM_ID, _OLD, None)
 
         assert ("/saves/snes/Snes9x/Game (U).srm", "/saves/snes/Snes9x/Game.srm") in h.move.moves
+
+    async def test_a_save_unit_s_files_are_never_carried_and_the_states_still_are(self, h):
+        h.seed_rom()
+        h.stage_detail(_single_file_detail())
+        h.save_locations.answer_with(
+            "snes",
+            stage_unit(
+                unit_answer(
+                    unit=SaveUnit(root="/saves/snes"),
+                    emulator="Snes9x",
+                    emulator_identity="SNES9X",
+                    content_installed=True,
+                ),
+                staging_directory="/saves/snes",
+                rom_stem="Game (U)",
+            ),
+        )
+        h.store.files[_OLD] = b"rom"
+        h.store.files["/saves/snes/Game (U).zip"] = b"zip"
+        h.store.files["/states/Game (U).state"] = b"state"
+
+        result = await h.service.adopt_existing_rom(_ROM_ID, _OLD, None)
+
+        assert result["success"] is True
+        assert ("/states/Game (U).state", "/states/Game.state") in h.move.moves
+        assert all(not source.startswith("/saves/") for source, _target in h.move.moves)
 
     async def test_no_save_directory_carries_no_save_and_still_carries_the_states(self, h):
         h.seed_rom()

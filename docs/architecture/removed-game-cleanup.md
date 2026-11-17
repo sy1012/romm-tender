@@ -499,6 +499,12 @@ Unknown or unsafe-to-resolve save locations are recorded, left untouched, and do
 is given only for a downloaded version, since a version with no downloaded files has no save files of its own for the
 cleanup to move.
 
+A [save unit](save-file-sync-architecture.md#save-units) is projected as its staged zip alone, `<rom stem>.zip` in its
+staging folder under the data root, and that path is bounded by the save units' folder (`<data root>/save-units`) rather
+than RetroDECK's saves root (`PruneSaveSupport._safe_root`): the zip goes through the same funnel into its own
+`.romm-backup`, and the unit's own files — named by the emulator, possibly in a folder other games share — are never
+reached.
+
 Save **states** are entirely untouched and remain unsupported. Extending save-state support must extend this recovery
 contract before purge is allowed to remove state files.
 

@@ -44,6 +44,7 @@ if TYPE_CHECKING:
     from services.saves.rom_info import RomInfoService
     from services.saves.save_backup import SaveBackup
     from services.saves.save_transfer import SaveTransfer
+    from services.saves.save_units import SaveUnits
     from services.saves.sync_engine import SyncEngine
 
 
@@ -66,6 +67,7 @@ class SetupWizard:
         sync_engine: SyncEngine,
         save_backup: SaveBackup,
         save_transfer: SaveTransfer,
+        save_units: SaveUnits,
     ) -> None:
         self._settings = settings
         self._uow_factory = uow_factory
@@ -80,6 +82,7 @@ class SetupWizard:
         self._sync_engine = sync_engine
         self._save_backup = save_backup
         self._save_transfer = save_transfer
+        self._save_units = save_units
 
     def is_save_tracking_configured(self, rom_id: int) -> dict[str, Any]:
         """Check if save slot tracking is configured for a game.
@@ -576,7 +579,16 @@ class SetupWizard:
             for plan in plans:
                 try:
                     self._apply_migration_plan(
-                        plan, rom_id, save_state, device_id, saves_dir, system, core_so, default_slot, cleanup_limit
+                        plan,
+                        rom_id,
+                        save_state,
+                        device_id,
+                        saves_dir,
+                        system,
+                        core_so,
+                        default_slot,
+                        cleanup_limit,
+                        info["save_answer"].emulator_identity,
                     )
                     migrated += 1
                 except Exception as e:
@@ -601,13 +613,15 @@ class SetupWizard:
         core_so: str | None,
         default_slot: str | None,
         cleanup_limit: int | None,
+        emulator_identity: str | None = None,
     ) -> None:
         """Place one target's server content locally and upload it into the slot.
 
         ``identical`` keeps the local file (the temp is redundant); ``no_local``
         moves the downloaded content into place; ``differs`` — reached only with
         ``use_server_on_conflict`` — backs the local file up first (#965) then
-        replaces it. The final upload copies the local file into the confirmed
+        replaces it. A save unit's zip placed either way is unpacked into the
+        unit (:meth:`SaveUnits.unpack_placed`). The final upload copies the local file into the confirmed
         slot and adopts the per-file baseline (:meth:`SaveTransfer.upload_save_file`).
         """
         target = plan["target"]
@@ -622,6 +636,7 @@ class SetupWizard:
             if kind == "differs":
                 self._save_backup.back_up_save_file(saves_dir, target, keep=BACKUP_RETENTION)
             self._save_file_store.rename(tmp_path, local_path)
+            self._save_units.unpack_placed(local_path)
 
         self._save_transfer.upload_save_file(
             rom_id,
@@ -633,6 +648,7 @@ class SetupWizard:
             core_so,
             default_slot=default_slot,
             autocleanup_limit=cleanup_limit,
+            emulator_identity=emulator_identity,
         )
 
     def _build_migration_conflict(

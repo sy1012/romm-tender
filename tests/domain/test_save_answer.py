@@ -21,6 +21,7 @@ from domain.save_answer import (
     SAVE_STATE_HOLE,
     SAVE_STATE_INSIDE_CONTENT,
     SAVE_STATE_PER_GAME_FILES,
+    SAVE_STATE_PER_GAME_UNIT,
     SAVE_STATE_PLACE_NOT_READ,
     SAVE_STATE_SHARED,
     SAVE_STATE_UNESTABLISHED,
@@ -28,12 +29,15 @@ from domain.save_answer import (
     UNESTABLISHED_NOT_ASKED,
     UNESTABLISHED_NOTHING,
     SaveGroup,
+    SaveUnit,
     build_save_answer,
     pick_download_name,
     save_finding_details,
     save_shape_message,
     saves_root_missing_answer,
+    stage_unit,
     unestablished_answer,
+    unit_answer,
     with_source_findings,
 )
 
@@ -484,3 +488,57 @@ class TestTheBenignSkipListsAgreeAcrossTheWire:
         # Non-vacuous: an empty parse would make the test above pass only when
         # the backend set were empty too, so pin that it actually read them.
         assert self._frontend_slugs() == {"savefiles_in_content_dir", "save_shape_unsupported"}
+
+
+class TestASaveUnit:
+    """A save of several files is one unit, carried as the zip staged for it."""
+
+    _UNIT = SaveUnit(root="/nand/title/00010000/52534245/data", members=None)
+    _STAGING = "/data/save-units/42"
+
+    def _staged(self, **overrides):
+        kwargs = {"unit": self._UNIT, "emulator": "Dolphin", "emulator_identity": "DOLPHIN", "content_installed": True}
+        kwargs.update(overrides)
+        return stage_unit(unit_answer(**kwargs), staging_directory=self._STAGING, rom_stem="Wii Sports")
+
+    def test_a_staged_unit_is_its_own_syncable_state(self):
+        answer = self._staged()
+
+        assert answer.state == SAVE_STATE_PER_GAME_UNIT
+        assert answer.syncable is True
+        assert answer.unit == self._UNIT
+
+    def test_the_staged_zip_is_the_one_name_a_sync_carries_in_the_staging_folder(self):
+        answer = self._staged()
+
+        assert answer.synced_names == ("Wii Sports.zip",)
+        assert answer.sync_directory == self._STAGING
+        assert answer.in_content_directory is False
+
+    def test_the_staged_zip_claims_no_fixed_size(self):
+        (component,) = self._staged().synced_files
+
+        assert component.size_fixed is False
+        assert component.is_progress is True
+
+    def test_an_unstaged_unit_syncs_nothing(self):
+        answer = unit_answer(unit=self._UNIT, emulator="Dolphin", emulator_identity="DOLPHIN", content_installed=True)
+
+        assert answer.sync_directory is None
+        assert answer.synced_names == ()
+
+    def test_staging_leaves_an_answer_without_a_unit_as_it_is(self):
+        answer = _answer()
+
+        assert stage_unit(answer, staging_directory=self._STAGING, rom_stem="Game") is answer
+
+    def test_a_member_set_unit_keeps_its_members(self):
+        unit = SaveUnit(root="/gc/USA/Card A", members=("01-GALE-a.gci", "01-GALE-b.gci"))
+
+        assert self._staged(unit=unit).unit == unit
+
+    def test_no_classified_answer_is_a_unit(self):
+        for overrides in ({}, {"granularity": "per-game-directory", "files": ()}, {"needs": ("save_id",)}):
+            answer = _answer(**overrides)
+            assert answer.state != SAVE_STATE_PER_GAME_UNIT
+            assert answer.unit is None

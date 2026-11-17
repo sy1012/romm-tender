@@ -234,8 +234,11 @@ def _followable_directory(answer: SaveAnswer) -> str | None:
     (:data:`SAVE_STATE_PLACE_NOT_READ`): it is a default the emulator may not
     write to, so nothing is carried into it; and where a hole is still in it
     (:attr:`SaveAnswer.concrete_directory`), which names no folder at all.
+
+    ``None`` for a save unit as well: its directory is Tender's staging folder,
+    which never moves, and the unit's own files are not carried.
     """
-    if answer.state == SAVE_STATE_PLACE_NOT_READ:
+    if answer.state == SAVE_STATE_PLACE_NOT_READ or answer.unit is not None:
         return None
     if answer.root_kind == ROOT_CONTENT_DIRECTORY:
         # Holds until the content-directory gate is lifted.

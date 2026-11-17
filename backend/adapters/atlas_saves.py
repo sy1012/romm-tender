@@ -279,7 +279,7 @@ class AtlasSaveLocationAdapter:
         """The saves root *installation* read from its settings and reports missing, or ``None``.
 
         A root the source only assumed refuses nothing (why is
-        ``docs/architecture/save-sync-coverage.md``'s, "The seven save states").
+        ``docs/architecture/save-sync-coverage.md``'s, "The eight save states").
         Where the roots could not be asked, or the source has no saves root of
         its own (a bare RetroArch), nothing is claimed missing.
         """
