@@ -86,8 +86,8 @@ CISO, GCZ, WBFS, WIA or RVZ — and from it finds the game's own save: on Wii, t
 Dolphin's slot A set to **GCI Folder** (RetroDECK's default) — a single shared memory card (`.raw`) holds every game's
 saves and is left alone. Either way the save is carried to RomM as one `<game>.zip`, laid out the way Argosy, RomM's
 Android app, lays it out, so the two can share it. Restoring replaces only that game's folder or files: other games'
-saves in the same folder are never touched, and the save it replaces is kept in `.romm-backup` first. This has not yet
-been observed on a device.
+saves in the same folder are never touched, and the save it replaces is kept in `.romm-backup` first. Upload and restore
+have both been observed on a Steam Deck, for GameCube and for Wii.
 
 **Switch syncs on a standalone Eden AppImage.** Tender finds the game's application ID in the file's name (a `[0100…]`
 tag), else in the tickets an NSP or NSZ lists, else in the tags of the other files in its folder (an update's or DLC's
@@ -96,7 +96,13 @@ under `user/save/0000000000000000/<user>/<application id>` in Eden's NAND (or th
 carried to RomM as one `<game>.zip` laid out under the application ID, the way Argosy lays it out. Where the game's ID
 or the Eden user cannot be told — no tag, no readable package, no profile list yet — nothing is synced for that game and
 Tender says it could not be established. Start Eden once and set it up yourself first: Tender does not install Eden's
-keys or firmware, and does not download a game's updates or DLC. This has not yet been observed on a device.
+keys or firmware. Upload and restore have both been observed on a Steam Deck. A game's updates and DLC are a separate
+download ([A game's updates and DLC](managing-games.md#a-games-updates-and-dlc)).
+
+**PlayStation syncs on SwanStation**, RetroDECK's PS1 core. With RetroDECK's settings, its memory card 1 is the game's
+own save file in the save folder, so it syncs like a cartridge save. A card type set to one per game code, one per title
+or one shared card is a different file, which the save tab then names or refuses. Uploading has been observed on a Steam
+Deck.
 
 **PSP syncs on PPSSPP (Standalone), for an `.iso`.** Tender reads the game's ID from the disc (`ULUS10064`, say) and
 carries the game's save folders in PPSSPP's `PSP/SAVEDATA` — the ones named starting with that ID — to RomM as one
@@ -120,13 +126,7 @@ convention and are expected to behave identically, but haven't been observed one
 
 ## Coming soon 🔜
 
-Per-game saves for these systems fit the sync model and are planned for a future release:
-
-| System      | Notes                                                                                        |
-| ----------- | -------------------------------------------------------------------------------------------- |
-| PlayStation | Memory-card saves. The cores write them per game, but under a name Tender doesn't probe yet. |
-
-A few less-common systems (some DOS, PICO-8, ST-V) may also gain support pending confirmation.
+A few less-common systems (some DOS, PICO-8, ST-V) may gain support pending confirmation.
 
 ## Not synced yet ❌
 
@@ -178,7 +178,7 @@ states still work locally). See the full table for specifics.
     | `gamate` | ❌ | Saves are stored separately by the emulator (MAME) |
     | `gameandwatch` | ❌ | Saves are stored separately by the emulator (MAME) |
     | `gamecom` | ❌ | Saves are stored separately by the emulator (MAME) |
-    | `gc` | ✅ | Dolphin (Standalone) with slot A set to GCI Folder: the game's `.gci` files, as one zip — not yet observed on a device |
+    | `gc` | ✅ | Dolphin (Standalone) with slot A set to GCI Folder: the game's `.gci` files, as one zip |
     | `gmaster` | ❌ | Saves are stored separately by the emulator (MAME) |
     | `gx4000` | ❌ | Not synced |
     | `laserdisc` | ❌ | Saves are stored separately by the emulator (MAME) |
@@ -198,9 +198,10 @@ states still work locally). See the full table for specifics.
     | `scummvm` | ❌ | Not synced |
     | `scv` | ❌ | Saves are stored separately by the emulator (MAME) |
     | `supracan` | ❌ | Saves are stored separately by the emulator (MAME) |
-    | `switch` | ✅ | Eden (AppImage): the game's save folder for the Eden user, as one zip — not yet observed on a device |
+    | `switch` | ✅ | Eden (AppImage): the game's save folder for the Eden user, as one zip |
     | `vsmile` | ❌ | Saves are stored separately by the emulator (MAME) |
-    | `wii` | ✅ | Dolphin (Standalone): the game's title folder in the NAND, as one zip — not yet observed on a device |
+    | `wii` | ✅ | Dolphin (Standalone): the game's title folder in the NAND, as one zip |
+    | `psx` | ✅ | SwanStation: memory card 1 as the game's own save file, as RetroDECK sets it up |
     | `x68000` | ❌ | Not synced |
     | `amiga1200` | 🔜 | Planned |
     | `amiga600` | 🔜 | Planned |
@@ -210,7 +211,6 @@ states still work locally). See the full table for specifics.
     | `dos` | 🔜 | Planned |
     | `pc` | 🔜 | Planned |
     | `pico8` | 🔜 | Planned |
-    | `psx` | 🔜 | Planned |
     | `quake` | 🔜 | Planned |
     | `saturnjp` | 🔜 | Planned |
     | `stv` | 🔜 | Planned |
