@@ -1179,11 +1179,13 @@ standalone RPCS3's, the same kind: a PS3 game's save folders in `<dev_hdd0>/home
 id read from a folder dump's `PS3_GAME/PARAM.SFO`, a PSN package's header or an ISO's `PARAM.SFO` (`BLUS30443`), where
 exactly one user account is established; several accounts, or a title it cannot read, keep the id a hole. Its note
 `ps3-save-prefix-may-differ` — a game names its folders itself, and may use another title's id — changes nothing, for
-the same reason. And from standalone Azahar's: a 3DS `.3ds`, `.cci` or `.cxi` whose headers name the title, as its save
-folder `<sdmc>/Nintendo 3DS/<ID0>/<ID1>/title/<high>/<low>/data` under the root `data` and, where the title is granted
-extdata, its extdata folder `<sdmc>/Nintendo 3DS/<ID0>/<ID1>/extdata/<HIGH>/<LOW>` under `extdata` — stated even where
-neither exists yet. A `.cia`, a compressed image, an encrypted one or bytes with no 3DS header leave the title id a
-hole, and the game is not synced.
+the same reason. And from standalone Cemu's, the Wii unit's kind: a Wii U title's own folder `<mlc>/usr/save/<hi>/<lo>`,
+laid out under `<lo>`, where the title is read from the names of a `.wua`'s title folders or a dump's `code/app.xml`.
+And from standalone Azahar's: a 3DS `.3ds`, `.cci` or `.cxi` whose headers name the title, as its save folder
+`<sdmc>/Nintendo 3DS/<ID0>/<ID1>/title/<high>/<low>/data` under the root `data` and, where the title is granted extdata,
+its extdata folder `<sdmc>/Nintendo 3DS/<ID0>/<ID1>/extdata/<HIGH>/<LOW>` under `extdata` — stated even where neither
+exists yet. A `.cia`, a compressed image, an encrypted one or bytes with no 3DS header leave the title id a hole, and
+the game is not synced.
 
 **The staged zip.** A unit is carried as one file, `<rom stem>.zip`, in a staging folder of Tender's own,
 `<data root>/save-units/<rom id>/`. `RomInfoService` stages every unit answer it reads (`SaveUnits.stage`), so the

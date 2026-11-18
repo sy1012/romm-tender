@@ -38,7 +38,7 @@ different things:
   would copy other games' progress onto this one's record, so Tender leaves it alone.
 - **The save is written inside the game file itself.** There is no separate file to carry.
 - **The emulator files saves under the game's own identity**, which Tender cannot read yet — in the file name, for
-  Dreamcast. Dreamcast and Wii U are here, and so is a Nintendo 3DS game whose title Tender cannot read.
+  Dreamcast. Dreamcast is here, and so is a Nintendo 3DS or Wii U game whose title Tender cannot read.
 - **Where the emulator saves depends on the folder the game is started from.** RetroArch does this when its save folder
   is set as a relative path. Tender cannot tell which folder that is, so it leaves such a game alone.
 - **What the emulator writes could not be established** — either nobody has audited that core yet, or the folder is
@@ -120,6 +120,12 @@ series sharing saves, say); those are not synced with it. A PSN package is insta
 ([Managing games](managing-games.md#psn-packages-are-installed-into-rpcs3)), and the installed game's saves sync the
 same way, its title ID read from the `PARAM.SFO` beside the installed game. Upload and restore have both been observed
 on a Steam Deck.
+
+**Wii U syncs on Cemu (Standalone), for a `.wua` or a folder dump.** Tender reads the game's title ID — from the names
+of the title folders inside a `.wua`, where the base game's is the one starting `00050000` (an update's or DLC's is
+skipped), or from a dump's `code/app.xml` — and carries its save folder in Cemu's `usr/save` to RomM as one `<game>.zip`
+under the title's low ID, the way Argosy lays it out. A `.wua` holding two games, or none, and a disc image (`.wud`,
+`.wux`) are not read, so nothing is synced for them. Upload and restore have both been observed on a Steam Deck.
 
 **Nintendo 3DS syncs on Azahar (Standalone), for a `.3ds`, `.cci` or `.cxi`.** Tender reads the title's ID from the game
 file and carries its save folder and, where the game has one, its extra data (extdata) folder from Azahar's emulated SD
@@ -203,6 +209,7 @@ states still work locally). See the full table for specifics.
     | `neogeocdjp` | ❌ | Shared save (the core has a per-content mode) |
     | `ps2` | ❌ | Shared memory card by default (LRPS2), always (PCEE2); per-game `<game>.ps2` available as an LRPS2 core option |
     | `psp` | ✅ | PPSSPP (Standalone): the game's save folders (named by its ID) as one zip — `.iso` only |
+    | `wiiu` | ✅ | Cemu (Standalone): the title's save folder, as one zip — `.wua` and folder dumps |
     | `ps3` | ✅ | RPCS3 (Standalone): the game's save folders (named by its title ID) as one zip |
     | `pv1000` | ❌ | Saves are stored separately by the emulator (MAME) |
     | `scummvm` | ❌ | Not synced |

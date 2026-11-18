@@ -2139,6 +2139,61 @@ class TestAnRpcs3Save:
         assert answer.syncable is False
 
 
+def _cemu(vector_name: str, traces: list[str]) -> tuple[AtlasSaveLocationAdapter, str]:
+    """The save adapter over the recorded Cemu machine *vector_name*, and the content its query names."""
+    path = os.path.join(os.path.dirname(__file__), "atlas_vectors", "vectors", "machines", "cemu-titles.json")
+    with open(path, encoding="utf-8") as handle:
+        vectors = json.load(handle)["vectors"]
+    inp = next(vector for vector in vectors if vector["name"] == vector_name)["input"]
+    sources = _sources(atlas_detect, traces, machine=fixture_machine(inp))
+    return AtlasSaveLocationAdapter(sources=sources, log_debug=traces.append), inp["entry_savefile_query"][
+        "content_path"
+    ]
+
+
+class TestACemuSave:
+    """A Wii U title's save in standalone Cemu: its own folder in the MLC, laid out under its low id as Argosy does."""
+
+    _SAVE = "/mnt/sd/retrodeck/bios/cemu/usr/save"
+
+    def _answer(self, vector_name: str, traces: list[str]):
+        adapter, content = _cemu(vector_name, traces)
+        return adapter.resolve_save_answer(
+            system="wiiu", content_path=content, emulator_label="Cemu (Standalone)", content_installed=True
+        )
+
+    @pytest.mark.parametrize(
+        ("vector_name", "folder"),
+        [
+            ("cemu-a-wua-names-the-base-titles-save-folder-as-its-own-unit", "00050000/10101c00"),
+            ("cemu-a-title-never-saved-has-its-unit", "00050000/10101c00"),
+            ("cemu-a-demo-archive-names-the-demos-own-save-folder", "00050002/10101d00"),
+            ("cemu-a-folder-dumps-app-xml-names-the-title", "00050000/10101c00"),
+        ],
+    )
+    def test_a_read_title_s_save_folder_is_one_unit_under_its_low_id(self, traces, vector_name, folder):
+        answer = self._answer(vector_name, traces)
+
+        assert answer.state == SAVE_STATE_PER_GAME_UNIT
+        assert answer.unit == SaveUnit(root=f"{self._SAVE}/{folder}", archive_folder=folder.split("/")[1])
+
+    @pytest.mark.parametrize(
+        "vector_name",
+        [
+            "cemu-a-wua-bundling-two-base-titles-keeps-the-hole",
+            "cemu-a-wua-holding-only-an-update-and-dlc-keeps-the-hole",
+            "cemu-bytes-that-are-no-archive-keep-the-hole",
+            "cemu-a-damaged-archive-keeps-the-hole",
+            "cemu-a-wud-disc-image-keeps-the-hole",
+        ],
+    )
+    def test_a_title_that_could_not_be_read_is_no_unit(self, traces, vector_name):
+        answer = self._answer(vector_name, traces)
+
+        assert answer.unit is None
+        assert answer.syncable is False
+
+
 def _azahar(vector_name: str, traces: list[str]) -> tuple[AtlasSaveLocationAdapter, str]:
     """The save adapter over the recorded Azahar machine *vector_name*, and the content its query names."""
     path = os.path.join(os.path.dirname(__file__), "atlas_vectors", "vectors", "machines", "azahar-titles.json")

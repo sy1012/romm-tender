@@ -1,0 +1,1165 @@
+{
+  "family": "machines",
+  "schema": 5,
+  "spec": "DESIGN.md — installations, the machine seam, standalone save cards (issue #181)",
+  "description": "Cemu's Wii U save answer where the question names a Wii U archive (.wua) or a folder dump: the title a launch runs, read from the archive's top-level title folders (atlas/wua.py) or the dump's code/app.xml, and that title's save folder usr/save/<high>/<low> stated whole as the unit, own-folder packed under the low word — or the save_id hole where no one title is read.",
+  "vectors": [
+    {
+      "name": "cemu-a-wua-names-the-base-titles-save-folder-as-its-own-unit",
+      "rationale": "The question names a .wua (Cemu's ZArchive) whose top level holds three title folders, named as Cemu's packer names them, <title id:016x>_v<version> (wxTitleManagerList.cpp:493 at Cemu 2.6): the base title 0005000010101c00, its update 0005000e10101c00 and its DLC 0005000c10101c00. A launch runs the bootable one, the base title (TitleInfo.cpp:217-251), and Cemu keeps its save in usr/save/00050000/10101c00 — meta/ and user/<account>/, user/common/ (nn_acp.cpp:57-69, iosu_acp.cpp:720-748). The answer is that folder with needs empty, physical through the usr/save symlink, and its unit own-folder with archive_folder the low word 10101c00 — the shape Argosy's WiiUFolderHandler uploads, <low>/meta/..., <low>/user/....",
+      "input": {
+        "home": "/home/deck",
+        "files": {
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retrodeck/retrodeck.json": "{\"paths\": {\"rd_home_path\": \"/mnt/sd/retrodeck\", \"saves_path\": \"/mnt/sd/retrodeck/saves\"}}",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retroarch/retroarch.cfg": "savefile_directory = \"/mnt/sd/retrodeck/saves\"\nsort_savefiles_by_content_enable = \"false\"\nsort_savefiles_enable = \"false\"\nsystem_directory = \"/mnt/sd/retrodeck/bios\"\nglobal_core_options = \"true\"\nlibretro_directory = \"/app/cores\"\n",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/files/retrodeck/components/es-de/share/es-de/resources/systems/linux/es_systems.xml": "<?xml version=\"1.0\"?>\n<systemList>\n  <system>\n    <name>wiiu</name>\n    <path>%ROMPATH%/wiiu</path>\n    <extension>.rpx .RPX .wua .WUA .wud .WUD .wux .WUX</extension>\n    <command label=\"Cemu (Standalone)\">%EMULATOR_CEMU% %ROM%</command>\n  </system>\n</systemList>\n",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/Cemu/settings.xml": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<content>\n  <mlc_path>/mnt/sd/retrodeck/bios/cemu</mlc_path>\n</content>\n",
+          "/mnt/sd/retrodeck/roms/wiiu/Game.wua": "content bytes",
+          "/mnt/sd/retrodeck/saves/wiiu/cemu/00050000/10101c00/meta/meta.xml": "<menu/>",
+          "/mnt/sd/retrodeck/saves/wiiu/cemu/00050000/10101c00/user/80000001/save.dat": "save",
+          "/mnt/sd/retrodeck/saves/wiiu/cemu/00050000/10101c00/user/common/options.dat": "common"
+        },
+        "dirs": [
+          "/mnt/sd/retrodeck/saves",
+          "/mnt/sd/retrodeck/bios",
+          "/mnt/sd/retrodeck/saves/wiiu/cemu",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/ROMs"
+        ],
+        "symlinks": {
+          "/mnt/sd/retrodeck/bios/cemu/usr/save": "/mnt/sd/retrodeck/saves/wiiu/cemu"
+        },
+        "entry_savefile_query": {
+          "system": "wiiu",
+          "content_path": "/mnt/sd/retrodeck/roms/wiiu/Game.wua"
+        },
+        "wua_archives": {
+          "/mnt/sd/retrodeck/roms/wiiu/Game.wua": {
+            "title_folders": [
+              "0005000c10101c00_v16",
+              "0005000010101c00_v0",
+              "0005000e10101c00_v208"
+            ]
+          }
+        }
+      },
+      "expected": {
+        "installations": [
+          {
+            "kind": "retrodeck",
+            "label": "RetroDECK",
+            "kinds": [
+              "retrodeck"
+            ],
+            "root": "/mnt/sd/retrodeck",
+            "health": []
+          }
+        ],
+        "entry_savefile_location": {
+          "dir": "/mnt/sd/retrodeck/bios/cemu/usr/save/00050000/10101c00",
+          "root_kind": "emulator_directory",
+          "needs": [],
+          "fallback_dir": null,
+          "physical_dir": "/mnt/sd/retrodeck/saves/wiiu/cemu/00050000/10101c00",
+          "file_set": {
+            "state": "declared",
+            "files": [],
+            "complete": false,
+            "groups": [
+              {
+                "dir": "/mnt/sd/retrodeck/bios/cemu/usr/save/00050000/10101c00",
+                "files": null,
+                "granularity": "per-game-directory",
+                "role": "battery",
+                "size_fixed": false,
+                "unit": {
+                  "kind": "own-folder",
+                  "members": null,
+                  "archive_folder": "10101c00",
+                  "prefix": null,
+                  "archive_roots": null
+                }
+              }
+            ]
+          },
+          "caveats": [
+            {
+              "code": "file-names-unestablished",
+              "data": {
+                "token": "CEMU",
+                "dir": "/mnt/sd/retrodeck/bios/cemu/usr/save/00050000/10101c00",
+                "role": "battery",
+                "citation": "nn_acp.cpp:57-69 and iosu_acp.cpp:720-748 at Cemu 2.6 — the title's save folder 'usr/save/%08x/%08x/' holding meta/ and user/ ('user/%08x/' per account, 'user/common/'), the high word masked with ~0xC, which leaves a base, demo or system title's unchanged"
+              }
+            },
+            {
+              "code": "redirect-outranked",
+              "data": {
+                "token": "CEMU",
+                "via": "variable",
+                "name": "XDG_DATA_HOME",
+                "argument": "<dir>",
+                "file": "settings.xml",
+                "key": "mlc_path"
+              }
+            }
+          ],
+          "redirects": [
+            {
+              "via": "flag",
+              "name": "--mlc",
+              "argument": "<dir>",
+              "moves": [
+                "saves",
+                "firmware",
+                "installed-content"
+              ]
+            },
+            {
+              "via": "variable",
+              "name": "XDG_DATA_HOME",
+              "argument": "<dir>",
+              "moves": [
+                "saves",
+                "firmware",
+                "installed-content"
+              ]
+            }
+          ],
+          "granularity": {
+            "value": "per-game-directory",
+            "mode": "mlc",
+            "readings": [
+              {
+                "key": "mlc_path",
+                "value": "/mnt/sd/retrodeck/bios/cemu",
+                "options_file": "/home/deck/.var/app/net.retrodeck.retrodeck/config/Cemu/settings.xml"
+              }
+            ],
+            "alternatives": []
+          }
+        }
+      }
+    },
+    {
+      "name": "cemu-a-title-never-saved-has-its-unit",
+      "rationale": "The .wua holds the base title alone and Cemu has never initialised its save, so usr/save/00050000/10101c00 does not exist. The unit is stated all the same — Cemu creates the folder when the game first initialises its save (nn_save.cpp:326-336 at 2.6) — so a restore has somewhere to place it.",
+      "input": {
+        "home": "/home/deck",
+        "files": {
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retrodeck/retrodeck.json": "{\"paths\": {\"rd_home_path\": \"/mnt/sd/retrodeck\", \"saves_path\": \"/mnt/sd/retrodeck/saves\"}}",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retroarch/retroarch.cfg": "savefile_directory = \"/mnt/sd/retrodeck/saves\"\nsort_savefiles_by_content_enable = \"false\"\nsort_savefiles_enable = \"false\"\nsystem_directory = \"/mnt/sd/retrodeck/bios\"\nglobal_core_options = \"true\"\nlibretro_directory = \"/app/cores\"\n",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/files/retrodeck/components/es-de/share/es-de/resources/systems/linux/es_systems.xml": "<?xml version=\"1.0\"?>\n<systemList>\n  <system>\n    <name>wiiu</name>\n    <path>%ROMPATH%/wiiu</path>\n    <extension>.rpx .RPX .wua .WUA .wud .WUD .wux .WUX</extension>\n    <command label=\"Cemu (Standalone)\">%EMULATOR_CEMU% %ROM%</command>\n  </system>\n</systemList>\n",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/Cemu/settings.xml": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<content>\n  <mlc_path>/mnt/sd/retrodeck/bios/cemu</mlc_path>\n</content>\n",
+          "/mnt/sd/retrodeck/roms/wiiu/Game.wua": "content bytes"
+        },
+        "dirs": [
+          "/mnt/sd/retrodeck/saves",
+          "/mnt/sd/retrodeck/bios",
+          "/mnt/sd/retrodeck/saves/wiiu/cemu",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/ROMs"
+        ],
+        "symlinks": {
+          "/mnt/sd/retrodeck/bios/cemu/usr/save": "/mnt/sd/retrodeck/saves/wiiu/cemu"
+        },
+        "entry_savefile_query": {
+          "system": "wiiu",
+          "content_path": "/mnt/sd/retrodeck/roms/wiiu/Game.wua"
+        },
+        "wua_archives": {
+          "/mnt/sd/retrodeck/roms/wiiu/Game.wua": {
+            "title_folders": [
+              "0005000010101c00_v0"
+            ]
+          }
+        }
+      },
+      "expected": {
+        "installations": [
+          {
+            "kind": "retrodeck",
+            "label": "RetroDECK",
+            "kinds": [
+              "retrodeck"
+            ],
+            "root": "/mnt/sd/retrodeck",
+            "health": []
+          }
+        ],
+        "entry_savefile_location": {
+          "dir": "/mnt/sd/retrodeck/bios/cemu/usr/save/00050000/10101c00",
+          "root_kind": "emulator_directory",
+          "needs": [],
+          "fallback_dir": null,
+          "physical_dir": "/mnt/sd/retrodeck/saves/wiiu/cemu/00050000/10101c00",
+          "file_set": {
+            "state": "declared",
+            "files": [],
+            "complete": false,
+            "groups": [
+              {
+                "dir": "/mnt/sd/retrodeck/bios/cemu/usr/save/00050000/10101c00",
+                "files": null,
+                "granularity": "per-game-directory",
+                "role": "battery",
+                "size_fixed": false,
+                "unit": {
+                  "kind": "own-folder",
+                  "members": null,
+                  "archive_folder": "10101c00",
+                  "prefix": null,
+                  "archive_roots": null
+                }
+              }
+            ]
+          },
+          "caveats": [
+            {
+              "code": "file-names-unestablished",
+              "data": {
+                "token": "CEMU",
+                "dir": "/mnt/sd/retrodeck/bios/cemu/usr/save/00050000/10101c00",
+                "role": "battery",
+                "citation": "nn_acp.cpp:57-69 and iosu_acp.cpp:720-748 at Cemu 2.6 — the title's save folder 'usr/save/%08x/%08x/' holding meta/ and user/ ('user/%08x/' per account, 'user/common/'), the high word masked with ~0xC, which leaves a base, demo or system title's unchanged"
+              }
+            },
+            {
+              "code": "redirect-outranked",
+              "data": {
+                "token": "CEMU",
+                "via": "variable",
+                "name": "XDG_DATA_HOME",
+                "argument": "<dir>",
+                "file": "settings.xml",
+                "key": "mlc_path"
+              }
+            }
+          ],
+          "redirects": [
+            {
+              "via": "flag",
+              "name": "--mlc",
+              "argument": "<dir>",
+              "moves": [
+                "saves",
+                "firmware",
+                "installed-content"
+              ]
+            },
+            {
+              "via": "variable",
+              "name": "XDG_DATA_HOME",
+              "argument": "<dir>",
+              "moves": [
+                "saves",
+                "firmware",
+                "installed-content"
+              ]
+            }
+          ],
+          "granularity": {
+            "value": "per-game-directory",
+            "mode": "mlc",
+            "readings": [
+              {
+                "key": "mlc_path",
+                "value": "/mnt/sd/retrodeck/bios/cemu",
+                "options_file": "/home/deck/.var/app/net.retrodeck.retrodeck/config/Cemu/settings.xml"
+              }
+            ],
+            "alternatives": []
+          }
+        }
+      }
+    },
+    {
+      "name": "cemu-a-demo-archive-names-the-demos-own-save-folder",
+      "rationale": "A demo is a title of its own, type 02 (TitleId.h:36-60 at Cemu 2.6), and bootable: the archive's one title 0005000210101d00 is the one a launch runs, and its save folder usr/save/00050002/10101d00 is the unit, packed under 10101d00.",
+      "input": {
+        "home": "/home/deck",
+        "files": {
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retrodeck/retrodeck.json": "{\"paths\": {\"rd_home_path\": \"/mnt/sd/retrodeck\", \"saves_path\": \"/mnt/sd/retrodeck/saves\"}}",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retroarch/retroarch.cfg": "savefile_directory = \"/mnt/sd/retrodeck/saves\"\nsort_savefiles_by_content_enable = \"false\"\nsort_savefiles_enable = \"false\"\nsystem_directory = \"/mnt/sd/retrodeck/bios\"\nglobal_core_options = \"true\"\nlibretro_directory = \"/app/cores\"\n",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/files/retrodeck/components/es-de/share/es-de/resources/systems/linux/es_systems.xml": "<?xml version=\"1.0\"?>\n<systemList>\n  <system>\n    <name>wiiu</name>\n    <path>%ROMPATH%/wiiu</path>\n    <extension>.rpx .RPX .wua .WUA .wud .WUD .wux .WUX</extension>\n    <command label=\"Cemu (Standalone)\">%EMULATOR_CEMU% %ROM%</command>\n  </system>\n</systemList>\n",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/Cemu/settings.xml": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<content>\n  <mlc_path>/mnt/sd/retrodeck/bios/cemu</mlc_path>\n</content>\n",
+          "/mnt/sd/retrodeck/roms/wiiu/Demo.WUA": "content bytes"
+        },
+        "dirs": [
+          "/mnt/sd/retrodeck/saves",
+          "/mnt/sd/retrodeck/bios",
+          "/mnt/sd/retrodeck/saves/wiiu/cemu",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/ROMs"
+        ],
+        "symlinks": {
+          "/mnt/sd/retrodeck/bios/cemu/usr/save": "/mnt/sd/retrodeck/saves/wiiu/cemu"
+        },
+        "entry_savefile_query": {
+          "system": "wiiu",
+          "content_path": "/mnt/sd/retrodeck/roms/wiiu/Demo.WUA"
+        },
+        "wua_archives": {
+          "/mnt/sd/retrodeck/roms/wiiu/Demo.WUA": {
+            "title_folders": [
+              "0005000210101D00_v0"
+            ]
+          }
+        }
+      },
+      "expected": {
+        "installations": [
+          {
+            "kind": "retrodeck",
+            "label": "RetroDECK",
+            "kinds": [
+              "retrodeck"
+            ],
+            "root": "/mnt/sd/retrodeck",
+            "health": []
+          }
+        ],
+        "entry_savefile_location": {
+          "dir": "/mnt/sd/retrodeck/bios/cemu/usr/save/00050002/10101d00",
+          "root_kind": "emulator_directory",
+          "needs": [],
+          "fallback_dir": null,
+          "physical_dir": "/mnt/sd/retrodeck/saves/wiiu/cemu/00050002/10101d00",
+          "file_set": {
+            "state": "declared",
+            "files": [],
+            "complete": false,
+            "groups": [
+              {
+                "dir": "/mnt/sd/retrodeck/bios/cemu/usr/save/00050002/10101d00",
+                "files": null,
+                "granularity": "per-game-directory",
+                "role": "battery",
+                "size_fixed": false,
+                "unit": {
+                  "kind": "own-folder",
+                  "members": null,
+                  "archive_folder": "10101d00",
+                  "prefix": null,
+                  "archive_roots": null
+                }
+              }
+            ]
+          },
+          "caveats": [
+            {
+              "code": "file-names-unestablished",
+              "data": {
+                "token": "CEMU",
+                "dir": "/mnt/sd/retrodeck/bios/cemu/usr/save/00050002/10101d00",
+                "role": "battery",
+                "citation": "nn_acp.cpp:57-69 and iosu_acp.cpp:720-748 at Cemu 2.6 — the title's save folder 'usr/save/%08x/%08x/' holding meta/ and user/ ('user/%08x/' per account, 'user/common/'), the high word masked with ~0xC, which leaves a base, demo or system title's unchanged"
+              }
+            },
+            {
+              "code": "redirect-outranked",
+              "data": {
+                "token": "CEMU",
+                "via": "variable",
+                "name": "XDG_DATA_HOME",
+                "argument": "<dir>",
+                "file": "settings.xml",
+                "key": "mlc_path"
+              }
+            }
+          ],
+          "redirects": [
+            {
+              "via": "flag",
+              "name": "--mlc",
+              "argument": "<dir>",
+              "moves": [
+                "saves",
+                "firmware",
+                "installed-content"
+              ]
+            },
+            {
+              "via": "variable",
+              "name": "XDG_DATA_HOME",
+              "argument": "<dir>",
+              "moves": [
+                "saves",
+                "firmware",
+                "installed-content"
+              ]
+            }
+          ],
+          "granularity": {
+            "value": "per-game-directory",
+            "mode": "mlc",
+            "readings": [
+              {
+                "key": "mlc_path",
+                "value": "/mnt/sd/retrodeck/bios/cemu",
+                "options_file": "/home/deck/.var/app/net.retrodeck.retrodeck/config/Cemu/settings.xml"
+              }
+            ],
+            "alternatives": []
+          }
+        }
+      }
+    },
+    {
+      "name": "cemu-a-wua-bundling-two-base-titles-keeps-the-hole",
+      "rationale": "The archive holds two base titles. Cemu's launch takes the first in the archive's order (TitleInfo.cpp:217-251 at 2.6), but a bundle names no one game's save, so the answer keeps usr/save/<save_id> and no unit, as without a content path.",
+      "input": {
+        "home": "/home/deck",
+        "files": {
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retrodeck/retrodeck.json": "{\"paths\": {\"rd_home_path\": \"/mnt/sd/retrodeck\", \"saves_path\": \"/mnt/sd/retrodeck/saves\"}}",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retroarch/retroarch.cfg": "savefile_directory = \"/mnt/sd/retrodeck/saves\"\nsort_savefiles_by_content_enable = \"false\"\nsort_savefiles_enable = \"false\"\nsystem_directory = \"/mnt/sd/retrodeck/bios\"\nglobal_core_options = \"true\"\nlibretro_directory = \"/app/cores\"\n",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/files/retrodeck/components/es-de/share/es-de/resources/systems/linux/es_systems.xml": "<?xml version=\"1.0\"?>\n<systemList>\n  <system>\n    <name>wiiu</name>\n    <path>%ROMPATH%/wiiu</path>\n    <extension>.rpx .RPX .wua .WUA .wud .WUD .wux .WUX</extension>\n    <command label=\"Cemu (Standalone)\">%EMULATOR_CEMU% %ROM%</command>\n  </system>\n</systemList>\n",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/Cemu/settings.xml": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<content>\n  <mlc_path>/mnt/sd/retrodeck/bios/cemu</mlc_path>\n</content>\n",
+          "/mnt/sd/retrodeck/roms/wiiu/Game.wua": "content bytes"
+        },
+        "dirs": [
+          "/mnt/sd/retrodeck/saves",
+          "/mnt/sd/retrodeck/bios",
+          "/mnt/sd/retrodeck/saves/wiiu/cemu",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/ROMs"
+        ],
+        "symlinks": {
+          "/mnt/sd/retrodeck/bios/cemu/usr/save": "/mnt/sd/retrodeck/saves/wiiu/cemu"
+        },
+        "entry_savefile_query": {
+          "system": "wiiu",
+          "content_path": "/mnt/sd/retrodeck/roms/wiiu/Game.wua"
+        },
+        "wua_archives": {
+          "/mnt/sd/retrodeck/roms/wiiu/Game.wua": {
+            "title_folders": [
+              "0005000010101c00_v0",
+              "0005000010102200_v0"
+            ]
+          }
+        }
+      },
+      "expected": {
+        "installations": [
+          {
+            "kind": "retrodeck",
+            "label": "RetroDECK",
+            "kinds": [
+              "retrodeck"
+            ],
+            "root": "/mnt/sd/retrodeck",
+            "health": []
+          }
+        ],
+        "entry_savefile_location": {
+          "dir": "/mnt/sd/retrodeck/bios/cemu/usr/save/<save_id>",
+          "root_kind": "emulator_directory",
+          "needs": [
+            "save_id"
+          ],
+          "fallback_dir": null,
+          "physical_dir": "/mnt/sd/retrodeck/saves/wiiu/cemu/<save_id>",
+          "file_set": {
+            "state": "declared",
+            "files": [],
+            "complete": false,
+            "groups": [
+              {
+                "dir": "/mnt/sd/retrodeck/bios/cemu/usr/save/<save_id>",
+                "files": null,
+                "granularity": "per-game-directory",
+                "role": "battery",
+                "size_fixed": false,
+                "unit": null
+              }
+            ]
+          },
+          "caveats": [
+            {
+              "code": "file-names-unestablished",
+              "data": {
+                "token": "CEMU",
+                "dir": "/mnt/sd/retrodeck/bios/cemu/usr/save/<save_id>",
+                "role": "battery",
+                "save_id": "the Wii U title id: <high 8 hex>/<low 8 hex>, lowercase",
+                "save_id_spelling": "title-id-words",
+                "citation": "nn_save.cpp:133-145 at Cemu 2.6 — '/vol/storage_mlc01/usr/save/%08x/%08x/user/%08x/' and 'user/common/'"
+              }
+            },
+            {
+              "code": "redirect-outranked",
+              "data": {
+                "token": "CEMU",
+                "via": "variable",
+                "name": "XDG_DATA_HOME",
+                "argument": "<dir>",
+                "file": "settings.xml",
+                "key": "mlc_path"
+              }
+            }
+          ],
+          "redirects": [
+            {
+              "via": "flag",
+              "name": "--mlc",
+              "argument": "<dir>",
+              "moves": [
+                "saves",
+                "firmware",
+                "installed-content"
+              ]
+            },
+            {
+              "via": "variable",
+              "name": "XDG_DATA_HOME",
+              "argument": "<dir>",
+              "moves": [
+                "saves",
+                "firmware",
+                "installed-content"
+              ]
+            }
+          ],
+          "granularity": {
+            "value": "per-game-directory",
+            "mode": "mlc",
+            "readings": [
+              {
+                "key": "mlc_path",
+                "value": "/mnt/sd/retrodeck/bios/cemu",
+                "options_file": "/home/deck/.var/app/net.retrodeck.retrodeck/config/Cemu/settings.xml"
+              }
+            ],
+            "alternatives": []
+          }
+        }
+      }
+    },
+    {
+      "name": "cemu-a-wua-holding-only-an-update-and-dlc-keeps-the-hole",
+      "rationale": "An archive of an update and its DLC holds no title a launch runs — Cemu refuses to launch it (TitleInfo.cpp:217-251 at 2.6) — so no save folder is the game's: the hole stays.",
+      "input": {
+        "home": "/home/deck",
+        "files": {
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retrodeck/retrodeck.json": "{\"paths\": {\"rd_home_path\": \"/mnt/sd/retrodeck\", \"saves_path\": \"/mnt/sd/retrodeck/saves\"}}",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retroarch/retroarch.cfg": "savefile_directory = \"/mnt/sd/retrodeck/saves\"\nsort_savefiles_by_content_enable = \"false\"\nsort_savefiles_enable = \"false\"\nsystem_directory = \"/mnt/sd/retrodeck/bios\"\nglobal_core_options = \"true\"\nlibretro_directory = \"/app/cores\"\n",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/files/retrodeck/components/es-de/share/es-de/resources/systems/linux/es_systems.xml": "<?xml version=\"1.0\"?>\n<systemList>\n  <system>\n    <name>wiiu</name>\n    <path>%ROMPATH%/wiiu</path>\n    <extension>.rpx .RPX .wua .WUA .wud .WUD .wux .WUX</extension>\n    <command label=\"Cemu (Standalone)\">%EMULATOR_CEMU% %ROM%</command>\n  </system>\n</systemList>\n",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/Cemu/settings.xml": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<content>\n  <mlc_path>/mnt/sd/retrodeck/bios/cemu</mlc_path>\n</content>\n",
+          "/mnt/sd/retrodeck/roms/wiiu/Game.wua": "content bytes"
+        },
+        "dirs": [
+          "/mnt/sd/retrodeck/saves",
+          "/mnt/sd/retrodeck/bios",
+          "/mnt/sd/retrodeck/saves/wiiu/cemu",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/ROMs"
+        ],
+        "symlinks": {
+          "/mnt/sd/retrodeck/bios/cemu/usr/save": "/mnt/sd/retrodeck/saves/wiiu/cemu"
+        },
+        "entry_savefile_query": {
+          "system": "wiiu",
+          "content_path": "/mnt/sd/retrodeck/roms/wiiu/Game.wua"
+        },
+        "wua_archives": {
+          "/mnt/sd/retrodeck/roms/wiiu/Game.wua": {
+            "title_folders": [
+              "0005000c10101c00_v16",
+              "0005000e10101c00_v208"
+            ]
+          }
+        }
+      },
+      "expected": {
+        "installations": [
+          {
+            "kind": "retrodeck",
+            "label": "RetroDECK",
+            "kinds": [
+              "retrodeck"
+            ],
+            "root": "/mnt/sd/retrodeck",
+            "health": []
+          }
+        ],
+        "entry_savefile_location": {
+          "dir": "/mnt/sd/retrodeck/bios/cemu/usr/save/<save_id>",
+          "root_kind": "emulator_directory",
+          "needs": [
+            "save_id"
+          ],
+          "fallback_dir": null,
+          "physical_dir": "/mnt/sd/retrodeck/saves/wiiu/cemu/<save_id>",
+          "file_set": {
+            "state": "declared",
+            "files": [],
+            "complete": false,
+            "groups": [
+              {
+                "dir": "/mnt/sd/retrodeck/bios/cemu/usr/save/<save_id>",
+                "files": null,
+                "granularity": "per-game-directory",
+                "role": "battery",
+                "size_fixed": false,
+                "unit": null
+              }
+            ]
+          },
+          "caveats": [
+            {
+              "code": "file-names-unestablished",
+              "data": {
+                "token": "CEMU",
+                "dir": "/mnt/sd/retrodeck/bios/cemu/usr/save/<save_id>",
+                "role": "battery",
+                "save_id": "the Wii U title id: <high 8 hex>/<low 8 hex>, lowercase",
+                "save_id_spelling": "title-id-words",
+                "citation": "nn_save.cpp:133-145 at Cemu 2.6 — '/vol/storage_mlc01/usr/save/%08x/%08x/user/%08x/' and 'user/common/'"
+              }
+            },
+            {
+              "code": "redirect-outranked",
+              "data": {
+                "token": "CEMU",
+                "via": "variable",
+                "name": "XDG_DATA_HOME",
+                "argument": "<dir>",
+                "file": "settings.xml",
+                "key": "mlc_path"
+              }
+            }
+          ],
+          "redirects": [
+            {
+              "via": "flag",
+              "name": "--mlc",
+              "argument": "<dir>",
+              "moves": [
+                "saves",
+                "firmware",
+                "installed-content"
+              ]
+            },
+            {
+              "via": "variable",
+              "name": "XDG_DATA_HOME",
+              "argument": "<dir>",
+              "moves": [
+                "saves",
+                "firmware",
+                "installed-content"
+              ]
+            }
+          ],
+          "granularity": {
+            "value": "per-game-directory",
+            "mode": "mlc",
+            "readings": [
+              {
+                "key": "mlc_path",
+                "value": "/mnt/sd/retrodeck/bios/cemu",
+                "options_file": "/home/deck/.var/app/net.retrodeck.retrodeck/config/Cemu/settings.xml"
+              }
+            ],
+            "alternatives": []
+          }
+        }
+      }
+    },
+    {
+      "name": "cemu-bytes-that-are-no-archive-keep-the-hole",
+      "rationale": "A file named .wua whose last 144 bytes are no ZArchive footer (zarchivereader.cpp:36-47 at ZArchive v0.1.2) — another format renamed, or a download cut short, which loses the footer at the end — is not read: the hole stays.",
+      "input": {
+        "home": "/home/deck",
+        "files": {
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retrodeck/retrodeck.json": "{\"paths\": {\"rd_home_path\": \"/mnt/sd/retrodeck\", \"saves_path\": \"/mnt/sd/retrodeck/saves\"}}",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retroarch/retroarch.cfg": "savefile_directory = \"/mnt/sd/retrodeck/saves\"\nsort_savefiles_by_content_enable = \"false\"\nsort_savefiles_enable = \"false\"\nsystem_directory = \"/mnt/sd/retrodeck/bios\"\nglobal_core_options = \"true\"\nlibretro_directory = \"/app/cores\"\n",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/files/retrodeck/components/es-de/share/es-de/resources/systems/linux/es_systems.xml": "<?xml version=\"1.0\"?>\n<systemList>\n  <system>\n    <name>wiiu</name>\n    <path>%ROMPATH%/wiiu</path>\n    <extension>.rpx .RPX .wua .WUA .wud .WUD .wux .WUX</extension>\n    <command label=\"Cemu (Standalone)\">%EMULATOR_CEMU% %ROM%</command>\n  </system>\n</systemList>\n",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/Cemu/settings.xml": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<content>\n  <mlc_path>/mnt/sd/retrodeck/bios/cemu</mlc_path>\n</content>\n",
+          "/mnt/sd/retrodeck/roms/wiiu/Game.wua": "content bytes"
+        },
+        "dirs": [
+          "/mnt/sd/retrodeck/saves",
+          "/mnt/sd/retrodeck/bios",
+          "/mnt/sd/retrodeck/saves/wiiu/cemu",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/ROMs"
+        ],
+        "symlinks": {
+          "/mnt/sd/retrodeck/bios/cemu/usr/save": "/mnt/sd/retrodeck/saves/wiiu/cemu"
+        },
+        "entry_savefile_query": {
+          "system": "wiiu",
+          "content_path": "/mnt/sd/retrodeck/roms/wiiu/Game.wua"
+        },
+        "wua_archives": {
+          "/mnt/sd/retrodeck/roms/wiiu/Game.wua": "format-not-read"
+        }
+      },
+      "expected": {
+        "installations": [
+          {
+            "kind": "retrodeck",
+            "label": "RetroDECK",
+            "kinds": [
+              "retrodeck"
+            ],
+            "root": "/mnt/sd/retrodeck",
+            "health": []
+          }
+        ],
+        "entry_savefile_location": {
+          "dir": "/mnt/sd/retrodeck/bios/cemu/usr/save/<save_id>",
+          "root_kind": "emulator_directory",
+          "needs": [
+            "save_id"
+          ],
+          "fallback_dir": null,
+          "physical_dir": "/mnt/sd/retrodeck/saves/wiiu/cemu/<save_id>",
+          "file_set": {
+            "state": "declared",
+            "files": [],
+            "complete": false,
+            "groups": [
+              {
+                "dir": "/mnt/sd/retrodeck/bios/cemu/usr/save/<save_id>",
+                "files": null,
+                "granularity": "per-game-directory",
+                "role": "battery",
+                "size_fixed": false,
+                "unit": null
+              }
+            ]
+          },
+          "caveats": [
+            {
+              "code": "file-names-unestablished",
+              "data": {
+                "token": "CEMU",
+                "dir": "/mnt/sd/retrodeck/bios/cemu/usr/save/<save_id>",
+                "role": "battery",
+                "save_id": "the Wii U title id: <high 8 hex>/<low 8 hex>, lowercase",
+                "save_id_spelling": "title-id-words",
+                "citation": "nn_save.cpp:133-145 at Cemu 2.6 — '/vol/storage_mlc01/usr/save/%08x/%08x/user/%08x/' and 'user/common/'"
+              }
+            },
+            {
+              "code": "redirect-outranked",
+              "data": {
+                "token": "CEMU",
+                "via": "variable",
+                "name": "XDG_DATA_HOME",
+                "argument": "<dir>",
+                "file": "settings.xml",
+                "key": "mlc_path"
+              }
+            }
+          ],
+          "redirects": [
+            {
+              "via": "flag",
+              "name": "--mlc",
+              "argument": "<dir>",
+              "moves": [
+                "saves",
+                "firmware",
+                "installed-content"
+              ]
+            },
+            {
+              "via": "variable",
+              "name": "XDG_DATA_HOME",
+              "argument": "<dir>",
+              "moves": [
+                "saves",
+                "firmware",
+                "installed-content"
+              ]
+            }
+          ],
+          "granularity": {
+            "value": "per-game-directory",
+            "mode": "mlc",
+            "readings": [
+              {
+                "key": "mlc_path",
+                "value": "/mnt/sd/retrodeck/bios/cemu",
+                "options_file": "/home/deck/.var/app/net.retrodeck.retrodeck/config/Cemu/settings.xml"
+              }
+            ],
+            "alternatives": []
+          }
+        }
+      }
+    },
+    {
+      "name": "cemu-a-damaged-archive-keeps-the-hole",
+      "rationale": "A footer whose magic and version are ZArchive's but whose structure Cemu's reader refuses — a total size other than the file's, a section past the end, an empty file tree (zarchivereader.cpp:48-85 at v0.1.2) — is not read: the hole stays.",
+      "input": {
+        "home": "/home/deck",
+        "files": {
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retrodeck/retrodeck.json": "{\"paths\": {\"rd_home_path\": \"/mnt/sd/retrodeck\", \"saves_path\": \"/mnt/sd/retrodeck/saves\"}}",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retroarch/retroarch.cfg": "savefile_directory = \"/mnt/sd/retrodeck/saves\"\nsort_savefiles_by_content_enable = \"false\"\nsort_savefiles_enable = \"false\"\nsystem_directory = \"/mnt/sd/retrodeck/bios\"\nglobal_core_options = \"true\"\nlibretro_directory = \"/app/cores\"\n",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/files/retrodeck/components/es-de/share/es-de/resources/systems/linux/es_systems.xml": "<?xml version=\"1.0\"?>\n<systemList>\n  <system>\n    <name>wiiu</name>\n    <path>%ROMPATH%/wiiu</path>\n    <extension>.rpx .RPX .wua .WUA .wud .WUD .wux .WUX</extension>\n    <command label=\"Cemu (Standalone)\">%EMULATOR_CEMU% %ROM%</command>\n  </system>\n</systemList>\n",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/Cemu/settings.xml": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<content>\n  <mlc_path>/mnt/sd/retrodeck/bios/cemu</mlc_path>\n</content>\n",
+          "/mnt/sd/retrodeck/roms/wiiu/Game.wua": "content bytes"
+        },
+        "dirs": [
+          "/mnt/sd/retrodeck/saves",
+          "/mnt/sd/retrodeck/bios",
+          "/mnt/sd/retrodeck/saves/wiiu/cemu",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/ROMs"
+        ],
+        "symlinks": {
+          "/mnt/sd/retrodeck/bios/cemu/usr/save": "/mnt/sd/retrodeck/saves/wiiu/cemu"
+        },
+        "entry_savefile_query": {
+          "system": "wiiu",
+          "content_path": "/mnt/sd/retrodeck/roms/wiiu/Game.wua"
+        },
+        "wua_archives": {
+          "/mnt/sd/retrodeck/roms/wiiu/Game.wua": "not-an-archive"
+        }
+      },
+      "expected": {
+        "installations": [
+          {
+            "kind": "retrodeck",
+            "label": "RetroDECK",
+            "kinds": [
+              "retrodeck"
+            ],
+            "root": "/mnt/sd/retrodeck",
+            "health": []
+          }
+        ],
+        "entry_savefile_location": {
+          "dir": "/mnt/sd/retrodeck/bios/cemu/usr/save/<save_id>",
+          "root_kind": "emulator_directory",
+          "needs": [
+            "save_id"
+          ],
+          "fallback_dir": null,
+          "physical_dir": "/mnt/sd/retrodeck/saves/wiiu/cemu/<save_id>",
+          "file_set": {
+            "state": "declared",
+            "files": [],
+            "complete": false,
+            "groups": [
+              {
+                "dir": "/mnt/sd/retrodeck/bios/cemu/usr/save/<save_id>",
+                "files": null,
+                "granularity": "per-game-directory",
+                "role": "battery",
+                "size_fixed": false,
+                "unit": null
+              }
+            ]
+          },
+          "caveats": [
+            {
+              "code": "file-names-unestablished",
+              "data": {
+                "token": "CEMU",
+                "dir": "/mnt/sd/retrodeck/bios/cemu/usr/save/<save_id>",
+                "role": "battery",
+                "save_id": "the Wii U title id: <high 8 hex>/<low 8 hex>, lowercase",
+                "save_id_spelling": "title-id-words",
+                "citation": "nn_save.cpp:133-145 at Cemu 2.6 — '/vol/storage_mlc01/usr/save/%08x/%08x/user/%08x/' and 'user/common/'"
+              }
+            },
+            {
+              "code": "redirect-outranked",
+              "data": {
+                "token": "CEMU",
+                "via": "variable",
+                "name": "XDG_DATA_HOME",
+                "argument": "<dir>",
+                "file": "settings.xml",
+                "key": "mlc_path"
+              }
+            }
+          ],
+          "redirects": [
+            {
+              "via": "flag",
+              "name": "--mlc",
+              "argument": "<dir>",
+              "moves": [
+                "saves",
+                "firmware",
+                "installed-content"
+              ]
+            },
+            {
+              "via": "variable",
+              "name": "XDG_DATA_HOME",
+              "argument": "<dir>",
+              "moves": [
+                "saves",
+                "firmware",
+                "installed-content"
+              ]
+            }
+          ],
+          "granularity": {
+            "value": "per-game-directory",
+            "mode": "mlc",
+            "readings": [
+              {
+                "key": "mlc_path",
+                "value": "/mnt/sd/retrodeck/bios/cemu",
+                "options_file": "/home/deck/.var/app/net.retrodeck.retrodeck/config/Cemu/settings.xml"
+              }
+            ],
+            "alternatives": []
+          }
+        }
+      }
+    },
+    {
+      "name": "cemu-a-wud-disc-image-keeps-the-hole",
+      "rationale": "Cemu reads .wud, .wux and .iso as disc images (TitleInfo.cpp:203-210 at 2.6), which atlas does not read, so no title is established and the hole stays.",
+      "input": {
+        "home": "/home/deck",
+        "files": {
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retrodeck/retrodeck.json": "{\"paths\": {\"rd_home_path\": \"/mnt/sd/retrodeck\", \"saves_path\": \"/mnt/sd/retrodeck/saves\"}}",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retroarch/retroarch.cfg": "savefile_directory = \"/mnt/sd/retrodeck/saves\"\nsort_savefiles_by_content_enable = \"false\"\nsort_savefiles_enable = \"false\"\nsystem_directory = \"/mnt/sd/retrodeck/bios\"\nglobal_core_options = \"true\"\nlibretro_directory = \"/app/cores\"\n",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/files/retrodeck/components/es-de/share/es-de/resources/systems/linux/es_systems.xml": "<?xml version=\"1.0\"?>\n<systemList>\n  <system>\n    <name>wiiu</name>\n    <path>%ROMPATH%/wiiu</path>\n    <extension>.rpx .RPX .wua .WUA .wud .WUD .wux .WUX</extension>\n    <command label=\"Cemu (Standalone)\">%EMULATOR_CEMU% %ROM%</command>\n  </system>\n</systemList>\n",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/Cemu/settings.xml": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<content>\n  <mlc_path>/mnt/sd/retrodeck/bios/cemu</mlc_path>\n</content>\n",
+          "/mnt/sd/retrodeck/roms/wiiu/Game.wux": "content bytes"
+        },
+        "dirs": [
+          "/mnt/sd/retrodeck/saves",
+          "/mnt/sd/retrodeck/bios",
+          "/mnt/sd/retrodeck/saves/wiiu/cemu",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/ROMs"
+        ],
+        "symlinks": {
+          "/mnt/sd/retrodeck/bios/cemu/usr/save": "/mnt/sd/retrodeck/saves/wiiu/cemu"
+        },
+        "entry_savefile_query": {
+          "system": "wiiu",
+          "content_path": "/mnt/sd/retrodeck/roms/wiiu/Game.wux"
+        }
+      },
+      "expected": {
+        "installations": [
+          {
+            "kind": "retrodeck",
+            "label": "RetroDECK",
+            "kinds": [
+              "retrodeck"
+            ],
+            "root": "/mnt/sd/retrodeck",
+            "health": []
+          }
+        ],
+        "entry_savefile_location": {
+          "dir": "/mnt/sd/retrodeck/bios/cemu/usr/save/<save_id>",
+          "root_kind": "emulator_directory",
+          "needs": [
+            "save_id"
+          ],
+          "fallback_dir": null,
+          "physical_dir": "/mnt/sd/retrodeck/saves/wiiu/cemu/<save_id>",
+          "file_set": {
+            "state": "declared",
+            "files": [],
+            "complete": false,
+            "groups": [
+              {
+                "dir": "/mnt/sd/retrodeck/bios/cemu/usr/save/<save_id>",
+                "files": null,
+                "granularity": "per-game-directory",
+                "role": "battery",
+                "size_fixed": false,
+                "unit": null
+              }
+            ]
+          },
+          "caveats": [
+            {
+              "code": "file-names-unestablished",
+              "data": {
+                "token": "CEMU",
+                "dir": "/mnt/sd/retrodeck/bios/cemu/usr/save/<save_id>",
+                "role": "battery",
+                "save_id": "the Wii U title id: <high 8 hex>/<low 8 hex>, lowercase",
+                "save_id_spelling": "title-id-words",
+                "citation": "nn_save.cpp:133-145 at Cemu 2.6 — '/vol/storage_mlc01/usr/save/%08x/%08x/user/%08x/' and 'user/common/'"
+              }
+            },
+            {
+              "code": "redirect-outranked",
+              "data": {
+                "token": "CEMU",
+                "via": "variable",
+                "name": "XDG_DATA_HOME",
+                "argument": "<dir>",
+                "file": "settings.xml",
+                "key": "mlc_path"
+              }
+            }
+          ],
+          "redirects": [
+            {
+              "via": "flag",
+              "name": "--mlc",
+              "argument": "<dir>",
+              "moves": [
+                "saves",
+                "firmware",
+                "installed-content"
+              ]
+            },
+            {
+              "via": "variable",
+              "name": "XDG_DATA_HOME",
+              "argument": "<dir>",
+              "moves": [
+                "saves",
+                "firmware",
+                "installed-content"
+              ]
+            }
+          ],
+          "granularity": {
+            "value": "per-game-directory",
+            "mode": "mlc",
+            "readings": [
+              {
+                "key": "mlc_path",
+                "value": "/mnt/sd/retrodeck/bios/cemu",
+                "options_file": "/home/deck/.var/app/net.retrodeck.retrodeck/config/Cemu/settings.xml"
+              }
+            ],
+            "alternatives": []
+          }
+        }
+      }
+    },
+    {
+      "name": "cemu-a-folder-dumps-app-xml-names-the-title",
+      "rationale": "The question names a folder dump's code/<name>.rpx, beside content/ and meta/, which Cemu runs as a folder dump (TitleInfo.cpp:186-202 at 2.6) under code/app.xml's title_id (ParseAppXml, :621-648; GetAppTitleId :650-659). That id names the save folder usr/save/00050000/10101c00, stated as the unit.",
+      "input": {
+        "home": "/home/deck",
+        "files": {
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retrodeck/retrodeck.json": "{\"paths\": {\"rd_home_path\": \"/mnt/sd/retrodeck\", \"saves_path\": \"/mnt/sd/retrodeck/saves\"}}",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retroarch/retroarch.cfg": "savefile_directory = \"/mnt/sd/retrodeck/saves\"\nsort_savefiles_by_content_enable = \"false\"\nsort_savefiles_enable = \"false\"\nsystem_directory = \"/mnt/sd/retrodeck/bios\"\nglobal_core_options = \"true\"\nlibretro_directory = \"/app/cores\"\n",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/files/retrodeck/components/es-de/share/es-de/resources/systems/linux/es_systems.xml": "<?xml version=\"1.0\"?>\n<systemList>\n  <system>\n    <name>wiiu</name>\n    <path>%ROMPATH%/wiiu</path>\n    <extension>.rpx .RPX .wua .WUA .wud .WUD .wux .WUX</extension>\n    <command label=\"Cemu (Standalone)\">%EMULATOR_CEMU% %ROM%</command>\n  </system>\n</systemList>\n",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/Cemu/settings.xml": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<content>\n  <mlc_path>/mnt/sd/retrodeck/bios/cemu</mlc_path>\n</content>\n",
+          "/mnt/sd/retrodeck/roms/wiiu/Game [0005000010101C00]/code/Game.rpx": "content bytes",
+          "/mnt/sd/retrodeck/roms/wiiu/Game [0005000010101C00]/code/app.xml": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<app type=\"complex\" access=\"777\">\n  <version type=\"unsignedInt\" length=\"4\">16</version>\n  <title_id type=\"hexBinary\" length=\"8\">0005000010101C00</title_id>\n  <title_version type=\"hexBinary\" length=\"2\">0000</title_version>\n</app>\n",
+          "/mnt/sd/retrodeck/roms/wiiu/Game [0005000010101C00]/meta/meta.xml": "<menu/>"
+        },
+        "dirs": [
+          "/mnt/sd/retrodeck/saves",
+          "/mnt/sd/retrodeck/bios",
+          "/mnt/sd/retrodeck/saves/wiiu/cemu",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/ROMs",
+          "/mnt/sd/retrodeck/roms/wiiu/Game [0005000010101C00]/content"
+        ],
+        "symlinks": {
+          "/mnt/sd/retrodeck/bios/cemu/usr/save": "/mnt/sd/retrodeck/saves/wiiu/cemu"
+        },
+        "entry_savefile_query": {
+          "system": "wiiu",
+          "content_path": "/mnt/sd/retrodeck/roms/wiiu/Game [0005000010101C00]/code/Game.rpx"
+        }
+      },
+      "expected": {
+        "installations": [
+          {
+            "kind": "retrodeck",
+            "label": "RetroDECK",
+            "kinds": [
+              "retrodeck"
+            ],
+            "root": "/mnt/sd/retrodeck",
+            "health": []
+          }
+        ],
+        "entry_savefile_location": {
+          "dir": "/mnt/sd/retrodeck/bios/cemu/usr/save/00050000/10101c00",
+          "root_kind": "emulator_directory",
+          "needs": [],
+          "fallback_dir": null,
+          "physical_dir": "/mnt/sd/retrodeck/saves/wiiu/cemu/00050000/10101c00",
+          "file_set": {
+            "state": "declared",
+            "files": [],
+            "complete": false,
+            "groups": [
+              {
+                "dir": "/mnt/sd/retrodeck/bios/cemu/usr/save/00050000/10101c00",
+                "files": null,
+                "granularity": "per-game-directory",
+                "role": "battery",
+                "size_fixed": false,
+                "unit": {
+                  "kind": "own-folder",
+                  "members": null,
+                  "archive_folder": "10101c00",
+                  "prefix": null,
+                  "archive_roots": null
+                }
+              }
+            ]
+          },
+          "caveats": [
+            {
+              "code": "file-names-unestablished",
+              "data": {
+                "token": "CEMU",
+                "dir": "/mnt/sd/retrodeck/bios/cemu/usr/save/00050000/10101c00",
+                "role": "battery",
+                "citation": "nn_acp.cpp:57-69 and iosu_acp.cpp:720-748 at Cemu 2.6 — the title's save folder 'usr/save/%08x/%08x/' holding meta/ and user/ ('user/%08x/' per account, 'user/common/'), the high word masked with ~0xC, which leaves a base, demo or system title's unchanged"
+              }
+            },
+            {
+              "code": "redirect-outranked",
+              "data": {
+                "token": "CEMU",
+                "via": "variable",
+                "name": "XDG_DATA_HOME",
+                "argument": "<dir>",
+                "file": "settings.xml",
+                "key": "mlc_path"
+              }
+            }
+          ],
+          "redirects": [
+            {
+              "via": "flag",
+              "name": "--mlc",
+              "argument": "<dir>",
+              "moves": [
+                "saves",
+                "firmware",
+                "installed-content"
+              ]
+            },
+            {
+              "via": "variable",
+              "name": "XDG_DATA_HOME",
+              "argument": "<dir>",
+              "moves": [
+                "saves",
+                "firmware",
+                "installed-content"
+              ]
+            }
+          ],
+          "granularity": {
+            "value": "per-game-directory",
+            "mode": "mlc",
+            "readings": [
+              {
+                "key": "mlc_path",
+                "value": "/mnt/sd/retrodeck/bios/cemu",
+                "options_file": "/home/deck/.var/app/net.retrodeck.retrodeck/config/Cemu/settings.xml"
+              }
+            ],
+            "alternatives": []
+          }
+        }
+      }
+    }
+  ]
+}
