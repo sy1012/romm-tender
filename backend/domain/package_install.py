@@ -71,6 +71,26 @@ class PackageGameTarget:
     boot_file_in_emulator: str | None
 
 
+# The files RPCS3's installer takes from a folder it is handed: packages and the
+# licences installed with them (main_window::InstallPackages at d5213de6). It
+# lists that folder alone and never looks into one below it.
+_PACKAGE_SUFFIXES = (".pkg", ".rap", ".edat")
+
+
+def package_folder(files: list[str], download_folder: str) -> str:
+    """The folder to hand the installer: the one folder holding every package and licence of a download.
+
+    *files* are the download's files, at any depth. A RomM game can keep its
+    packages one folder below the game's own, beside files of its own (a
+    playlist), and the installer reads only the folder it is handed, so the
+    folder they lie in is the one. Where they lie in more than one folder, or
+    there are none, *download_folder* is answered and the resolver says what
+    it takes from it.
+    """
+    folders = {os.path.dirname(path) for path in files if path.lower().endswith(_PACKAGE_SUFFIXES)}
+    return folders.pop() if len(folders) == 1 else download_folder
+
+
 def installed_title(targets: tuple[PackageGameTarget, ...]) -> InstalledTitle | PackageInstallRefused | None:
     """The one game *targets* install, or why there is none to record; ``None`` where they install no game.
 

@@ -23,6 +23,7 @@ from domain.package_install import (
     NOT_STARTED,
     InstalledTitle,
     PackageInstallRefused,
+    package_folder,
 )
 from domain.retrodeck_folders import FolderRefused, folder_of
 from lib.path_safety import is_inside_folder
@@ -109,7 +110,12 @@ class DownloadPackageInstall:
         install = await self._loop.run_in_executor(None, self._read_io, rom_id)
         if install is None or install.package_boot_file is not None:
             return None
-        content = install.rom_dir or install.file_path
+        content = install.file_path
+        if install.rom_dir is not None:
+            files = await self._loop.run_in_executor(
+                None, self._download_file_store.scan_files_with_sizes, install.rom_dir
+            )
+            content = package_folder([path for path, _size in files], install.rom_dir)
         writable = (install.rom_dir or os.path.dirname(install.file_path),)
         plan = await self._loop.run_in_executor(
             None, partial(self._package_installs.package_install, install.system, content, writable=writable)

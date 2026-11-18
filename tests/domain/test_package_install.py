@@ -11,6 +11,7 @@ from domain.package_install import (
     PackageInstallRefused,
     drive_game_folder,
     installed_title,
+    package_folder,
     package_installed_verdict,
 )
 
@@ -83,3 +84,19 @@ class TestTheVerdict:
         verdict = _verdict(NEEDS_INSTALLING)
 
         assert package_installed_verdict(verdict) is verdict
+
+
+class TestThePackageFolder:
+    def test_packages_in_the_download_folder_are_installed_from_it(self):
+        files = ["/roms/ps3/Game/a.pkg", "/roms/ps3/Game/a_edat.PKG"]
+
+        assert package_folder(files, "/roms/ps3/Game") == "/roms/ps3/Game"
+
+    def test_packages_one_folder_down_are_installed_from_that_folder(self):
+        files = ["/roms/ps3/Game/Game.m3u", "/roms/ps3/Game/ID/a.pkg", "/roms/ps3/Game/ID/a.rap"]
+
+        assert package_folder(files, "/roms/ps3/Game") == "/roms/ps3/Game/ID"
+
+    def test_packages_in_several_folders_or_none_leave_the_download_folder(self):
+        assert package_folder(["/g/A/a.pkg", "/g/B/b.pkg"], "/g") == "/g"
+        assert package_folder(["/g/x.m3u"], "/g") == "/g"

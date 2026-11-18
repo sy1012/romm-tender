@@ -20,10 +20,11 @@ of it, so the boot file standing afterwards is the one sign the game installed.
 
 ## Decision
 
-1. **After a download is recorded, Tender asks the resolver how its content installs**, with the download's folder (or
-   its one file), and installs it where the answer names a game. A download the answer names no game for is left as it
-   is. The install runs to its end, bounded, as a child process the download's task can cancel; its extra content
-   arrives first, so the same run installs it.
+1. **After a download is recorded, Tender asks the resolver how its content installs**, with the folder that holds the
+   download's packages and licences (the download's own folder where they lie in more than one, or its one file), since
+   RPCS3 reads only the folder it is handed, and installs it where the answer names a game. A download the answer names
+   no game for is left as it is. The install runs to its end, bounded, as a child process the download's task can
+   cancel; its extra content arrives first, so the same run installs it.
 2. **Success is every boot file the answer names standing afterwards**, never the exit status.
 3. **On success the downloaded files are deleted** — the download's whole folder, inside its system's ROM folder only.
    The game lives in RPCS3's drive, where the download would only duplicate it. **On failure they are kept**, recorded

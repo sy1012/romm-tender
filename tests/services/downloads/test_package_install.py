@@ -132,6 +132,20 @@ class TestAnInstallThatSucceeds:
         assert world.reader.asked == [("ps3", str(world.download), (str(world.download),))]
         assert world.control.ran == [_ARGV]
 
+    async def test_packages_one_folder_down_beside_a_playlist_are_installed_from_their_own_folder(self, world):
+        """RPCS3 reads only the folder it is handed; a RomM game can keep its packages one folder below its own."""
+        inner = world.download / "NPUB30000"
+        inner.mkdir()
+        for package in world.download.glob("*.pkg"):
+            package.rename(inner / package.name)
+        (world.download / "Game.m3u").write_text("NPUB30000")
+        world.control.effect = write_boot_file(world.title.boot_file)
+
+        await world.install()
+
+        assert world.reader.asked == [("ps3", str(inner), (str(world.download),))]
+        assert not world.download.exists()
+
     async def test_the_queue_says_it_is_installing_while_it_runs(self, world, emit):
         world.control.effect = write_boot_file(world.title.boot_file)
 

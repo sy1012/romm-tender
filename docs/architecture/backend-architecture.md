@@ -1956,11 +1956,14 @@ A PS3 game RomM holds as a PSN package cannot start until RPCS3 installs it
 ([ADR-0051](../adr/0051-a-ps3-package-is-installed-into-rpcs3.md); GLOSSARY.md → Package install). Once a download is
 recorded and its extra content is in place, `DownloadPackageInstall` asks `PackageInstallReader`
 (`adapters/atlas_package_install.py`, the resolver's `package_install_command` read through the answering source for the
-system) how the download's folder — or its one file — installs. The answer is the install to run, the one title it
-leaves (`domain/package_install.py`'s `InstalledTitle`: the folder and boot file on the host, the boot file as the
-emulator spells it), a refusal, or `None` for a download that is no package to install, which is left as it is. Every
-download asks; nothing about a file name decides it. The command is read as a start's is (`read_start`), with the
-download's folder granted to the Flatpak, and is refused where it is not complete.
+system) how the download's folder — or its one file — installs: the folder that holds every package and licence of the
+download where they all lie in one (`package_folder`), since RPCS3's installer reads only the folder it is handed and a
+RomM game can keep its packages one folder below its own, beside a playlist (seen on a Deck); else the download's own.
+The answer is the install to run, the one title it leaves (`domain/package_install.py`'s `InstalledTitle`: the folder
+and boot file on the host, the boot file as the emulator spells it), a refusal, or `None` for a download that is no
+package to install, which is left as it is. Every download asks; nothing about a file name decides it. The command is
+read as a start's is (`read_start`), with the download's folder granted to the Flatpak, and is refused where it is not
+complete.
 
 The queue entry turns `installing` (`DownloadQueue.report_installing`), and `PackageInstallControl`
 (`adapters/package_install_run.py`) runs the command as a child process in a session of its own, on the loop, within
