@@ -117,8 +117,8 @@ file and carries its save folder and, where the game has one, its extra data (ex
 card to RomM as one `<game>.zip`, under `data/` and `extdata/` the way Argosy lays it out. Restoring replaces each of
 the two folders the zip holds and leaves the other as it is — a zip of the save alone keeps your extdata — and refuses a
 zip holding anything else; every other game's folders are left alone. A `.cia` or a compressed image is not read, so
-nothing is synced for it; an encrypted dump is not read either, and Azahar does not run one anyway. This has not yet
-been observed on a device.
+nothing is synced for it; an encrypted dump is not read either, and Azahar does not run one anyway. Upload and restore
+have both been observed on a Steam Deck.
 
 The systems whose default core has been **watched writing a save on a stock RetroDECK install** are Game Boy / Color /
 Advance, N64, Saturn, Neo Geo Pocket (Color) and Pokémon Mini. The rest of the ✅ rows follow the same standard `.srm`
@@ -186,7 +186,7 @@ states still work locally). See the full table for specifics.
     | `mame` | ❌ | Saves are stored separately by the emulator (MAME) |
     | `mess` | ❌ | Not synced |
     | `model2` | ❌ | Saves are stored separately by the emulator (MAME) |
-    | `n3ds` | ✅ | Azahar (Standalone): the title's save folder and its extdata, as one zip — .3ds/.cci/.cxi only; not yet observed on a device |
+    | `n3ds` | ✅ | Azahar (Standalone): the title's save folder and its extdata, as one zip — .3ds/.cci/.cxi only |
     | `naomi` | ❌ | Shared VMU card (Flycast default; the core has a per-game mode) |
     | `naomi2` | ❌ | Shared VMU card (Flycast default; the core has a per-game mode) |
     | `naomigd` | ❌ | Shared VMU card (Flycast default; the core has a per-game mode) |
