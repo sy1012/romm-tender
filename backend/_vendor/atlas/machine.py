@@ -95,7 +95,7 @@ from dataclasses import dataclass, field
 from types import MappingProxyType
 from typing import BinaryIO, Callable, Iterable, Literal, Mapping, NamedTuple, Protocol, cast, runtime_checkable
 
-from . import dolphin_disc, eden, lha, ps2_bios, ps3_file, ps3_iso, psp_disc, psx_chd, psx_disc, psx_pbp, squashfs, switch_title, whdload
+from . import dolphin_disc, eden, lha, n3ds_rom, ps2_bios, ps3_file, ps3_iso, psp_disc, psx_chd, psx_disc, psx_pbp, squashfs, switch_title, whdload
 from .content_path import archive_delimiter
 
 try:
@@ -304,6 +304,29 @@ PSP_DISC_STATUSES: tuple[PspDiscStatus, ...] = (
     PSP_DISC_UNREADABLE,
     PSP_DISC_FORMAT_NOT_READ,
     PSP_DISC_NOT_A_DISC,
+)
+
+# Reading what Azahar reads of a 3DS image (atlas.n3ds_rom) fails the way a
+# plain read fails, and in three ways that are findings about the bytes:
+# "format-not-read" is a file with no NCSD or NCCH magic at 0x100 — a CIA, a
+# compressed Z3DS image, Azahar's own console-encrypted file, or no 3DS image
+# at all; "encrypted" an NCCH Azahar refuses to load; "not-a-rom" an image
+# with the magic whose structure runs short or leads to no NCCH. "missing" is
+# no regular file there once links are followed.
+N3dsRomStatus = Literal["ok", "missing", "unreadable", "format-not-read", "encrypted", "not-a-rom"]
+N3DS_ROM_OK: N3dsRomStatus = "ok"
+N3DS_ROM_MISSING: N3dsRomStatus = "missing"
+N3DS_ROM_UNREADABLE: N3dsRomStatus = "unreadable"
+N3DS_ROM_FORMAT_NOT_READ: N3dsRomStatus = "format-not-read"
+N3DS_ROM_ENCRYPTED: N3dsRomStatus = "encrypted"
+N3DS_ROM_NOT_A_ROM: N3dsRomStatus = "not-a-rom"
+N3DS_ROM_STATUSES: tuple[N3dsRomStatus, ...] = (
+    N3DS_ROM_OK,
+    N3DS_ROM_MISSING,
+    N3DS_ROM_UNREADABLE,
+    N3DS_ROM_FORMAT_NOT_READ,
+    N3DS_ROM_ENCRYPTED,
+    N3DS_ROM_NOT_A_ROM,
 )
 
 # Reading the keys of a PSP savedata folder's PARAM.SFO (atlas.psp_disc) fails
@@ -577,6 +600,22 @@ class PspDiscResult:
     def __post_init__(self) -> None:
         if (self.facts is None) == (self.status == PSP_DISC_OK):
             raise ValueError(f"PspDiscResult: facts must be set exactly when status is 'ok' (got {self.status!r})")
+
+
+@dataclass(frozen=True, slots=True)
+class N3dsRomResult:
+    """One read of what Azahar reads of a 3DS image — ``facts`` is set exactly when ``status`` is ok.
+
+    ``missing`` / ``unreadable`` mean what they mean on :class:`ReadResult`;
+    the facts are :class:`atlas.n3ds_rom.N3dsRomFacts`.
+    """
+
+    status: N3dsRomStatus
+    facts: n3ds_rom.N3dsRomFacts | None = None
+
+    def __post_init__(self) -> None:
+        if (self.facts is None) == (self.status == N3DS_ROM_OK):
+            raise ValueError(f"N3dsRomResult: facts must be set exactly when status is 'ok' (got {self.status!r})")
 
 
 @dataclass(frozen=True, slots=True)
@@ -1403,6 +1442,8 @@ class Machine(Protocol):
 
     def read_psp_param_sfo(self, path: str) -> PspParamSfoResult: ...
 
+    def read_n3ds_rom(self, path: str) -> N3dsRomResult: ...
+
     def read_disc_identity(self, path: str, *, extracted: ExtractedEntry | None = None) -> DiscIdentityResult: ...
 
     def list_archive(self, path: str) -> ArchiveListResult: ...
@@ -1983,6 +2024,37 @@ class RealMachine:
             return PspParamSfoResult(PSP_PARAM_SFO_OK, psp_disc.parse_sfo_keys(data))
         except psp_disc.SfoUnread:
             return PspParamSfoResult(PSP_PARAM_SFO_NOT_AN_SFO)
+
+    def read_n3ds_rom(self, path: str) -> N3dsRomResult:
+        """What Azahar reads of the 3DS image at *path* — a status, and the facts where it was read.
+
+        A regular file once links are followed, checked before opening, as for
+        :meth:`read_psp_disc`. The reader is :mod:`atlas.n3ds_rom`, which takes
+        two reads of at most 0x450 bytes: the image's head and, in a card
+        image, the head of its partition 0.
+        """
+        try:
+            st = os.stat(path)
+        except (FileNotFoundError, NotADirectoryError):
+            return N3dsRomResult(N3DS_ROM_MISSING)
+        except OSError:
+            return N3dsRomResult(N3DS_ROM_UNREADABLE)
+        if not _stat.S_ISREG(st.st_mode):
+            return N3dsRomResult(N3DS_ROM_MISSING)
+        try:
+            with open(path, "rb") as f:
+                facts = n3ds_rom.read_facts(f, st.st_size)
+        except (FileNotFoundError, NotADirectoryError):
+            return N3dsRomResult(N3DS_ROM_MISSING)
+        except n3ds_rom.N3dsRomFormatNotRead:
+            return N3dsRomResult(N3DS_ROM_FORMAT_NOT_READ)
+        except n3ds_rom.N3dsRomEncrypted:
+            return N3dsRomResult(N3DS_ROM_ENCRYPTED)
+        except n3ds_rom.N3dsRomUnread:
+            return N3dsRomResult(N3DS_ROM_NOT_A_ROM)
+        except OSError:
+            return N3dsRomResult(N3DS_ROM_UNREADABLE)
+        return N3dsRomResult(N3DS_ROM_OK, facts)
 
     def read_disc_identity(self, path: str, *, extracted: ExtractedEntry | None = None) -> DiscIdentityResult:
         """The bytes a PlayStation disc's emulators decide its region from — a status, and the identity where read.
@@ -3207,6 +3279,54 @@ def _validate_fixture_psp_param_sfos(
     return validated
 
 
+_FIXTURE_N3DS_ROM_FIELDS = ("container", "program_id", "extdata_id", "extdata_basis")
+_FIXTURE_N3DS_ROM_STATES = (N3DS_ROM_FORMAT_NOT_READ, N3DS_ROM_ENCRYPTED, N3DS_ROM_NOT_A_ROM)
+
+
+def _fixture_u64(value: object, what: str) -> int:
+    """A u64 a fixture spells as 16 hex digits."""
+    if not isinstance(value, str) or len(value) != 16 or any(c not in "0123456789abcdefABCDEF" for c in value):
+        raise ValueError(f"{what} is 16 hex digits, got {value!r}")
+    return int(value, 16)
+
+
+def _validate_fixture_n3ds_roms(
+    declared: Mapping[str, object] | None,
+    files: Mapping[str, tuple[ReadStatus, str | None]],
+) -> dict[str, n3ds_rom.N3dsRomFacts | N3dsRomStatus]:
+    """The declared facts of each 3DS image — or ``format-not-read`` / ``encrypted`` / ``not-a-rom``.
+
+    The facts describe a file's bytes, so the path must be a declared file
+    whose bytes can be read, as for ``psp_discs``. ``program_id`` and
+    ``extdata_id`` are 16 hex digits; ``extdata_id`` and ``extdata_basis`` are
+    both null where the image names no extdata.
+    """
+    validated: dict[str, n3ds_rom.N3dsRomFacts | N3dsRomStatus] = {}
+    for path, spec in (declared or {}).items():
+        _declared_bytes("n3ds rom", path, files)
+        if spec in _FIXTURE_N3DS_ROM_STATES:
+            validated[path] = cast(N3dsRomStatus, spec)
+            continue
+        if not isinstance(spec, Mapping) or set(cast("Mapping[str, object]", spec)) != set(_FIXTURE_N3DS_ROM_FIELDS):
+            raise ValueError(
+                f"n3ds rom {path!r}: expected one of {list(_FIXTURE_N3DS_ROM_STATES)} or an object with exactly "
+                f"{', '.join(_FIXTURE_N3DS_ROM_FIELDS)}, got {spec!r}"
+            )
+        fields = cast("Mapping[str, object]", spec)
+        try:
+            validated[path] = n3ds_rom.N3dsRomFacts(
+                container=cast("n3ds_rom.N3dsContainer", fields["container"]),
+                program_id=_fixture_u64(fields["program_id"], "program_id"),
+                extdata_id=None
+                if fields["extdata_id"] is None
+                else _fixture_u64(fields["extdata_id"], "extdata_id"),
+                extdata_basis=cast("n3ds_rom.ExtdataBasis | None", fields["extdata_basis"]),
+            )
+        except (TypeError, ValueError) as error:
+            raise ValueError(f"n3ds rom {path!r}: {error}") from error
+    return validated
+
+
 _FIXTURE_PS3_FILE_FIELDS = ("magic", "iso", "category")
 _FIXTURE_PS3_ISO_FIELDS = ("regions", "watermark")
 _FIXTURE_PS3_ISO_OPTIONAL = ("blocks",)
@@ -3732,6 +3852,7 @@ class FixtureMachine:
         eden_profiles: Mapping[str, object] | None = None,
         psp_discs: Mapping[str, object] | None = None,
         psp_param_sfos: Mapping[str, object] | None = None,
+        n3ds_roms: Mapping[str, object] | None = None,
         disc_identities: Mapping[str, Mapping[str, object] | str] | None = None,
         archives: Mapping[str, object] | None = None,
         whdload_slaves: Mapping[str, object] | None = None,
@@ -3749,6 +3870,7 @@ class FixtureMachine:
         self._eden_profiles = _validate_fixture_eden_profiles(eden_profiles, self._files)
         self._psp_discs = _validate_fixture_psp_discs(psp_discs, self._files)
         self._psp_param_sfos = _validate_fixture_psp_param_sfos(psp_param_sfos, self._files)
+        self._n3ds_roms = _validate_fixture_n3ds_roms(n3ds_roms, self._files)
         self._inaccessible = set(inaccessible or ())
         self._unlistable = set(unlistable or ())
         _refuse_both_unreadable_lists(self._inaccessible, self._unlistable)
@@ -4067,6 +4189,29 @@ class FixtureMachine:
         if resolved in self._files:
             return PspParamSfoResult(PSP_PARAM_SFO_UNREADABLE)
         return PspParamSfoResult(PSP_PARAM_SFO_MISSING)
+
+    def read_n3ds_rom(self, path: str) -> N3dsRomResult:
+        """The modeled read of what Azahar reads of a 3DS image — the facts declared, RealMachine's outcomes.
+
+        A path declared in ``n3ds_roms`` answers its facts, ``format-not-read``,
+        ``encrypted`` or ``not-a-rom``; a declared file with no entry there
+        answers ``unreadable``, so a vector that forgot the key cannot prove an
+        image nobody modeled. A directory, a dead link and nothing at all
+        answer ``missing``.
+        """
+        if self._is_inaccessible(path):
+            return N3dsRomResult(N3DS_ROM_UNREADABLE)
+        resolved = self._resolve(path).path
+        if resolved is None or resolved in self._dirs:
+            return N3dsRomResult(N3DS_ROM_MISSING)
+        declared = self._n3ds_roms.get(resolved)
+        if isinstance(declared, n3ds_rom.N3dsRomFacts):
+            return N3dsRomResult(N3DS_ROM_OK, declared)
+        if declared is not None:
+            return N3dsRomResult(declared)
+        if resolved in self._files:
+            return N3dsRomResult(N3DS_ROM_UNREADABLE)
+        return N3dsRomResult(N3DS_ROM_MISSING)
 
     def read_disc_identity(self, path: str, *, extracted: ExtractedEntry | None = None) -> DiscIdentityResult:
         """The modeled disc identity read — the four facts in, the same outcomes RealMachine reports.

@@ -84,12 +84,21 @@ class SaveUnitAdapter:
         the root is touched. A unit of prefixed folders has its member folders
         moved aside, the zip's folders moved in, and the aside ones deleted
         only once that succeeded; any failure puts them back, and no other
-        folder in the root is touched. Raises :class:`PathTraversalError` for
-        an entry that is no file below the root (or, for prefixed folders, no
-        file inside a folder named with the prefix), and ``ValueError`` for
+        folder in the root is touched. A unit of archive roots has each folder
+        whose root name the zip carries files under replaced whole, as a
+        folder unit's root is, and every other one left as it is; the folders
+        moved aside are deleted only once every one is replaced, and any
+        failure puts them all back. Raises :class:`PathTraversalError` for an
+        entry that is no file below the root (or, for prefixed folders, no
+        file inside a folder named with the prefix; for archive roots, no
+        file inside a folder named as one of its roots), ``ValueError`` for
         one that would replace a file or folder in the root that is not a
-        named member — in both cases with nothing written.
+        named member, and ``OSError`` for an archive root to replace that is
+        a link or no folder — in every case with nothing written.
         """
+        if unit.archive_roots is not None:
+            self._unpack_rooted(zip_path, unit.archive_roots)
+            return
         if unit.prefix is not None:
             self._unpack_prefixed(zip_path, unit)
             return
@@ -127,8 +136,15 @@ class SaveUnitAdapter:
         loses the named members directly in the root, and no other file there.
         A unit of prefixed folders loses its member folders and nothing else in
         the root; a member that is a link or no folder raises ``OSError`` with
-        nothing removed.
+        nothing removed. A unit of archive roots loses each of its folders and
+        everything below them, and nothing beside them; one that is a link or
+        no folder raises ``OSError`` with nothing removed.
         """
+        if unit.archive_roots is not None:
+            for path in _root_folders(unit.archive_roots, [name for name, _folder in unit.archive_roots]):
+                with contextlib.suppress(FileNotFoundError):
+                    shutil.rmtree(path)
+            return
         root = os.path.normpath(unit.root)
         if unit.prefix is not None:
             for path in _member_folders(root, unit):
@@ -147,6 +163,12 @@ class SaveUnitAdapter:
 
     def _members(self, unit: SaveUnit) -> list[tuple[str, str]]:
         """``(entry name, path)`` for every file of *unit* on disk, sorted by entry name."""
+        if unit.archive_roots is not None:
+            found_below: list[tuple[str, str]] = []
+            for root_name, folder in unit.archive_roots:
+                if os.path.isdir(folder):
+                    found_below.extend((f"{root_name}/{name}", path) for name, path in self._walk(folder))
+            return sorted(found_below)
         root = os.path.normpath(unit.root)
         if not os.path.isdir(root):
             return []
@@ -211,6 +233,78 @@ class SaveUnitAdapter:
                 shutil.rmtree(staging, ignore_errors=True)
                 raise
         self._swap_folders(staging, root, beside, replaced, incoming)
+
+    def _unpack_rooted(self, zip_path: str, roots: tuple[tuple[str, str], ...]) -> None:
+        """Replace each of *roots*' folders that *zip_path* carries files under with what it carries."""
+        folders = {name: os.path.normpath(folder) for name, folder in roots}
+        with zipfile.ZipFile(zip_path) as archive:
+            entries: list[tuple[zipfile.ZipInfo, str, list[str]]] = []
+            for info in archive.infolist():
+                root_name, below = _rooted_entry_parts(info.filename, folders, is_dir=info.is_dir())
+                if not info.is_dir():
+                    entries.append((info, root_name, below))
+            incoming = sorted({root_name for _info, root_name, _below in entries})
+            targets = dict(zip(incoming, _root_folders(roots, incoming), strict=True))
+            stagings: dict[str, str] = {}
+            try:
+                for root_name in incoming:
+                    folder = targets[root_name]
+                    parent = os.path.dirname(folder)
+                    os.makedirs(parent, exist_ok=True)
+                    # Beside the folder's real place, not its link's: RetroDECK
+                    # may link Azahar's sdmc, or a folder in it, onto the SD
+                    # card, and a rename into the folder works only from the
+                    # same filesystem.
+                    staging = tempfile.mkdtemp(
+                        dir=os.path.realpath(parent), prefix=f".{os.path.basename(folder)}.unpacking-"
+                    )
+                    stagings[root_name] = staging
+                    # mkdtemp makes the folder private, and it becomes the root's folder.
+                    os.chmod(staging, 0o755)
+                for info, root_name, below in entries:
+                    target = os.path.join(stagings[root_name], *below)
+                    os.makedirs(os.path.dirname(target), exist_ok=True)
+                    with archive.open(info) as source, open(target, "wb") as out:
+                        shutil.copyfileobj(source, out)
+            except BaseException:
+                for staging in stagings.values():
+                    shutil.rmtree(staging, ignore_errors=True)
+                raise
+        self._replace_folders([(stagings[name], targets[name]) for name in incoming])
+
+    def _replace_folders(self, moves: list[tuple[str, str]]) -> None:
+        """Move each ``(staging, folder)`` pair's staging folder over its folder, as one change.
+
+        The folders replaced are moved beside their staging folders first and
+        deleted only once every staging folder is in place; a failure moves
+        everything back. Where moving them back fails too, what could not be
+        moved is left where it lies and the place is logged.
+        """
+        moved_out: list[tuple[str, str]] = []
+        moved_in: list[tuple[str, str]] = []
+        try:
+            for staging, folder in moves:
+                if os.path.lexists(folder):
+                    os.rename(folder, f"{staging}.previous")
+                    moved_out.append((folder, f"{staging}.previous"))
+                os.rename(staging, folder)
+                moved_in.append((staging, folder))
+        except BaseException:
+            try:
+                for staging, folder in reversed(moved_in):
+                    os.rename(folder, staging)
+                for folder, aside in reversed(moved_out):
+                    os.rename(aside, folder)
+            except OSError as e:
+                self._logger.error("Save unit: could not put back the folders %s: %s", moved_out, e)
+            for staging, _folder in moves:
+                shutil.rmtree(staging, ignore_errors=True)
+            raise
+        for _folder, aside in moved_out:
+            try:
+                shutil.rmtree(aside)
+            except OSError as e:
+                self._logger.warning("Save unit: could not remove the replaced %s: %s", aside, e)
 
     def _swap_folders(self, staging: str, root: str, beside: str, replaced: list[str], incoming: list[str]) -> None:
         """Move *replaced* out of *root* into a folder in *beside*, and *incoming* in from *staging*.
@@ -368,3 +462,36 @@ def _refuse_foreign_folders(incoming: list[str], root: str, unit: SaveUnit) -> N
     for name in incoming:
         if name not in named and os.path.lexists(os.path.join(root, name)):
             raise ValueError(f"zip folder {name!r} would replace a folder in {root} that is not this game's save")
+
+
+def _rooted_entry_parts(entry: str, folders: dict[str, str], *, is_dir: bool) -> tuple[str, list[str]]:
+    """The archive root *entry* sits under and its parts below that root's folder in *folders*.
+
+    Raises :class:`PathTraversalError` for an entry under no root, a file at
+    the zip's top, and any part ``safe_join`` would not keep inside the
+    root's folder. A folder entry is checked the same way and may name the
+    root alone.
+    """
+    parts = _relative_parts(entry.removesuffix("/") if is_dir else entry)
+    root_name = parts[0]
+    if root_name not in folders:
+        raise PathTraversalError(f"zip entry is not under one of {sorted(folders)!r}: {entry!r}")
+    if len(parts) < 2 and not is_dir:
+        raise PathTraversalError(f"zip entry is not inside a save folder: {entry!r}")
+    if len(parts) > 1:
+        safe_join(folders[root_name], *parts[1:])
+    return root_name, parts[1:]
+
+
+def _root_folders(roots: tuple[tuple[str, str], ...], names: list[str]) -> list[str]:
+    """The folders of *roots* named in *names*; raises ``OSError`` where one is a link or no folder."""
+    folders = dict(roots)
+    paths: list[str] = []
+    for name in names:
+        path = os.path.normpath(folders[name])
+        if os.path.islink(path):
+            raise OSError(f"the save folder {path} is a link; nothing was changed")
+        if os.path.lexists(path) and not os.path.isdir(path):
+            raise OSError(f"the save folder {path} is no folder; nothing was changed")
+        paths.append(path)
+    return paths

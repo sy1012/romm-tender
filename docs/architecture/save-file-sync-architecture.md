@@ -1150,28 +1150,36 @@ The per-state picture, and which systems land where on a stock RetroDECK, is in
 ## Save units
 
 A save of several files — a Wii title's `data/` folder, a game's `.gci` files in Dolphin's shared GameCube card folder,
-a PSP game's folders in PPSSPP's shared `SAVEDATA` — is a **save unit** (`domain.save_answer.SaveUnit`): a root folder
-and which of its files are the save, in one of three shapes — every file below the root (`members=None`), a named set of
-files directly in it, or a set of folders directly in it whose names start with a `prefix`, `members` naming the ones
-that are the save (possibly none yet). The answer's state is `per_game_unit`, and what the root is, the prefix, and
-which files or folders are members are all the emulator's answer. **Only the resolver's own statement makes a unit**: a
-group whose `unit` the resolver sets (`SaveUnitStatement`, kind `own-folder`, `own-files` or `own-folders-by-prefix`),
-in a placement with nothing left in `needs` ([ADR-0046](../adr/0046-a-save-of-several-files-syncs-as-one-staged-zip.md),
-[ADR-0049](../adr/0049-a-save-unit-can-be-folders-picked-by-a-name-prefix.md)). A granularity alone never does — RPCS3
+a PSP game's folders in PPSSPP's shared `SAVEDATA`, a 3DS title's save and extdata folders in Azahar — is a **save
+unit** (`domain.save_answer.SaveUnit`): which files are the save, in one of four shapes — every file below a root folder
+(`members=None`), a named set of files directly in it, a set of folders directly in it whose names start with a
+`prefix`, `members` naming the ones that are the save (possibly none yet), or several folders that are each the game's
+own, `archive_roots` pairing each with the root name it is zipped under (the unit's `root` is one of them). The answer's
+state is `per_game_unit`, and what the root is, the prefix, which files or folders are members, and the archive roots
+are all the emulator's answer. **Only the resolver's own statement makes a unit**: a group whose `unit` the resolver
+sets (`SaveUnitStatement`, kind `own-folder`, `own-files`, `own-folders-by-prefix` or `own-folders-by-archive-root`), in
+a placement with nothing left in `needs` ([ADR-0046](../adr/0046-a-save-of-several-files-syncs-as-one-staged-zip.md),
+[ADR-0049](../adr/0049-a-save-unit-can-be-folders-picked-by-a-name-prefix.md),
+[ADR-0050](../adr/0050-a-restore-replaces-only-the-folders-the-zip-carries.md)). A granularity alone never does — RPCS3
 answers `per-game-directory` with the parent of every title's folder. `adapters/atlas_saves.py`'s `_translate` maps the
-statement to a `SaveUnit` (root = the group's folder; its members, archive folder and prefix as stated; a kind it does
-not know makes no unit), and `tests/adapters/test_atlas_saves.py::TestOnlyTheResolversStatementMakesASaveUnit` pins both
-directions. Today the statement comes from Dolphin's answers, read from the disc image: a Wii title's own folder
-`<NAND>/title/<hi>/<lo>`, laid out under `<lo>`, and a GameCube game's `.gci` files in the disc region's GCI folder,
-flat; and from a standalone Eden AppImage's: a Switch game's own folder
-`<save root>/user/save/0000000000000000/<user>/<application id>`, laid out under the application id, where the content
-names its application and the Eden user is established — either missing is a hole in the path, and the game is not
-synced; and from standalone PPSSPP's: a PSP `.iso`'s save folders in `<memory stick>/PSP/SAVEDATA`, picked by the id the
-disc's `PARAM.SFO` states (`ULUS10064`), each at the zip's top. The resolver names as members only the folders that are
-saves; a folder of the game's installed data shares the prefix and is not one. A disc it does not read (a CSO, a CHD or
-an EBOOT), or a folder whose `PARAM.SFO` it cannot read, is a hole, and the game is not synced. A PSN release's answer
-carries the note `psn-save-prefix-may-differ` — such a game may save under its disc release's id — which changes
-nothing: the unit is the folders under the id the answer names.
+statement to a `SaveUnit` (root = the group's folder; its members, archive folder, prefix and archive roots as stated; a
+kind it does not know makes no unit), and
+`tests/adapters/test_atlas_saves.py::TestOnlyTheResolversStatementMakesASaveUnit` pins both directions. Today the
+statement comes from Dolphin's answers, read from the disc image: a Wii title's own folder `<NAND>/title/<hi>/<lo>`,
+laid out under `<lo>`, and a GameCube game's `.gci` files in the disc region's GCI folder, flat; and from a standalone
+Eden AppImage's: a Switch game's own folder `<save root>/user/save/0000000000000000/<user>/<application id>`, laid out
+under the application id, where the content names its application and the Eden user is established — either missing is a
+hole in the path, and the game is not synced; and from standalone PPSSPP's: a PSP `.iso`'s save folders in
+`<memory stick>/PSP/SAVEDATA`, picked by the id the disc's `PARAM.SFO` states (`ULUS10064`), each at the zip's top. The
+resolver names as members only the folders that are saves; a folder of the game's installed data shares the prefix and
+is not one. A disc it does not read (a CSO, a CHD or an EBOOT), or a folder whose `PARAM.SFO` it cannot read, is a hole,
+and the game is not synced. A PSN release's answer carries the note `psn-save-prefix-may-differ` — such a game may save
+under its disc release's id — which changes nothing: the unit is the folders under the id the answer names. And from
+standalone Azahar's: a 3DS `.3ds`, `.cci` or `.cxi` whose headers name the title, as its save folder
+`<sdmc>/Nintendo 3DS/<ID0>/<ID1>/title/<high>/<low>/data` under the root `data` and, where the title is granted extdata,
+its extdata folder `<sdmc>/Nintendo 3DS/<ID0>/<ID1>/extdata/<HIGH>/<LOW>` under `extdata` — stated even where neither
+exists yet. A `.cia`, a compressed image, an encrypted one or bytes with no 3DS header leave the title id a hole, and
+the game is not synced.
 
 **The staged zip.** A unit is carried as one file, `<rom stem>.zip`, in a staging folder of Tender's own,
 `<data root>/save-units/<rom id>/`. `RomInfoService` stages every unit answer it reads (`SaveUnits.stage`), so the
@@ -1199,18 +1207,26 @@ switch, copy and version rollback writes through — unpacks the zip into the un
 `safe_join` against the root (an absolute name, `..`, a backslash or an empty segment is refused first), and a member
 set's entries must be plain names; a unit of prefixed folders' entries must each be a file inside a folder at the zip's
 top whose name starts with the prefix (ASCII case-insensitively) and is a plain name, so a file at the zip's top is
-refused. The entries are written to a temporary folder beside the root. A folder unit's old root is moved aside, the new
-one moved in, and the old one deleted only once that succeeded; a failure puts the old root back and removes the
-temporary folder, and a root that is itself a link is not replaced at all — the unpack refuses. A member set has each
-entry moved over its file, then the named members the zip lacks removed; no other file in the folder is touched, and an
-entry that would replace a file there that is not a named member is refused. A unit of prefixed folders has its member
-folders moved aside, the zip's folders moved in, and the aside ones deleted only once every one is in; a failure puts
-them back. A folder the zip brings that is not a member is created only where nothing lies at its name — over a folder
-the answer did not name (the game's installed data, say) the unpack refuses — so every folder a restore removes is one
-the backed-up zip holds; no other folder in the root is touched
-([ADR-0049](../adr/0049-a-save-unit-can-be-folders-picked-by-a-name-prefix.md)). That root is often a link — RetroDECK
-links PPSSPP's `SAVEDATA` into its saves folder, which may be on the SD card — so the temporary folders are made beside
-where the link leads, on the same filesystem. A refused or failed unpack fails the download loudly, with nothing
+refused; a unit of archive roots' entries must each be a file inside a folder at the zip's top named as one of its
+roots, so a file at the zip's top, or a folder under any other name, refuses the zip. The entries are written to a
+temporary folder beside the root. A folder unit's old root is moved aside, the new one moved in, and the old one deleted
+only once that succeeded; a failure puts the old root back and removes the temporary folder, and a root that is itself a
+link is not replaced at all — the unpack refuses. A member set has each entry moved over its file, then the named
+members the zip lacks removed; no other file in the folder is touched, and an entry that would replace a file there that
+is not a named member is refused. A unit of prefixed folders has its member folders moved aside, the zip's folders moved
+in, and the aside ones deleted only once every one is in; a failure puts them back. A folder the zip brings that is not
+a member is created only where nothing lies at its name — over a folder the answer did not name (the game's installed
+data, say) the unpack refuses — so every folder a restore removes is one the backed-up zip holds; no other folder in the
+root is touched ([ADR-0049](../adr/0049-a-save-unit-can-be-folders-picked-by-a-name-prefix.md)). A unit of archive roots
+has each folder whose root the zip carries files under replaced whole, and every other one left as it is: a zip of
+`data/` alone restores the title's save and keeps its extdata, and no restore removes a folder the zip does not carry
+([ADR-0050](../adr/0050-a-restore-replaces-only-the-folders-the-zip-carries.md)). A root carried only by folder entries,
+with no file, is not carried. Each folder replaced is moved aside and its new one moved in, root by root, and the aside
+ones are deleted only once all are in; a failure puts all of them back. A folder to replace that is a link or no folder
+refuses the unpack with nothing written, and the folders above a root that do not exist yet — a title never started on
+this machine — are created. That root is often a link — RetroDECK links PPSSPP's `SAVEDATA` into its saves folder, which
+may be on the SD card, and may link Azahar's `sdmc` or a folder in it the same way — so the temporary folders are made
+beside where the link leads, on the same filesystem. A refused or failed unpack fails the download loudly, with nothing
 recorded, and the unit stays as it was. After an unpack the zip is packed again, so it carries the mtime the next pack
 gives it.
 
@@ -1221,8 +1237,11 @@ Wii save's entries read `<title id>/data/…`. `SaveUnit.archive_folder` carries
 under it, and an unpack refuses a zip with any entry outside it rather than landing files where the emulator does not
 read. Argosy zips a PSP save as each of the game's folders at the zip's top (`ULUS10064DATA00/PARAM.SFO`), which is the
 prefixed-folders unit's layout. Its restore deletes every folder whose name starts with the id before unpacking;
-Tender's deletes only the member folders, and refuses rather than replace another. Which name a unit uses, and its root,
-are the emulator's answer like the rest of it.
+Tender's deletes only the member folders, and refuses rather than replace another. Argosy zips a 3DS save
+(`N3dsFolderHandler`) as the title's `data` folder's contents under `data/` and its extdata folder's under `extdata/`,
+which is the archive-roots unit's layout, and restores it by the same rule Tender keeps: each folder whose root the zip
+carries is replaced, the other kept, and a zip with any other top-level entry refused. Which name a unit uses, and its
+root, are the emulator's answer like the rest of it.
 
 **The backup is the zip's.** The download's `.romm-backup` step moves the previous zip aside before the new one lands,
 and that zip was packed from the unit at the start of the same operation, so the files an unpack replaces are always
@@ -1236,14 +1255,15 @@ and never the unit's own files.
 **Clearing a unit.** Two steps remove a game's local saves rather than replace them, and for a unit both remove the
 unit's own files with the zip (`SaveUnits.clear_placed`, `SaveUnitAdapter.clear`): a folder unit loses its root and
 everything below it — a root that is a link is refused with nothing removed — a member set loses only its named members,
-never another file in the folder, and a unit of prefixed folders loses only its member folders, refusing with nothing
-removed where one is a link or no folder. A **slot switch** clears the unit only once its set-aside moved the zip,
-packed from the unit a moment before, into `.romm-backup`; where the zip was not moved, the unit is not touched, and a
-clear that fails stops the switch as a failed backup does. The new slot's save, if it has one, is then downloaded and
-unpacked into the emptied unit; a slot with none leaves it empty, as it would a single file. **Deleting local saves**
-(`delete_local_saves`, `delete_platform_saves`) removes the zip and then clears the unit, under the confirmation those
-deletes ask for, as for a single file; a zip that could not be removed leaves the unit as it was. Both run under the
-ROM's `rom_lock` and refuse while its game is running.
+never another file in the folder, a unit of prefixed folders loses only its member folders, refusing with nothing
+removed where one is a link or no folder, and a unit of archive roots loses each of its folders and everything below
+them, refusing with nothing removed where one is a link or no folder. A **slot switch** clears the unit only once its
+set-aside moved the zip, packed from the unit a moment before, into `.romm-backup`; where the zip was not moved, the
+unit is not touched, and a clear that fails stops the switch as a failed backup does. The new slot's save, if it has
+one, is then downloaded and unpacked into the emptied unit; a slot with none leaves it empty, as it would a single file.
+**Deleting local saves** (`delete_local_saves`, `delete_platform_saves`) removes the zip and then clears the unit, under
+the confirmation those deletes ask for, as for a single file; a zip that could not be removed leaves the unit as it was.
+Both run under the ROM's `rom_lock` and refuse while its game is running.
 
 ## The Local-Save Check
 

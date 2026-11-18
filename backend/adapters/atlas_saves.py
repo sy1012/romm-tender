@@ -55,6 +55,7 @@ from _vendor.atlas import (
     SAVE_UNIT_FOLDER,
     SAVE_UNIT_MEMBERS,
     SAVE_UNIT_PREFIXED_FOLDERS,
+    SAVE_UNIT_ROOTED_FOLDERS,
     UNRESOLVED_APPIMAGE_AMBIGUOUS,
     SavestateAbsence,
     SavestatePlacement,
@@ -427,6 +428,9 @@ def _unit(group: Any) -> SaveUnit | None:
         return SaveUnit(root=group.dir, members=tuple(statement.members), archive_folder=statement.archive_folder)
     if statement.kind == SAVE_UNIT_PREFIXED_FOLDERS:
         return SaveUnit(root=group.dir, members=tuple(statement.members), prefix=statement.prefix)
+    if statement.kind == SAVE_UNIT_ROOTED_FOLDERS:
+        roots = tuple((str(name), str(folder)) for name, folder in statement.archive_roots)
+        return SaveUnit(root=group.dir, archive_roots=roots)
     return None
 
 

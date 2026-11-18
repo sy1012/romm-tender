@@ -108,7 +108,8 @@
                     "ULUS10064SETTINGS"
                   ],
                   "archive_folder": null,
-                  "prefix": "ULUS10064"
+                  "prefix": "ULUS10064",
+                  "archive_roots": null
                 }
               }
             ]
@@ -210,7 +211,8 @@
                   "kind": "own-folders-by-prefix",
                   "members": [],
                   "archive_folder": null,
-                  "prefix": "ULUS10064"
+                  "prefix": "ULUS10064",
+                  "archive_roots": null
                 }
               }
             ]
@@ -327,7 +329,8 @@
                     "NPJH50804DATA"
                   ],
                   "archive_folder": null,
-                  "prefix": "NPJH50804"
+                  "prefix": "NPJH50804",
+                  "archive_roots": null
                 }
               }
             ]

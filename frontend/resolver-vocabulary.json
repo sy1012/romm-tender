@@ -384,6 +384,7 @@
     "oversized",
     "own-files",
     "own-folder",
+    "own-folders-by-archive-root",
     "own-folders-by-prefix",
     "pack",
     "packaged",

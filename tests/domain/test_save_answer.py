@@ -585,3 +585,41 @@ class TestASaveUnitOfPrefixedFolders:
     def test_fields_that_disagree_are_refused(self, members, archive_folder, prefix):
         with pytest.raises(ValueError):
             SaveUnit(root="/s", members=members, archive_folder=archive_folder, prefix=prefix)
+
+
+class TestASaveUnitOfArchiveRoots:
+    """Several folders that are each the game's own, every one archived under its root name."""
+
+    _DATA = "/sdmc/title/00040000/00113200/data"
+    _EXTDATA = "/sdmc/extdata/00000000/00001132"
+
+    def test_two_named_folders_make_a_unit(self):
+        unit = SaveUnit(root=self._DATA, archive_roots=(("data", self._DATA), ("extdata", self._EXTDATA)))
+
+        assert unit.archive_roots == (("data", self._DATA), ("extdata", self._EXTDATA))
+        assert unit.members is None
+
+    def test_one_named_folder_makes_a_unit(self):
+        assert SaveUnit(root=self._DATA, archive_roots=(("data", self._DATA),)).archive_roots is not None
+
+    @pytest.mark.parametrize(
+        ("fields", "roots"),
+        [
+            ({"members": ()}, (("data", _DATA),)),
+            ({"members": ("a",), "prefix": "a"}, (("data", _DATA),)),
+            ({"archive_folder": "data"}, (("data", _DATA),)),
+            ({}, ()),
+            ({}, (("data", _DATA), ("data", _EXTDATA))),
+            ({}, (("", _DATA),)),
+            ({}, ((".", _DATA),)),
+            ({}, (("..", _DATA),)),
+            ({}, (("da/ta", _DATA),)),
+            ({}, (("da\\ta", _DATA),)),
+            ({}, (("da\x00ta", _DATA),)),
+            ({}, (("data", "sdmc/data"),)),
+            ({}, (("extdata", _EXTDATA),)),
+        ],
+    )
+    def test_fields_that_disagree_are_refused(self, fields, roots):
+        with pytest.raises(ValueError):
+            SaveUnit(root=self._DATA, archive_roots=roots, **fields)

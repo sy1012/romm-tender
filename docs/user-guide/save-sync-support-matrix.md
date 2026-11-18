@@ -38,7 +38,7 @@ different things:
   would copy other games' progress onto this one's record, so Tender leaves it alone.
 - **The save is written inside the game file itself.** There is no separate file to carry.
 - **The emulator files saves under the game's own identity**, which Tender cannot read yet — in the file name, for
-  Dreamcast. Dreamcast, Nintendo 3DS and Wii U are here.
+  Dreamcast. Dreamcast and Wii U are here, and so is a Nintendo 3DS game whose title Tender cannot read.
 - **Where the emulator saves depends on the folder the game is started from.** RetroArch does this when its save folder
   is set as a relative path. Tender cannot tell which folder that is, so it leaves such a game alone.
 - **What the emulator writes could not be established** — either nobody has audited that core yet, or the folder is
@@ -106,6 +106,14 @@ game's save, and refuses rather than write over anything else. A compressed imag
 is not read, so nothing is synced for it. A PlayStation Network release may save under the ID of its disc release;
 Tender syncs the folders under the game's own ID. Upload and restore have both been observed on a Steam Deck.
 
+**Nintendo 3DS syncs on Azahar (Standalone), for a `.3ds`, `.cci` or `.cxi`.** Tender reads the title's ID from the game
+file and carries its save folder and, where the game has one, its extra data (extdata) folder from Azahar's emulated SD
+card to RomM as one `<game>.zip`, under `data/` and `extdata/` the way Argosy lays it out. Restoring replaces each of
+the two folders the zip holds and leaves the other as it is — a zip of the save alone keeps your extdata — and refuses a
+zip holding anything else; every other game's folders are left alone. A `.cia` or a compressed image is not read, so
+nothing is synced for it; an encrypted dump is not read either, and Azahar does not run one anyway. This has not yet
+been observed on a device.
+
 The systems whose default core has been **watched writing a save on a stock RetroDECK install** are Game Boy / Color /
 Advance, N64, Saturn, Neo Geo Pocket (Color) and Pokémon Mini. The rest of the ✅ rows follow the same standard `.srm`
 convention and are expected to behave identically, but haven't been observed one by one.
@@ -132,7 +140,6 @@ release.
 | Dreamcast     | Flycast ships with **Per-Game VMUs off**, so every game shares `vmu_save_A1.bin` and its siblings in RetroDECK's system folder. The core _can_ write per-game VMUs; the names it uses then aren't pinned down yet.                                |
 | PlayStation 2 | The LRPS2 core ships with **shared memory cards on** (`Mcd001.ps2` / `Mcd002.ps2`). With that option off it writes one `<game>.ps2` card per game — which would fit per-game sync. The PCEE2 core always writes shared cards, in the same folder. |
 | Neo Geo CD    | Ships writing one shared save. The core has a per-content mode; which one wins when loading isn't confirmed.                                                                                                                                      |
-| Nintendo 3DS  | The Azahar core appears to use its own save subtree. Not confirmed on-device yet.                                                                                                                                                                 |
 | Arcade (MAME) | NVRAM is stored separately by the emulator, not as a file named after your ROM.                                                                                                                                                                   |
 | Amiga         | PUAE keeps an `.adf` floppy's save inside the disk image itself, so there is no separate file to carry. A `.lha` names a `WHDSaves` folder whose contents the core does not list, and an `.hdf` is not answered at all.                           |
 
@@ -179,7 +186,7 @@ states still work locally). See the full table for specifics.
     | `mame` | ❌ | Saves are stored separately by the emulator (MAME) |
     | `mess` | ❌ | Not synced |
     | `model2` | ❌ | Saves are stored separately by the emulator (MAME) |
-    | `n3ds` | ❌ | Azahar core's own save subtree — not confirmed on-device |
+    | `n3ds` | ✅ | Azahar (Standalone): the title's save folder and its extdata, as one zip — .3ds/.cci/.cxi only; not yet observed on a device |
     | `naomi` | ❌ | Shared VMU card (Flycast default; the core has a per-game mode) |
     | `naomi2` | ❌ | Shared VMU card (Flycast default; the core has a per-game mode) |
     | `naomigd` | ❌ | Shared VMU card (Flycast default; the core has a per-game mode) |

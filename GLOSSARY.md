@@ -1079,8 +1079,8 @@ directory recorded as the [answered save directory](#answered-save-directory), w
 - **place not read** — the answer says its place was not read from the emulator's own settings: the settings file is
   missing or cannot be read, or the source is not set up, so the emulator's defaults stand in. RetroDECK's and EmuDeck's
   marker findings alone are not this.
-- **per-game unit** — the answer says a folder, or a named set of files or folders in a shared folder, is the game's
-  own: a [save unit](#save-unit), synced as one staged zip.
+- **per-game unit** — the answer says a folder, several folders, or a named set of files or folders in a shared folder,
+  is the game's own: a [save unit](#save-unit), synced as one staged zip.
 
 Detail, including which systems land where on a stock RetroDECK, is in
 [Save sync coverage](docs/architecture/save-sync-coverage.md).
@@ -1091,10 +1091,12 @@ A save of several files the emulator's answer says are one game's own, moved tog
 file below it (a folder per game, such as a Wii title's `data/`), a named set of files directly in it (a game's `.gci`
 files in a GameCube card folder other games share), or a named set of folders directly in it whose names start with the
 game's id (a PSP game's save folders in PPSSPP's `SAVEDATA`, where a folder of its installed data under the same id is
-not a member). It syncs as one zip Tender stages for it, `<rom stem>.zip` in `save-units/<rom id>/` under the data root,
-packed from the unit before anything reads the game's saves and unpacked into the unit after anything writes the zip. A
-`per-game-directory` granularity alone does not make one: only an explicit statement that the folder is the game's own
-does. Detail: [Save units](docs/architecture/save-file-sync-architecture.md#save-units).
+not a member); or several folders that are each the game's own, every one zipped under a root name of its own (a 3DS
+title's save folder as `data/` and its extdata folder as `extdata/` in Azahar). It syncs as one zip Tender stages for
+it, `<rom stem>.zip` in `save-units/<rom id>/` under the data root, packed from the unit before anything reads the
+game's saves and unpacked into the unit after anything writes the zip. A `per-game-directory` granularity alone does not
+make one: only an explicit statement that the folder is the game's own does. Detail:
+[Save units](docs/architecture/save-file-sync-architecture.md#save-units).
 
 _Avoid_: calling the staged zip the save — it is the unit's stand-in, rebuilt on every read.
 

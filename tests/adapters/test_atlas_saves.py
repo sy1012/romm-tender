@@ -88,6 +88,7 @@ from _vendor.atlas.placement import (
     SAVE_UNIT_FOLDER,
     SAVE_UNIT_MEMBERS,
     SAVE_UNIT_PREFIXED_FOLDERS,
+    SAVE_UNIT_ROOTED_FOLDERS,
     TEMPLATE_CWD,
     TEMPLATE_REGION,
     TEMPLATE_SAVE_ID,
@@ -999,6 +1000,50 @@ class TestOnlyTheResolversStatementMakesASaveUnit:
         assert answer.unit is not None
         assert answer.unit.prefix == "NPUH10001"
         assert answer.caveats == (CAVEAT_PSN_SAVE_PREFIX_MAY_DIFFER,)
+
+    _N3DS_DATA = "/sdmc/Nintendo 3DS/0/0/title/00040000/00113200/data"
+    _N3DS_EXTDATA = "/sdmc/Nintendo 3DS/0/0/extdata/00000000/00001132"
+
+    def _azahar(self, traces, roots: tuple[tuple[str, str], ...]):
+        return _ask(
+            _placement(
+                files=(),
+                directory=self._N3DS_DATA,
+                groups=(
+                    FileGroup(
+                        dir=self._N3DS_DATA,
+                        files=None,
+                        granularity=GRANULARITY_PER_GAME_DIRECTORY,
+                        role=ROLE_BATTERY,
+                        unit=SaveUnitStatement(SAVE_UNIT_ROOTED_FOLDERS, None, None, None, roots),
+                    ),
+                ),
+                granularity=GRANULARITY_PER_GAME_DIRECTORY,
+            ),
+            traces,
+            label="Azahar",
+            emulator="Azahar",
+            identity="AZAHAR",
+        )
+
+    def test_an_archive_roots_statement_is_a_unit_of_those_folders_under_their_roots(self, traces):
+        roots = (("data", self._N3DS_DATA), ("extdata", self._N3DS_EXTDATA))
+
+        answer = self._azahar(traces, roots)
+
+        assert answer.state == "per_game_unit"
+        assert answer.unit == SaveUnit(root=self._N3DS_DATA, archive_roots=roots)
+
+    def test_an_archive_roots_statement_with_one_root_is_still_a_unit(self, traces):
+        answer = self._azahar(traces, (("data", self._N3DS_DATA),))
+
+        assert answer.unit == SaveUnit(root=self._N3DS_DATA, archive_roots=(("data", self._N3DS_DATA),))
+
+    def test_the_other_kinds_name_no_archive_roots(self, traces):
+        answer = self._psp(traces, ("ULUS10064DATA00",), "ULUS10064")
+
+        assert answer.unit is not None
+        assert answer.unit.archive_roots is None
 
     def test_the_other_kinds_name_no_prefix(self, traces):
         answer = _ask(
@@ -2028,4 +2073,75 @@ class TestAPpssppSave:
         answer = self._answer(vector_name, traces)
 
         assert answer.unit is None
+        assert answer.syncable is False
+
+
+def _azahar(vector_name: str, traces: list[str]) -> tuple[AtlasSaveLocationAdapter, str]:
+    """The save adapter over the recorded Azahar machine *vector_name*, and the content its query names."""
+    path = os.path.join(os.path.dirname(__file__), "atlas_vectors", "vectors", "machines", "azahar-titles.json")
+    with open(path, encoding="utf-8") as handle:
+        vectors = json.load(handle)["vectors"]
+    inp = next(vector for vector in vectors if vector["name"] == vector_name)["input"]
+    sources = _sources(atlas_detect, traces, machine=fixture_machine(inp))
+    return AtlasSaveLocationAdapter(sources=sources, log_debug=traces.append), inp["entry_savefile_query"][
+        "content_path"
+    ]
+
+
+class TestAnAzaharSave:
+    """A 3DS title's save in standalone Azahar: its save folder and its extdata folder, synced as one unit."""
+
+    _ID = "/mnt/sd/retrodeck/saves/n3ds/azahar/sdmc/Nintendo 3DS/" + "0" * 32 + "/" + "0" * 32
+    _DATA = f"{_ID}/title/00040000/00113200/data"
+    _EXTDATA = f"{_ID}/extdata/00000000/00001132"
+
+    def _answer(self, vector_name: str, traces: list[str]):
+        adapter, content = _azahar(vector_name, traces)
+        return adapter.resolve_save_answer(
+            system="n3ds", content_path=content, emulator_label="Azahar (Standalone)", content_installed=True
+        )
+
+    @pytest.mark.parametrize(
+        "vector_name",
+        [
+            "azahar-a-card-image-names-the-titles-save-and-extdata-as-one-unit",
+            "azahar-a-title-with-only-a-save-directory-still-states-both-roots",
+            "azahar-a-title-keeping-its-progress-in-extdata-alone",
+            "azahar-a-title-never-saved-has-its-unit",
+            "azahar-an-ncch-executable-is-read-the-same-way",
+        ],
+    )
+    def test_the_title_s_save_and_extdata_folders_are_one_unit(self, traces, vector_name):
+        answer = self._answer(vector_name, traces)
+
+        assert answer.state == SAVE_STATE_PER_GAME_UNIT
+        assert answer.unit == SaveUnit(
+            root=self._DATA, archive_roots=(("data", self._DATA), ("extdata", self._EXTDATA))
+        )
+
+    def test_the_extdata_named_is_the_first_one_the_title_is_granted(self, traces):
+        answer = self._answer("azahar-an-extdata-id-under-extended-access-is-the-first-listed", traces)
+
+        assert answer.unit is not None
+        assert answer.unit.archive_roots == (("data", self._DATA), ("extdata", f"{self._ID}/extdata/00000000/00000B8B"))
+
+    def test_a_title_granted_no_extdata_is_its_save_folder_alone(self, traces):
+        answer = self._answer("azahar-a-title-granted-no-extdata-states-its-save-directory-alone", traces)
+
+        assert answer.state == SAVE_STATE_PER_GAME_UNIT
+        assert answer.unit == SaveUnit(root=self._DATA, archive_roots=(("data", self._DATA),))
+
+    @pytest.mark.parametrize(
+        "vector_name",
+        [
+            "azahar-a-file-that-is-no-3ds-image-keeps-the-hole",
+            "azahar-an-encrypted-image-keeps-the-hole",
+            "azahar-a-truncated-image-keeps-the-hole",
+        ],
+    )
+    def test_an_image_whose_title_could_not_be_read_is_no_unit(self, traces, vector_name):
+        answer = self._answer(vector_name, traces)
+
+        assert answer.unit is None
+        assert answer.state == SAVE_STATE_HOLE
         assert answer.syncable is False

@@ -1,0 +1,1550 @@
+{
+  "family": "machines",
+  "schema": 5,
+  "spec": "DESIGN.md — installations, the machine seam, standalone save cards (issue #181)",
+  "description": "Azahar's save answer where the question names a 3DS image: the program id and the extdata id its headers state (atlas/n3ds_rom.py), and the title's data directory and extdata directory stated as one unit, own-folders-by-archive-root — or the save_id hole where no title is read.",
+  "vectors": [
+    {
+      "name": "azahar-a-card-image-names-the-titles-save-and-extdata-as-one-unit",
+      "rationale": "The question names a .3ds card image (NCSD) whose partition 0 NCCH states program id 0004000000113200 (the u64 at 0x118, ReadProgramId, ncch_container.cpp:680-689 at Azahar 2126.1.1) and whose extended header grants extdata id 0000000000001132 (ReadExtdataId, :692-722). Both directories hold the game's writes: title/00040000/00113200/data with 00000001/ and 00000001.metadata, and extdata/00000000/00001132 with user/ and boss/. The answer is the data directory with needs empty, its unit own-folders-by-archive-root mapping data and extdata to the two directories, and a second per-game-directory group for the extdata directory.",
+      "input": {
+        "home": "/home/deck",
+        "files": {
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retrodeck/retrodeck.json": "{\"paths\": {\"rd_home_path\": \"/mnt/sd/retrodeck\", \"saves_path\": \"/mnt/sd/retrodeck/saves\"}}",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retroarch/retroarch.cfg": "savefile_directory = \"/mnt/sd/retrodeck/saves\"\nlibretro_directory = \"/app/cores\"\n",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/files/retrodeck/components/es-de/share/es-de/resources/systems/linux/es_systems.xml": "<?xml version=\"1.0\"?>\n<systemList>\n  <system>\n    <name>n3ds</name>\n    <fullname>Nintendo 3DS</fullname>\n    <path>%ROMPATH%/n3ds</path>\n    <extension>.3ds .3DS</extension>\n    <command label=\"Azahar (Standalone)\">%EMULATOR_AZAHAR% %ROM%</command>\n    <platform>n3ds</platform>\n  </system>\n</systemList>\n",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/azahar-emu/qt-config.ini": "[Data%20Storage]\nuse_virtual_sd=true\nuse_virtual_sd\\default=true\nuse_custom_storage=true\nuse_custom_storage\\default=false\nnand_directory=/mnt/sd/retrodeck/saves/n3ds/azahar/nand/\nnand_directory\\default=false\nsdmc_directory=/mnt/sd/retrodeck/saves/n3ds/azahar/sdmc/\nsdmc_directory\\default=false\n",
+          "/mnt/sd/retrodeck/roms/n3ds/Game.3ds": "cci bytes",
+          "/mnt/sd/retrodeck/saves/n3ds/azahar/sdmc/Nintendo 3DS/00000000000000000000000000000000/00000000000000000000000000000000/title/00040000/00113200/data/00000001/main": "save",
+          "/mnt/sd/retrodeck/saves/n3ds/azahar/sdmc/Nintendo 3DS/00000000000000000000000000000000/00000000000000000000000000000000/title/00040000/00113200/data/00000001.metadata": "meta",
+          "/mnt/sd/retrodeck/saves/n3ds/azahar/sdmc/Nintendo 3DS/00000000000000000000000000000000/00000000000000000000000000000000/extdata/00000000/00001132/user/Data": "ext",
+          "/mnt/sd/retrodeck/saves/n3ds/azahar/sdmc/Nintendo 3DS/00000000000000000000000000000000/00000000000000000000000000000000/extdata/00000000/00001132/metadata": "meta",
+          "/mnt/sd/retrodeck/saves/n3ds/azahar/sdmc/Nintendo 3DS/00000000000000000000000000000000/00000000000000000000000000000000/extdata/00000000/00001132/icon": "icon"
+        },
+        "dirs": [
+          "/mnt/sd/retrodeck/saves",
+          "/mnt/sd/retrodeck/saves/n3ds/azahar/sdmc",
+          "/mnt/sd/retrodeck/saves/n3ds/azahar/nand",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/ROMs",
+          "/mnt/sd/retrodeck/bios",
+          "/mnt/sd/retrodeck/saves/n3ds/azahar/sdmc/Nintendo 3DS/00000000000000000000000000000000/00000000000000000000000000000000/extdata/00000000/00001132/boss"
+        ],
+        "entry_savefile_query": {
+          "system": "n3ds",
+          "content_path": "/mnt/sd/retrodeck/roms/n3ds/Game.3ds"
+        },
+        "n3ds_roms": {
+          "/mnt/sd/retrodeck/roms/n3ds/Game.3ds": {
+            "container": "ncsd",
+            "program_id": "0004000000113200",
+            "extdata_id": "0000000000001132",
+            "extdata_basis": "exheader-id"
+          }
+        }
+      },
+      "expected": {
+        "installations": [
+          {
+            "kind": "retrodeck",
+            "label": "RetroDECK",
+            "kinds": [
+              "retrodeck"
+            ],
+            "root": "/mnt/sd/retrodeck",
+            "health": []
+          }
+        ],
+        "entry_savefile_location": {
+          "dir": "/mnt/sd/retrodeck/saves/n3ds/azahar/sdmc/Nintendo 3DS/00000000000000000000000000000000/00000000000000000000000000000000/title/00040000/00113200/data",
+          "root_kind": "emulator_directory",
+          "needs": [],
+          "fallback_dir": null,
+          "physical_dir": null,
+          "file_set": {
+            "state": "declared",
+            "files": [],
+            "complete": false,
+            "groups": [
+              {
+                "dir": "/mnt/sd/retrodeck/saves/n3ds/azahar/sdmc/Nintendo 3DS/00000000000000000000000000000000/00000000000000000000000000000000/title/00040000/00113200/data",
+                "files": null,
+                "granularity": "per-game-directory",
+                "role": "battery",
+                "size_fixed": false,
+                "unit": {
+                  "kind": "own-folders-by-archive-root",
+                  "members": null,
+                  "archive_folder": null,
+                  "prefix": null,
+                  "archive_roots": {
+                    "data": "/mnt/sd/retrodeck/saves/n3ds/azahar/sdmc/Nintendo 3DS/00000000000000000000000000000000/00000000000000000000000000000000/title/00040000/00113200/data",
+                    "extdata": "/mnt/sd/retrodeck/saves/n3ds/azahar/sdmc/Nintendo 3DS/00000000000000000000000000000000/00000000000000000000000000000000/extdata/00000000/00001132"
+                  }
+                }
+              },
+              {
+                "dir": "/mnt/sd/retrodeck/saves/n3ds/azahar/sdmc/Nintendo 3DS/00000000000000000000000000000000/00000000000000000000000000000000/extdata/00000000/00001132",
+                "files": null,
+                "granularity": "per-game-directory",
+                "role": "battery",
+                "size_fixed": false,
+                "unit": null
+              }
+            ]
+          },
+          "caveats": [
+            {
+              "code": "file-names-unestablished",
+              "data": {
+                "token": "AZAHAR",
+                "dir": "/mnt/sd/retrodeck/saves/n3ds/azahar/sdmc/Nintendo 3DS/00000000000000000000000000000000/00000000000000000000000000000000/title/00040000/00113200/data",
+                "role": "battery",
+                "citation": "archive_source_sd_savedata.cpp:21-35 at Azahar 2126.1.1 — '{}Nintendo 3DS/{}/{}/title/' + '{:08x}/{:08x}/data/00000001/' and '.../data/00000001.metadata'; ID0/ID1 are all-zero (archive.h:22-24)"
+              }
+            },
+            {
+              "code": "file-names-unestablished",
+              "data": {
+                "token": "AZAHAR",
+                "dir": "/mnt/sd/retrodeck/saves/n3ds/azahar/sdmc/Nintendo 3DS/00000000000000000000000000000000/00000000000000000000000000000000/extdata/00000000/00001132",
+                "role": "battery",
+                "citation": "archive_extsavedata.cpp:183-197 at Azahar 2126.1.1 — '{}Nintendo 3DS/{}/{}/extdata/' + '{:08X}/{:08X}/' (uppercase), holding user/, boss/, icon and metadata (:279-280, :329-346)"
+              }
+            },
+            {
+              "code": "redirect-outranked",
+              "data": {
+                "token": "AZAHAR",
+                "via": "variable",
+                "name": "XDG_DATA_HOME",
+                "argument": "<dir>",
+                "file": "qt-config.ini",
+                "key": "[Data Storage] sdmc_directory"
+              }
+            }
+          ],
+          "redirects": [
+            {
+              "via": "working-directory",
+              "name": null,
+              "argument": "<dir>/user/",
+              "moves": [
+                "saves",
+                "savestates",
+                "configuration",
+                "firmware",
+                "installed-content"
+              ]
+            },
+            {
+              "via": "variable",
+              "name": "XDG_DATA_HOME",
+              "argument": "<dir>",
+              "moves": [
+                "saves",
+                "savestates",
+                "firmware",
+                "installed-content"
+              ]
+            }
+          ],
+          "granularity": {
+            "value": "per-game-directory",
+            "mode": "sdmc",
+            "readings": [
+              {
+                "key": "use_custom_storage",
+                "value": "true",
+                "options_file": "/home/deck/.var/app/net.retrodeck.retrodeck/config/azahar-emu/qt-config.ini"
+              },
+              {
+                "key": "sdmc_directory",
+                "value": "/mnt/sd/retrodeck/saves/n3ds/azahar/sdmc/",
+                "options_file": "/home/deck/.var/app/net.retrodeck.retrodeck/config/azahar-emu/qt-config.ini"
+              }
+            ],
+            "alternatives": []
+          }
+        }
+      }
+    },
+    {
+      "name": "azahar-a-title-with-only-a-save-directory-still-states-both-roots",
+      "rationale": "The image names title 0004000000113200 and extdata 0000000000001132; only the title's data directory exists. The unit still maps extdata to where the title's extdata would land, so a restore carrying an extdata root places it and an upload packs only what exists.",
+      "input": {
+        "home": "/home/deck",
+        "files": {
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retrodeck/retrodeck.json": "{\"paths\": {\"rd_home_path\": \"/mnt/sd/retrodeck\", \"saves_path\": \"/mnt/sd/retrodeck/saves\"}}",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retroarch/retroarch.cfg": "savefile_directory = \"/mnt/sd/retrodeck/saves\"\nlibretro_directory = \"/app/cores\"\n",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/files/retrodeck/components/es-de/share/es-de/resources/systems/linux/es_systems.xml": "<?xml version=\"1.0\"?>\n<systemList>\n  <system>\n    <name>n3ds</name>\n    <fullname>Nintendo 3DS</fullname>\n    <path>%ROMPATH%/n3ds</path>\n    <extension>.3ds .3DS</extension>\n    <command label=\"Azahar (Standalone)\">%EMULATOR_AZAHAR% %ROM%</command>\n    <platform>n3ds</platform>\n  </system>\n</systemList>\n",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/azahar-emu/qt-config.ini": "[Data%20Storage]\nuse_virtual_sd=true\nuse_virtual_sd\\default=true\nuse_custom_storage=true\nuse_custom_storage\\default=false\nnand_directory=/mnt/sd/retrodeck/saves/n3ds/azahar/nand/\nnand_directory\\default=false\nsdmc_directory=/mnt/sd/retrodeck/saves/n3ds/azahar/sdmc/\nsdmc_directory\\default=false\n",
+          "/mnt/sd/retrodeck/roms/n3ds/Game.3ds": "cci bytes",
+          "/mnt/sd/retrodeck/saves/n3ds/azahar/sdmc/Nintendo 3DS/00000000000000000000000000000000/00000000000000000000000000000000/title/00040000/00113200/data/00000001/main": "save",
+          "/mnt/sd/retrodeck/saves/n3ds/azahar/sdmc/Nintendo 3DS/00000000000000000000000000000000/00000000000000000000000000000000/title/00040000/00113200/data/00000001.metadata": "meta"
+        },
+        "dirs": [
+          "/mnt/sd/retrodeck/saves",
+          "/mnt/sd/retrodeck/saves/n3ds/azahar/sdmc",
+          "/mnt/sd/retrodeck/saves/n3ds/azahar/nand",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/ROMs",
+          "/mnt/sd/retrodeck/bios"
+        ],
+        "entry_savefile_query": {
+          "system": "n3ds",
+          "content_path": "/mnt/sd/retrodeck/roms/n3ds/Game.3ds"
+        },
+        "n3ds_roms": {
+          "/mnt/sd/retrodeck/roms/n3ds/Game.3ds": {
+            "container": "ncsd",
+            "program_id": "0004000000113200",
+            "extdata_id": "0000000000001132",
+            "extdata_basis": "exheader-id"
+          }
+        }
+      },
+      "expected": {
+        "installations": [
+          {
+            "kind": "retrodeck",
+            "label": "RetroDECK",
+            "kinds": [
+              "retrodeck"
+            ],
+            "root": "/mnt/sd/retrodeck",
+            "health": []
+          }
+        ],
+        "entry_savefile_location": {
+          "dir": "/mnt/sd/retrodeck/saves/n3ds/azahar/sdmc/Nintendo 3DS/00000000000000000000000000000000/00000000000000000000000000000000/title/00040000/00113200/data",
+          "root_kind": "emulator_directory",
+          "needs": [],
+          "fallback_dir": null,
+          "physical_dir": null,
+          "file_set": {
+            "state": "declared",
+            "files": [],
+            "complete": false,
+            "groups": [
+              {
+                "dir": "/mnt/sd/retrodeck/saves/n3ds/azahar/sdmc/Nintendo 3DS/00000000000000000000000000000000/00000000000000000000000000000000/title/00040000/00113200/data",
+                "files": null,
+                "granularity": "per-game-directory",
+                "role": "battery",
+                "size_fixed": false,
+                "unit": {
+                  "kind": "own-folders-by-archive-root",
+                  "members": null,
+                  "archive_folder": null,
+                  "prefix": null,
+                  "archive_roots": {
+                    "data": "/mnt/sd/retrodeck/saves/n3ds/azahar/sdmc/Nintendo 3DS/00000000000000000000000000000000/00000000000000000000000000000000/title/00040000/00113200/data",
+                    "extdata": "/mnt/sd/retrodeck/saves/n3ds/azahar/sdmc/Nintendo 3DS/00000000000000000000000000000000/00000000000000000000000000000000/extdata/00000000/00001132"
+                  }
+                }
+              },
+              {
+                "dir": "/mnt/sd/retrodeck/saves/n3ds/azahar/sdmc/Nintendo 3DS/00000000000000000000000000000000/00000000000000000000000000000000/extdata/00000000/00001132",
+                "files": null,
+                "granularity": "per-game-directory",
+                "role": "battery",
+                "size_fixed": false,
+                "unit": null
+              }
+            ]
+          },
+          "caveats": [
+            {
+              "code": "file-names-unestablished",
+              "data": {
+                "token": "AZAHAR",
+                "dir": "/mnt/sd/retrodeck/saves/n3ds/azahar/sdmc/Nintendo 3DS/00000000000000000000000000000000/00000000000000000000000000000000/title/00040000/00113200/data",
+                "role": "battery",
+                "citation": "archive_source_sd_savedata.cpp:21-35 at Azahar 2126.1.1 — '{}Nintendo 3DS/{}/{}/title/' + '{:08x}/{:08x}/data/00000001/' and '.../data/00000001.metadata'; ID0/ID1 are all-zero (archive.h:22-24)"
+              }
+            },
+            {
+              "code": "file-names-unestablished",
+              "data": {
+                "token": "AZAHAR",
+                "dir": "/mnt/sd/retrodeck/saves/n3ds/azahar/sdmc/Nintendo 3DS/00000000000000000000000000000000/00000000000000000000000000000000/extdata/00000000/00001132",
+                "role": "battery",
+                "citation": "archive_extsavedata.cpp:183-197 at Azahar 2126.1.1 — '{}Nintendo 3DS/{}/{}/extdata/' + '{:08X}/{:08X}/' (uppercase), holding user/, boss/, icon and metadata (:279-280, :329-346)"
+              }
+            },
+            {
+              "code": "redirect-outranked",
+              "data": {
+                "token": "AZAHAR",
+                "via": "variable",
+                "name": "XDG_DATA_HOME",
+                "argument": "<dir>",
+                "file": "qt-config.ini",
+                "key": "[Data Storage] sdmc_directory"
+              }
+            }
+          ],
+          "redirects": [
+            {
+              "via": "working-directory",
+              "name": null,
+              "argument": "<dir>/user/",
+              "moves": [
+                "saves",
+                "savestates",
+                "configuration",
+                "firmware",
+                "installed-content"
+              ]
+            },
+            {
+              "via": "variable",
+              "name": "XDG_DATA_HOME",
+              "argument": "<dir>",
+              "moves": [
+                "saves",
+                "savestates",
+                "firmware",
+                "installed-content"
+              ]
+            }
+          ],
+          "granularity": {
+            "value": "per-game-directory",
+            "mode": "sdmc",
+            "readings": [
+              {
+                "key": "use_custom_storage",
+                "value": "true",
+                "options_file": "/home/deck/.var/app/net.retrodeck.retrodeck/config/azahar-emu/qt-config.ini"
+              },
+              {
+                "key": "sdmc_directory",
+                "value": "/mnt/sd/retrodeck/saves/n3ds/azahar/sdmc/",
+                "options_file": "/home/deck/.var/app/net.retrodeck.retrodeck/config/azahar-emu/qt-config.ini"
+              }
+            ],
+            "alternatives": []
+          }
+        }
+      }
+    },
+    {
+      "name": "azahar-a-title-keeping-its-progress-in-extdata-alone",
+      "rationale": "Some titles write nothing under data and keep their progress in extdata (Argosy's N3dsFolderHandler names Fantasy Life). Only extdata/00000000/00001132 exists; the answer is the same unit, its data directory not yet there.",
+      "input": {
+        "home": "/home/deck",
+        "files": {
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retrodeck/retrodeck.json": "{\"paths\": {\"rd_home_path\": \"/mnt/sd/retrodeck\", \"saves_path\": \"/mnt/sd/retrodeck/saves\"}}",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retroarch/retroarch.cfg": "savefile_directory = \"/mnt/sd/retrodeck/saves\"\nlibretro_directory = \"/app/cores\"\n",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/files/retrodeck/components/es-de/share/es-de/resources/systems/linux/es_systems.xml": "<?xml version=\"1.0\"?>\n<systemList>\n  <system>\n    <name>n3ds</name>\n    <fullname>Nintendo 3DS</fullname>\n    <path>%ROMPATH%/n3ds</path>\n    <extension>.3ds .3DS</extension>\n    <command label=\"Azahar (Standalone)\">%EMULATOR_AZAHAR% %ROM%</command>\n    <platform>n3ds</platform>\n  </system>\n</systemList>\n",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/azahar-emu/qt-config.ini": "[Data%20Storage]\nuse_virtual_sd=true\nuse_virtual_sd\\default=true\nuse_custom_storage=true\nuse_custom_storage\\default=false\nnand_directory=/mnt/sd/retrodeck/saves/n3ds/azahar/nand/\nnand_directory\\default=false\nsdmc_directory=/mnt/sd/retrodeck/saves/n3ds/azahar/sdmc/\nsdmc_directory\\default=false\n",
+          "/mnt/sd/retrodeck/roms/n3ds/Game.3ds": "cci bytes",
+          "/mnt/sd/retrodeck/saves/n3ds/azahar/sdmc/Nintendo 3DS/00000000000000000000000000000000/00000000000000000000000000000000/extdata/00000000/00001132/user/Data": "ext",
+          "/mnt/sd/retrodeck/saves/n3ds/azahar/sdmc/Nintendo 3DS/00000000000000000000000000000000/00000000000000000000000000000000/extdata/00000000/00001132/metadata": "meta"
+        },
+        "dirs": [
+          "/mnt/sd/retrodeck/saves",
+          "/mnt/sd/retrodeck/saves/n3ds/azahar/sdmc",
+          "/mnt/sd/retrodeck/saves/n3ds/azahar/nand",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/ROMs",
+          "/mnt/sd/retrodeck/bios"
+        ],
+        "entry_savefile_query": {
+          "system": "n3ds",
+          "content_path": "/mnt/sd/retrodeck/roms/n3ds/Game.3ds"
+        },
+        "n3ds_roms": {
+          "/mnt/sd/retrodeck/roms/n3ds/Game.3ds": {
+            "container": "ncsd",
+            "program_id": "0004000000113200",
+            "extdata_id": "0000000000001132",
+            "extdata_basis": "exheader-id"
+          }
+        }
+      },
+      "expected": {
+        "installations": [
+          {
+            "kind": "retrodeck",
+            "label": "RetroDECK",
+            "kinds": [
+              "retrodeck"
+            ],
+            "root": "/mnt/sd/retrodeck",
+            "health": []
+          }
+        ],
+        "entry_savefile_location": {
+          "dir": "/mnt/sd/retrodeck/saves/n3ds/azahar/sdmc/Nintendo 3DS/00000000000000000000000000000000/00000000000000000000000000000000/title/00040000/00113200/data",
+          "root_kind": "emulator_directory",
+          "needs": [],
+          "fallback_dir": null,
+          "physical_dir": null,
+          "file_set": {
+            "state": "declared",
+            "files": [],
+            "complete": false,
+            "groups": [
+              {
+                "dir": "/mnt/sd/retrodeck/saves/n3ds/azahar/sdmc/Nintendo 3DS/00000000000000000000000000000000/00000000000000000000000000000000/title/00040000/00113200/data",
+                "files": null,
+                "granularity": "per-game-directory",
+                "role": "battery",
+                "size_fixed": false,
+                "unit": {
+                  "kind": "own-folders-by-archive-root",
+                  "members": null,
+                  "archive_folder": null,
+                  "prefix": null,
+                  "archive_roots": {
+                    "data": "/mnt/sd/retrodeck/saves/n3ds/azahar/sdmc/Nintendo 3DS/00000000000000000000000000000000/00000000000000000000000000000000/title/00040000/00113200/data",
+                    "extdata": "/mnt/sd/retrodeck/saves/n3ds/azahar/sdmc/Nintendo 3DS/00000000000000000000000000000000/00000000000000000000000000000000/extdata/00000000/00001132"
+                  }
+                }
+              },
+              {
+                "dir": "/mnt/sd/retrodeck/saves/n3ds/azahar/sdmc/Nintendo 3DS/00000000000000000000000000000000/00000000000000000000000000000000/extdata/00000000/00001132",
+                "files": null,
+                "granularity": "per-game-directory",
+                "role": "battery",
+                "size_fixed": false,
+                "unit": null
+              }
+            ]
+          },
+          "caveats": [
+            {
+              "code": "file-names-unestablished",
+              "data": {
+                "token": "AZAHAR",
+                "dir": "/mnt/sd/retrodeck/saves/n3ds/azahar/sdmc/Nintendo 3DS/00000000000000000000000000000000/00000000000000000000000000000000/title/00040000/00113200/data",
+                "role": "battery",
+                "citation": "archive_source_sd_savedata.cpp:21-35 at Azahar 2126.1.1 — '{}Nintendo 3DS/{}/{}/title/' + '{:08x}/{:08x}/data/00000001/' and '.../data/00000001.metadata'; ID0/ID1 are all-zero (archive.h:22-24)"
+              }
+            },
+            {
+              "code": "file-names-unestablished",
+              "data": {
+                "token": "AZAHAR",
+                "dir": "/mnt/sd/retrodeck/saves/n3ds/azahar/sdmc/Nintendo 3DS/00000000000000000000000000000000/00000000000000000000000000000000/extdata/00000000/00001132",
+                "role": "battery",
+                "citation": "archive_extsavedata.cpp:183-197 at Azahar 2126.1.1 — '{}Nintendo 3DS/{}/{}/extdata/' + '{:08X}/{:08X}/' (uppercase), holding user/, boss/, icon and metadata (:279-280, :329-346)"
+              }
+            },
+            {
+              "code": "redirect-outranked",
+              "data": {
+                "token": "AZAHAR",
+                "via": "variable",
+                "name": "XDG_DATA_HOME",
+                "argument": "<dir>",
+                "file": "qt-config.ini",
+                "key": "[Data Storage] sdmc_directory"
+              }
+            }
+          ],
+          "redirects": [
+            {
+              "via": "working-directory",
+              "name": null,
+              "argument": "<dir>/user/",
+              "moves": [
+                "saves",
+                "savestates",
+                "configuration",
+                "firmware",
+                "installed-content"
+              ]
+            },
+            {
+              "via": "variable",
+              "name": "XDG_DATA_HOME",
+              "argument": "<dir>",
+              "moves": [
+                "saves",
+                "savestates",
+                "firmware",
+                "installed-content"
+              ]
+            }
+          ],
+          "granularity": {
+            "value": "per-game-directory",
+            "mode": "sdmc",
+            "readings": [
+              {
+                "key": "use_custom_storage",
+                "value": "true",
+                "options_file": "/home/deck/.var/app/net.retrodeck.retrodeck/config/azahar-emu/qt-config.ini"
+              },
+              {
+                "key": "sdmc_directory",
+                "value": "/mnt/sd/retrodeck/saves/n3ds/azahar/sdmc/",
+                "options_file": "/home/deck/.var/app/net.retrodeck.retrodeck/config/azahar-emu/qt-config.ini"
+              }
+            ],
+            "alternatives": []
+          }
+        }
+      }
+    },
+    {
+      "name": "azahar-a-title-never-saved-has-its-unit",
+      "rationale": "Neither directory exists — a game never started. The unit is stated all the same, so a restore onto this machine has both directories to place.",
+      "input": {
+        "home": "/home/deck",
+        "files": {
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retrodeck/retrodeck.json": "{\"paths\": {\"rd_home_path\": \"/mnt/sd/retrodeck\", \"saves_path\": \"/mnt/sd/retrodeck/saves\"}}",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retroarch/retroarch.cfg": "savefile_directory = \"/mnt/sd/retrodeck/saves\"\nlibretro_directory = \"/app/cores\"\n",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/files/retrodeck/components/es-de/share/es-de/resources/systems/linux/es_systems.xml": "<?xml version=\"1.0\"?>\n<systemList>\n  <system>\n    <name>n3ds</name>\n    <fullname>Nintendo 3DS</fullname>\n    <path>%ROMPATH%/n3ds</path>\n    <extension>.3ds .3DS</extension>\n    <command label=\"Azahar (Standalone)\">%EMULATOR_AZAHAR% %ROM%</command>\n    <platform>n3ds</platform>\n  </system>\n</systemList>\n",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/azahar-emu/qt-config.ini": "[Data%20Storage]\nuse_virtual_sd=true\nuse_virtual_sd\\default=true\nuse_custom_storage=true\nuse_custom_storage\\default=false\nnand_directory=/mnt/sd/retrodeck/saves/n3ds/azahar/nand/\nnand_directory\\default=false\nsdmc_directory=/mnt/sd/retrodeck/saves/n3ds/azahar/sdmc/\nsdmc_directory\\default=false\n",
+          "/mnt/sd/retrodeck/roms/n3ds/Game.3ds": "cci bytes"
+        },
+        "dirs": [
+          "/mnt/sd/retrodeck/saves",
+          "/mnt/sd/retrodeck/saves/n3ds/azahar/sdmc",
+          "/mnt/sd/retrodeck/saves/n3ds/azahar/nand",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/ROMs",
+          "/mnt/sd/retrodeck/bios"
+        ],
+        "entry_savefile_query": {
+          "system": "n3ds",
+          "content_path": "/mnt/sd/retrodeck/roms/n3ds/Game.3ds"
+        },
+        "n3ds_roms": {
+          "/mnt/sd/retrodeck/roms/n3ds/Game.3ds": {
+            "container": "ncsd",
+            "program_id": "0004000000113200",
+            "extdata_id": "0000000000001132",
+            "extdata_basis": "exheader-id"
+          }
+        }
+      },
+      "expected": {
+        "installations": [
+          {
+            "kind": "retrodeck",
+            "label": "RetroDECK",
+            "kinds": [
+              "retrodeck"
+            ],
+            "root": "/mnt/sd/retrodeck",
+            "health": []
+          }
+        ],
+        "entry_savefile_location": {
+          "dir": "/mnt/sd/retrodeck/saves/n3ds/azahar/sdmc/Nintendo 3DS/00000000000000000000000000000000/00000000000000000000000000000000/title/00040000/00113200/data",
+          "root_kind": "emulator_directory",
+          "needs": [],
+          "fallback_dir": null,
+          "physical_dir": null,
+          "file_set": {
+            "state": "declared",
+            "files": [],
+            "complete": false,
+            "groups": [
+              {
+                "dir": "/mnt/sd/retrodeck/saves/n3ds/azahar/sdmc/Nintendo 3DS/00000000000000000000000000000000/00000000000000000000000000000000/title/00040000/00113200/data",
+                "files": null,
+                "granularity": "per-game-directory",
+                "role": "battery",
+                "size_fixed": false,
+                "unit": {
+                  "kind": "own-folders-by-archive-root",
+                  "members": null,
+                  "archive_folder": null,
+                  "prefix": null,
+                  "archive_roots": {
+                    "data": "/mnt/sd/retrodeck/saves/n3ds/azahar/sdmc/Nintendo 3DS/00000000000000000000000000000000/00000000000000000000000000000000/title/00040000/00113200/data",
+                    "extdata": "/mnt/sd/retrodeck/saves/n3ds/azahar/sdmc/Nintendo 3DS/00000000000000000000000000000000/00000000000000000000000000000000/extdata/00000000/00001132"
+                  }
+                }
+              },
+              {
+                "dir": "/mnt/sd/retrodeck/saves/n3ds/azahar/sdmc/Nintendo 3DS/00000000000000000000000000000000/00000000000000000000000000000000/extdata/00000000/00001132",
+                "files": null,
+                "granularity": "per-game-directory",
+                "role": "battery",
+                "size_fixed": false,
+                "unit": null
+              }
+            ]
+          },
+          "caveats": [
+            {
+              "code": "file-names-unestablished",
+              "data": {
+                "token": "AZAHAR",
+                "dir": "/mnt/sd/retrodeck/saves/n3ds/azahar/sdmc/Nintendo 3DS/00000000000000000000000000000000/00000000000000000000000000000000/title/00040000/00113200/data",
+                "role": "battery",
+                "citation": "archive_source_sd_savedata.cpp:21-35 at Azahar 2126.1.1 — '{}Nintendo 3DS/{}/{}/title/' + '{:08x}/{:08x}/data/00000001/' and '.../data/00000001.metadata'; ID0/ID1 are all-zero (archive.h:22-24)"
+              }
+            },
+            {
+              "code": "file-names-unestablished",
+              "data": {
+                "token": "AZAHAR",
+                "dir": "/mnt/sd/retrodeck/saves/n3ds/azahar/sdmc/Nintendo 3DS/00000000000000000000000000000000/00000000000000000000000000000000/extdata/00000000/00001132",
+                "role": "battery",
+                "citation": "archive_extsavedata.cpp:183-197 at Azahar 2126.1.1 — '{}Nintendo 3DS/{}/{}/extdata/' + '{:08X}/{:08X}/' (uppercase), holding user/, boss/, icon and metadata (:279-280, :329-346)"
+              }
+            },
+            {
+              "code": "redirect-outranked",
+              "data": {
+                "token": "AZAHAR",
+                "via": "variable",
+                "name": "XDG_DATA_HOME",
+                "argument": "<dir>",
+                "file": "qt-config.ini",
+                "key": "[Data Storage] sdmc_directory"
+              }
+            }
+          ],
+          "redirects": [
+            {
+              "via": "working-directory",
+              "name": null,
+              "argument": "<dir>/user/",
+              "moves": [
+                "saves",
+                "savestates",
+                "configuration",
+                "firmware",
+                "installed-content"
+              ]
+            },
+            {
+              "via": "variable",
+              "name": "XDG_DATA_HOME",
+              "argument": "<dir>",
+              "moves": [
+                "saves",
+                "savestates",
+                "firmware",
+                "installed-content"
+              ]
+            }
+          ],
+          "granularity": {
+            "value": "per-game-directory",
+            "mode": "sdmc",
+            "readings": [
+              {
+                "key": "use_custom_storage",
+                "value": "true",
+                "options_file": "/home/deck/.var/app/net.retrodeck.retrodeck/config/azahar-emu/qt-config.ini"
+              },
+              {
+                "key": "sdmc_directory",
+                "value": "/mnt/sd/retrodeck/saves/n3ds/azahar/sdmc/",
+                "options_file": "/home/deck/.var/app/net.retrodeck.retrodeck/config/azahar-emu/qt-config.ini"
+              }
+            ],
+            "alternatives": []
+          }
+        }
+      }
+    },
+    {
+      "name": "azahar-an-extdata-id-under-extended-access-is-the-first-listed",
+      "rationale": "The image's extended header uses extended savedata access, so ReadExtdataId takes the first non-zero of the six 20-bit ids it lists (ncch_container.cpp:700-718 at Azahar 2126.1.1) — 0000000000000B8B here, spelled uppercase in the extdata path the game opens (archive_extsavedata.cpp:189). The extdata caveat says the id is the first of several.",
+      "input": {
+        "home": "/home/deck",
+        "files": {
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retrodeck/retrodeck.json": "{\"paths\": {\"rd_home_path\": \"/mnt/sd/retrodeck\", \"saves_path\": \"/mnt/sd/retrodeck/saves\"}}",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retroarch/retroarch.cfg": "savefile_directory = \"/mnt/sd/retrodeck/saves\"\nlibretro_directory = \"/app/cores\"\n",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/files/retrodeck/components/es-de/share/es-de/resources/systems/linux/es_systems.xml": "<?xml version=\"1.0\"?>\n<systemList>\n  <system>\n    <name>n3ds</name>\n    <fullname>Nintendo 3DS</fullname>\n    <path>%ROMPATH%/n3ds</path>\n    <extension>.3ds .3DS</extension>\n    <command label=\"Azahar (Standalone)\">%EMULATOR_AZAHAR% %ROM%</command>\n    <platform>n3ds</platform>\n  </system>\n</systemList>\n",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/azahar-emu/qt-config.ini": "[Data%20Storage]\nuse_virtual_sd=true\nuse_virtual_sd\\default=true\nuse_custom_storage=true\nuse_custom_storage\\default=false\nnand_directory=/mnt/sd/retrodeck/saves/n3ds/azahar/nand/\nnand_directory\\default=false\nsdmc_directory=/mnt/sd/retrodeck/saves/n3ds/azahar/sdmc/\nsdmc_directory\\default=false\n",
+          "/mnt/sd/retrodeck/roms/n3ds/Game.3ds": "cci bytes"
+        },
+        "dirs": [
+          "/mnt/sd/retrodeck/saves",
+          "/mnt/sd/retrodeck/saves/n3ds/azahar/sdmc",
+          "/mnt/sd/retrodeck/saves/n3ds/azahar/nand",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/ROMs",
+          "/mnt/sd/retrodeck/bios"
+        ],
+        "entry_savefile_query": {
+          "system": "n3ds",
+          "content_path": "/mnt/sd/retrodeck/roms/n3ds/Game.3ds"
+        },
+        "n3ds_roms": {
+          "/mnt/sd/retrodeck/roms/n3ds/Game.3ds": {
+            "container": "ncsd",
+            "program_id": "0004000000113200",
+            "extdata_id": "0000000000000b8b",
+            "extdata_basis": "extended-access-first"
+          }
+        }
+      },
+      "expected": {
+        "installations": [
+          {
+            "kind": "retrodeck",
+            "label": "RetroDECK",
+            "kinds": [
+              "retrodeck"
+            ],
+            "root": "/mnt/sd/retrodeck",
+            "health": []
+          }
+        ],
+        "entry_savefile_location": {
+          "dir": "/mnt/sd/retrodeck/saves/n3ds/azahar/sdmc/Nintendo 3DS/00000000000000000000000000000000/00000000000000000000000000000000/title/00040000/00113200/data",
+          "root_kind": "emulator_directory",
+          "needs": [],
+          "fallback_dir": null,
+          "physical_dir": null,
+          "file_set": {
+            "state": "declared",
+            "files": [],
+            "complete": false,
+            "groups": [
+              {
+                "dir": "/mnt/sd/retrodeck/saves/n3ds/azahar/sdmc/Nintendo 3DS/00000000000000000000000000000000/00000000000000000000000000000000/title/00040000/00113200/data",
+                "files": null,
+                "granularity": "per-game-directory",
+                "role": "battery",
+                "size_fixed": false,
+                "unit": {
+                  "kind": "own-folders-by-archive-root",
+                  "members": null,
+                  "archive_folder": null,
+                  "prefix": null,
+                  "archive_roots": {
+                    "data": "/mnt/sd/retrodeck/saves/n3ds/azahar/sdmc/Nintendo 3DS/00000000000000000000000000000000/00000000000000000000000000000000/title/00040000/00113200/data",
+                    "extdata": "/mnt/sd/retrodeck/saves/n3ds/azahar/sdmc/Nintendo 3DS/00000000000000000000000000000000/00000000000000000000000000000000/extdata/00000000/00000B8B"
+                  }
+                }
+              },
+              {
+                "dir": "/mnt/sd/retrodeck/saves/n3ds/azahar/sdmc/Nintendo 3DS/00000000000000000000000000000000/00000000000000000000000000000000/extdata/00000000/00000B8B",
+                "files": null,
+                "granularity": "per-game-directory",
+                "role": "battery",
+                "size_fixed": false,
+                "unit": null
+              }
+            ]
+          },
+          "caveats": [
+            {
+              "code": "file-names-unestablished",
+              "data": {
+                "token": "AZAHAR",
+                "dir": "/mnt/sd/retrodeck/saves/n3ds/azahar/sdmc/Nintendo 3DS/00000000000000000000000000000000/00000000000000000000000000000000/title/00040000/00113200/data",
+                "role": "battery",
+                "citation": "archive_source_sd_savedata.cpp:21-35 at Azahar 2126.1.1 — '{}Nintendo 3DS/{}/{}/title/' + '{:08x}/{:08x}/data/00000001/' and '.../data/00000001.metadata'; ID0/ID1 are all-zero (archive.h:22-24)"
+              }
+            },
+            {
+              "code": "file-names-unestablished",
+              "data": {
+                "token": "AZAHAR",
+                "dir": "/mnt/sd/retrodeck/saves/n3ds/azahar/sdmc/Nintendo 3DS/00000000000000000000000000000000/00000000000000000000000000000000/extdata/00000000/00000B8B",
+                "role": "battery",
+                "citation": "archive_extsavedata.cpp:183-197 at Azahar 2126.1.1 — '{}Nintendo 3DS/{}/{}/extdata/' + '{:08X}/{:08X}/' (uppercase), holding user/, boss/, icon and metadata (:279-280, :329-346)"
+              }
+            },
+            {
+              "code": "redirect-outranked",
+              "data": {
+                "token": "AZAHAR",
+                "via": "variable",
+                "name": "XDG_DATA_HOME",
+                "argument": "<dir>",
+                "file": "qt-config.ini",
+                "key": "[Data Storage] sdmc_directory"
+              }
+            }
+          ],
+          "redirects": [
+            {
+              "via": "working-directory",
+              "name": null,
+              "argument": "<dir>/user/",
+              "moves": [
+                "saves",
+                "savestates",
+                "configuration",
+                "firmware",
+                "installed-content"
+              ]
+            },
+            {
+              "via": "variable",
+              "name": "XDG_DATA_HOME",
+              "argument": "<dir>",
+              "moves": [
+                "saves",
+                "savestates",
+                "firmware",
+                "installed-content"
+              ]
+            }
+          ],
+          "granularity": {
+            "value": "per-game-directory",
+            "mode": "sdmc",
+            "readings": [
+              {
+                "key": "use_custom_storage",
+                "value": "true",
+                "options_file": "/home/deck/.var/app/net.retrodeck.retrodeck/config/azahar-emu/qt-config.ini"
+              },
+              {
+                "key": "sdmc_directory",
+                "value": "/mnt/sd/retrodeck/saves/n3ds/azahar/sdmc/",
+                "options_file": "/home/deck/.var/app/net.retrodeck.retrodeck/config/azahar-emu/qt-config.ini"
+              }
+            ],
+            "alternatives": []
+          }
+        }
+      }
+    },
+    {
+      "name": "azahar-a-title-granted-no-extdata-states-its-save-directory-alone",
+      "rationale": "The image's extended header grants no extdata id (zero), so the unit maps data alone and no extdata group is stated.",
+      "input": {
+        "home": "/home/deck",
+        "files": {
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retrodeck/retrodeck.json": "{\"paths\": {\"rd_home_path\": \"/mnt/sd/retrodeck\", \"saves_path\": \"/mnt/sd/retrodeck/saves\"}}",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retroarch/retroarch.cfg": "savefile_directory = \"/mnt/sd/retrodeck/saves\"\nlibretro_directory = \"/app/cores\"\n",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/files/retrodeck/components/es-de/share/es-de/resources/systems/linux/es_systems.xml": "<?xml version=\"1.0\"?>\n<systemList>\n  <system>\n    <name>n3ds</name>\n    <fullname>Nintendo 3DS</fullname>\n    <path>%ROMPATH%/n3ds</path>\n    <extension>.3ds .3DS</extension>\n    <command label=\"Azahar (Standalone)\">%EMULATOR_AZAHAR% %ROM%</command>\n    <platform>n3ds</platform>\n  </system>\n</systemList>\n",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/azahar-emu/qt-config.ini": "[Data%20Storage]\nuse_virtual_sd=true\nuse_virtual_sd\\default=true\nuse_custom_storage=true\nuse_custom_storage\\default=false\nnand_directory=/mnt/sd/retrodeck/saves/n3ds/azahar/nand/\nnand_directory\\default=false\nsdmc_directory=/mnt/sd/retrodeck/saves/n3ds/azahar/sdmc/\nsdmc_directory\\default=false\n",
+          "/mnt/sd/retrodeck/roms/n3ds/Game.3ds": "cci bytes"
+        },
+        "dirs": [
+          "/mnt/sd/retrodeck/saves",
+          "/mnt/sd/retrodeck/saves/n3ds/azahar/sdmc",
+          "/mnt/sd/retrodeck/saves/n3ds/azahar/nand",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/ROMs",
+          "/mnt/sd/retrodeck/bios"
+        ],
+        "entry_savefile_query": {
+          "system": "n3ds",
+          "content_path": "/mnt/sd/retrodeck/roms/n3ds/Game.3ds"
+        },
+        "n3ds_roms": {
+          "/mnt/sd/retrodeck/roms/n3ds/Game.3ds": {
+            "container": "ncsd",
+            "program_id": "0004000000113200",
+            "extdata_id": null,
+            "extdata_basis": null
+          }
+        }
+      },
+      "expected": {
+        "installations": [
+          {
+            "kind": "retrodeck",
+            "label": "RetroDECK",
+            "kinds": [
+              "retrodeck"
+            ],
+            "root": "/mnt/sd/retrodeck",
+            "health": []
+          }
+        ],
+        "entry_savefile_location": {
+          "dir": "/mnt/sd/retrodeck/saves/n3ds/azahar/sdmc/Nintendo 3DS/00000000000000000000000000000000/00000000000000000000000000000000/title/00040000/00113200/data",
+          "root_kind": "emulator_directory",
+          "needs": [],
+          "fallback_dir": null,
+          "physical_dir": null,
+          "file_set": {
+            "state": "declared",
+            "files": [],
+            "complete": false,
+            "groups": [
+              {
+                "dir": "/mnt/sd/retrodeck/saves/n3ds/azahar/sdmc/Nintendo 3DS/00000000000000000000000000000000/00000000000000000000000000000000/title/00040000/00113200/data",
+                "files": null,
+                "granularity": "per-game-directory",
+                "role": "battery",
+                "size_fixed": false,
+                "unit": {
+                  "kind": "own-folders-by-archive-root",
+                  "members": null,
+                  "archive_folder": null,
+                  "prefix": null,
+                  "archive_roots": {
+                    "data": "/mnt/sd/retrodeck/saves/n3ds/azahar/sdmc/Nintendo 3DS/00000000000000000000000000000000/00000000000000000000000000000000/title/00040000/00113200/data"
+                  }
+                }
+              }
+            ]
+          },
+          "caveats": [
+            {
+              "code": "file-names-unestablished",
+              "data": {
+                "token": "AZAHAR",
+                "dir": "/mnt/sd/retrodeck/saves/n3ds/azahar/sdmc/Nintendo 3DS/00000000000000000000000000000000/00000000000000000000000000000000/title/00040000/00113200/data",
+                "role": "battery",
+                "citation": "archive_source_sd_savedata.cpp:21-35 at Azahar 2126.1.1 — '{}Nintendo 3DS/{}/{}/title/' + '{:08x}/{:08x}/data/00000001/' and '.../data/00000001.metadata'; ID0/ID1 are all-zero (archive.h:22-24)"
+              }
+            },
+            {
+              "code": "redirect-outranked",
+              "data": {
+                "token": "AZAHAR",
+                "via": "variable",
+                "name": "XDG_DATA_HOME",
+                "argument": "<dir>",
+                "file": "qt-config.ini",
+                "key": "[Data Storage] sdmc_directory"
+              }
+            }
+          ],
+          "redirects": [
+            {
+              "via": "working-directory",
+              "name": null,
+              "argument": "<dir>/user/",
+              "moves": [
+                "saves",
+                "savestates",
+                "configuration",
+                "firmware",
+                "installed-content"
+              ]
+            },
+            {
+              "via": "variable",
+              "name": "XDG_DATA_HOME",
+              "argument": "<dir>",
+              "moves": [
+                "saves",
+                "savestates",
+                "firmware",
+                "installed-content"
+              ]
+            }
+          ],
+          "granularity": {
+            "value": "per-game-directory",
+            "mode": "sdmc",
+            "readings": [
+              {
+                "key": "use_custom_storage",
+                "value": "true",
+                "options_file": "/home/deck/.var/app/net.retrodeck.retrodeck/config/azahar-emu/qt-config.ini"
+              },
+              {
+                "key": "sdmc_directory",
+                "value": "/mnt/sd/retrodeck/saves/n3ds/azahar/sdmc/",
+                "options_file": "/home/deck/.var/app/net.retrodeck.retrodeck/config/azahar-emu/qt-config.ini"
+              }
+            ],
+            "alternatives": []
+          }
+        }
+      }
+    },
+    {
+      "name": "azahar-an-ncch-executable-is-read-the-same-way",
+      "rationale": "A .cxi is an NCCH — the program itself, its magic at 0x100 (AutoOpenNCCHNCSD, ncch_container.cpp:120-133). Its header and extended header read as a card's partition 0 does, and the answer is the same unit.",
+      "input": {
+        "home": "/home/deck",
+        "files": {
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retrodeck/retrodeck.json": "{\"paths\": {\"rd_home_path\": \"/mnt/sd/retrodeck\", \"saves_path\": \"/mnt/sd/retrodeck/saves\"}}",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retroarch/retroarch.cfg": "savefile_directory = \"/mnt/sd/retrodeck/saves\"\nlibretro_directory = \"/app/cores\"\n",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/files/retrodeck/components/es-de/share/es-de/resources/systems/linux/es_systems.xml": "<?xml version=\"1.0\"?>\n<systemList>\n  <system>\n    <name>n3ds</name>\n    <fullname>Nintendo 3DS</fullname>\n    <path>%ROMPATH%/n3ds</path>\n    <extension>.3ds .3DS</extension>\n    <command label=\"Azahar (Standalone)\">%EMULATOR_AZAHAR% %ROM%</command>\n    <platform>n3ds</platform>\n  </system>\n</systemList>\n",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/azahar-emu/qt-config.ini": "[Data%20Storage]\nuse_virtual_sd=true\nuse_virtual_sd\\default=true\nuse_custom_storage=true\nuse_custom_storage\\default=false\nnand_directory=/mnt/sd/retrodeck/saves/n3ds/azahar/nand/\nnand_directory\\default=false\nsdmc_directory=/mnt/sd/retrodeck/saves/n3ds/azahar/sdmc/\nsdmc_directory\\default=false\n",
+          "/mnt/sd/retrodeck/roms/n3ds/Game.cxi": "cxi bytes"
+        },
+        "dirs": [
+          "/mnt/sd/retrodeck/saves",
+          "/mnt/sd/retrodeck/saves/n3ds/azahar/sdmc",
+          "/mnt/sd/retrodeck/saves/n3ds/azahar/nand",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/ROMs",
+          "/mnt/sd/retrodeck/bios"
+        ],
+        "entry_savefile_query": {
+          "system": "n3ds",
+          "content_path": "/mnt/sd/retrodeck/roms/n3ds/Game.cxi"
+        },
+        "n3ds_roms": {
+          "/mnt/sd/retrodeck/roms/n3ds/Game.cxi": {
+            "container": "ncch",
+            "program_id": "0004000000113200",
+            "extdata_id": "0000000000001132",
+            "extdata_basis": "exheader-id"
+          }
+        }
+      },
+      "expected": {
+        "installations": [
+          {
+            "kind": "retrodeck",
+            "label": "RetroDECK",
+            "kinds": [
+              "retrodeck"
+            ],
+            "root": "/mnt/sd/retrodeck",
+            "health": []
+          }
+        ],
+        "entry_savefile_location": {
+          "dir": "/mnt/sd/retrodeck/saves/n3ds/azahar/sdmc/Nintendo 3DS/00000000000000000000000000000000/00000000000000000000000000000000/title/00040000/00113200/data",
+          "root_kind": "emulator_directory",
+          "needs": [],
+          "fallback_dir": null,
+          "physical_dir": null,
+          "file_set": {
+            "state": "declared",
+            "files": [],
+            "complete": false,
+            "groups": [
+              {
+                "dir": "/mnt/sd/retrodeck/saves/n3ds/azahar/sdmc/Nintendo 3DS/00000000000000000000000000000000/00000000000000000000000000000000/title/00040000/00113200/data",
+                "files": null,
+                "granularity": "per-game-directory",
+                "role": "battery",
+                "size_fixed": false,
+                "unit": {
+                  "kind": "own-folders-by-archive-root",
+                  "members": null,
+                  "archive_folder": null,
+                  "prefix": null,
+                  "archive_roots": {
+                    "data": "/mnt/sd/retrodeck/saves/n3ds/azahar/sdmc/Nintendo 3DS/00000000000000000000000000000000/00000000000000000000000000000000/title/00040000/00113200/data",
+                    "extdata": "/mnt/sd/retrodeck/saves/n3ds/azahar/sdmc/Nintendo 3DS/00000000000000000000000000000000/00000000000000000000000000000000/extdata/00000000/00001132"
+                  }
+                }
+              },
+              {
+                "dir": "/mnt/sd/retrodeck/saves/n3ds/azahar/sdmc/Nintendo 3DS/00000000000000000000000000000000/00000000000000000000000000000000/extdata/00000000/00001132",
+                "files": null,
+                "granularity": "per-game-directory",
+                "role": "battery",
+                "size_fixed": false,
+                "unit": null
+              }
+            ]
+          },
+          "caveats": [
+            {
+              "code": "file-names-unestablished",
+              "data": {
+                "token": "AZAHAR",
+                "dir": "/mnt/sd/retrodeck/saves/n3ds/azahar/sdmc/Nintendo 3DS/00000000000000000000000000000000/00000000000000000000000000000000/title/00040000/00113200/data",
+                "role": "battery",
+                "citation": "archive_source_sd_savedata.cpp:21-35 at Azahar 2126.1.1 — '{}Nintendo 3DS/{}/{}/title/' + '{:08x}/{:08x}/data/00000001/' and '.../data/00000001.metadata'; ID0/ID1 are all-zero (archive.h:22-24)"
+              }
+            },
+            {
+              "code": "file-names-unestablished",
+              "data": {
+                "token": "AZAHAR",
+                "dir": "/mnt/sd/retrodeck/saves/n3ds/azahar/sdmc/Nintendo 3DS/00000000000000000000000000000000/00000000000000000000000000000000/extdata/00000000/00001132",
+                "role": "battery",
+                "citation": "archive_extsavedata.cpp:183-197 at Azahar 2126.1.1 — '{}Nintendo 3DS/{}/{}/extdata/' + '{:08X}/{:08X}/' (uppercase), holding user/, boss/, icon and metadata (:279-280, :329-346)"
+              }
+            },
+            {
+              "code": "redirect-outranked",
+              "data": {
+                "token": "AZAHAR",
+                "via": "variable",
+                "name": "XDG_DATA_HOME",
+                "argument": "<dir>",
+                "file": "qt-config.ini",
+                "key": "[Data Storage] sdmc_directory"
+              }
+            }
+          ],
+          "redirects": [
+            {
+              "via": "working-directory",
+              "name": null,
+              "argument": "<dir>/user/",
+              "moves": [
+                "saves",
+                "savestates",
+                "configuration",
+                "firmware",
+                "installed-content"
+              ]
+            },
+            {
+              "via": "variable",
+              "name": "XDG_DATA_HOME",
+              "argument": "<dir>",
+              "moves": [
+                "saves",
+                "savestates",
+                "firmware",
+                "installed-content"
+              ]
+            }
+          ],
+          "granularity": {
+            "value": "per-game-directory",
+            "mode": "sdmc",
+            "readings": [
+              {
+                "key": "use_custom_storage",
+                "value": "true",
+                "options_file": "/home/deck/.var/app/net.retrodeck.retrodeck/config/azahar-emu/qt-config.ini"
+              },
+              {
+                "key": "sdmc_directory",
+                "value": "/mnt/sd/retrodeck/saves/n3ds/azahar/sdmc/",
+                "options_file": "/home/deck/.var/app/net.retrodeck.retrodeck/config/azahar-emu/qt-config.ini"
+              }
+            ],
+            "alternatives": []
+          }
+        }
+      }
+    },
+    {
+      "name": "azahar-a-file-that-is-no-3ds-image-keeps-the-hole",
+      "rationale": "The content path holds no NCSD or NCCH magic at 0x100 (format-not-read — a CIA, a Z3DS image or other bytes): no title is read, so the answer is today's — title/<save_id>/data/00000001 with the save_id hole spelled title-id-words and the extdata tree stated whole, its entries refused.",
+      "input": {
+        "home": "/home/deck",
+        "files": {
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retrodeck/retrodeck.json": "{\"paths\": {\"rd_home_path\": \"/mnt/sd/retrodeck\", \"saves_path\": \"/mnt/sd/retrodeck/saves\"}}",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retroarch/retroarch.cfg": "savefile_directory = \"/mnt/sd/retrodeck/saves\"\nlibretro_directory = \"/app/cores\"\n",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/files/retrodeck/components/es-de/share/es-de/resources/systems/linux/es_systems.xml": "<?xml version=\"1.0\"?>\n<systemList>\n  <system>\n    <name>n3ds</name>\n    <fullname>Nintendo 3DS</fullname>\n    <path>%ROMPATH%/n3ds</path>\n    <extension>.3ds .3DS</extension>\n    <command label=\"Azahar (Standalone)\">%EMULATOR_AZAHAR% %ROM%</command>\n    <platform>n3ds</platform>\n  </system>\n</systemList>\n",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/azahar-emu/qt-config.ini": "[Data%20Storage]\nuse_virtual_sd=true\nuse_virtual_sd\\default=true\nuse_custom_storage=true\nuse_custom_storage\\default=false\nnand_directory=/mnt/sd/retrodeck/saves/n3ds/azahar/nand/\nnand_directory\\default=false\nsdmc_directory=/mnt/sd/retrodeck/saves/n3ds/azahar/sdmc/\nsdmc_directory\\default=false\n",
+          "/mnt/sd/retrodeck/roms/n3ds/Game.cia": "cia bytes"
+        },
+        "dirs": [
+          "/mnt/sd/retrodeck/saves",
+          "/mnt/sd/retrodeck/saves/n3ds/azahar/sdmc",
+          "/mnt/sd/retrodeck/saves/n3ds/azahar/nand",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/ROMs",
+          "/mnt/sd/retrodeck/bios"
+        ],
+        "entry_savefile_query": {
+          "system": "n3ds",
+          "content_path": "/mnt/sd/retrodeck/roms/n3ds/Game.cia"
+        },
+        "n3ds_roms": {
+          "/mnt/sd/retrodeck/roms/n3ds/Game.cia": "format-not-read"
+        }
+      },
+      "expected": {
+        "installations": [
+          {
+            "kind": "retrodeck",
+            "label": "RetroDECK",
+            "kinds": [
+              "retrodeck"
+            ],
+            "root": "/mnt/sd/retrodeck",
+            "health": []
+          }
+        ],
+        "entry_savefile_location": {
+          "dir": "/mnt/sd/retrodeck/saves/n3ds/azahar/sdmc/Nintendo 3DS/00000000000000000000000000000000/00000000000000000000000000000000/title/<save_id>/data/00000001",
+          "root_kind": "emulator_directory",
+          "needs": [
+            "save_id"
+          ],
+          "fallback_dir": null,
+          "physical_dir": null,
+          "file_set": {
+            "state": "declared",
+            "files": [],
+            "complete": false,
+            "groups": [
+              {
+                "dir": "/mnt/sd/retrodeck/saves/n3ds/azahar/sdmc/Nintendo 3DS/00000000000000000000000000000000/00000000000000000000000000000000/title/<save_id>/data/00000001",
+                "files": null,
+                "granularity": "per-game-directory",
+                "role": "battery",
+                "size_fixed": false,
+                "unit": null
+              },
+              {
+                "dir": "/mnt/sd/retrodeck/saves/n3ds/azahar/sdmc/Nintendo 3DS/00000000000000000000000000000000/00000000000000000000000000000000/extdata",
+                "files": null,
+                "granularity": "per-game-files",
+                "role": "battery",
+                "size_fixed": false,
+                "unit": null
+              }
+            ]
+          },
+          "caveats": [
+            {
+              "code": "file-names-unestablished",
+              "data": {
+                "token": "AZAHAR",
+                "dir": "/mnt/sd/retrodeck/saves/n3ds/azahar/sdmc/Nintendo 3DS/00000000000000000000000000000000/00000000000000000000000000000000/title/<save_id>/data/00000001",
+                "role": "battery",
+                "save_id": "the 3DS title id: <high 8 hex>/<low 8 hex>, lowercase",
+                "save_id_spelling": "title-id-words",
+                "citation": "archive_source_sd_savedata.cpp:21-29 at Azahar 2126.1.1 — '{}Nintendo 3DS/{}/{}/title/' + '{:08x}/{:08x}/data/00000001/'; ID0/ID1 are all-zero (archive.h:22-24)"
+              }
+            },
+            {
+              "code": "file-names-unestablished",
+              "data": {
+                "token": "AZAHAR",
+                "dir": "/mnt/sd/retrodeck/saves/n3ds/azahar/sdmc/Nintendo 3DS/00000000000000000000000000000000/00000000000000000000000000000000/extdata",
+                "role": "battery",
+                "citation": "archive_extsavedata.cpp at Azahar 2126.1.1 — '{}Nintendo 3DS/{}/{}/extdata/'"
+              }
+            },
+            {
+              "code": "redirect-outranked",
+              "data": {
+                "token": "AZAHAR",
+                "via": "variable",
+                "name": "XDG_DATA_HOME",
+                "argument": "<dir>",
+                "file": "qt-config.ini",
+                "key": "[Data Storage] sdmc_directory"
+              }
+            }
+          ],
+          "redirects": [
+            {
+              "via": "working-directory",
+              "name": null,
+              "argument": "<dir>/user/",
+              "moves": [
+                "saves",
+                "savestates",
+                "configuration",
+                "firmware",
+                "installed-content"
+              ]
+            },
+            {
+              "via": "variable",
+              "name": "XDG_DATA_HOME",
+              "argument": "<dir>",
+              "moves": [
+                "saves",
+                "savestates",
+                "firmware",
+                "installed-content"
+              ]
+            }
+          ],
+          "granularity": {
+            "value": "per-game-directory",
+            "mode": "sdmc",
+            "readings": [
+              {
+                "key": "use_custom_storage",
+                "value": "true",
+                "options_file": "/home/deck/.var/app/net.retrodeck.retrodeck/config/azahar-emu/qt-config.ini"
+              },
+              {
+                "key": "sdmc_directory",
+                "value": "/mnt/sd/retrodeck/saves/n3ds/azahar/sdmc/",
+                "options_file": "/home/deck/.var/app/net.retrodeck.retrodeck/config/azahar-emu/qt-config.ini"
+              }
+            ],
+            "alternatives": []
+          }
+        }
+      }
+    },
+    {
+      "name": "azahar-an-encrypted-image-keeps-the-hole",
+      "rationale": "The NCCH's no_crypto flag is clear: Azahar refuses to load it (ncch_container.cpp:226-229), so no title is read and the answer keeps the hole.",
+      "input": {
+        "home": "/home/deck",
+        "files": {
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retrodeck/retrodeck.json": "{\"paths\": {\"rd_home_path\": \"/mnt/sd/retrodeck\", \"saves_path\": \"/mnt/sd/retrodeck/saves\"}}",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retroarch/retroarch.cfg": "savefile_directory = \"/mnt/sd/retrodeck/saves\"\nlibretro_directory = \"/app/cores\"\n",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/files/retrodeck/components/es-de/share/es-de/resources/systems/linux/es_systems.xml": "<?xml version=\"1.0\"?>\n<systemList>\n  <system>\n    <name>n3ds</name>\n    <fullname>Nintendo 3DS</fullname>\n    <path>%ROMPATH%/n3ds</path>\n    <extension>.3ds .3DS</extension>\n    <command label=\"Azahar (Standalone)\">%EMULATOR_AZAHAR% %ROM%</command>\n    <platform>n3ds</platform>\n  </system>\n</systemList>\n",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/azahar-emu/qt-config.ini": "[Data%20Storage]\nuse_virtual_sd=true\nuse_virtual_sd\\default=true\nuse_custom_storage=true\nuse_custom_storage\\default=false\nnand_directory=/mnt/sd/retrodeck/saves/n3ds/azahar/nand/\nnand_directory\\default=false\nsdmc_directory=/mnt/sd/retrodeck/saves/n3ds/azahar/sdmc/\nsdmc_directory\\default=false\n",
+          "/mnt/sd/retrodeck/roms/n3ds/Game.3ds": "cci bytes"
+        },
+        "dirs": [
+          "/mnt/sd/retrodeck/saves",
+          "/mnt/sd/retrodeck/saves/n3ds/azahar/sdmc",
+          "/mnt/sd/retrodeck/saves/n3ds/azahar/nand",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/ROMs",
+          "/mnt/sd/retrodeck/bios"
+        ],
+        "entry_savefile_query": {
+          "system": "n3ds",
+          "content_path": "/mnt/sd/retrodeck/roms/n3ds/Game.3ds"
+        },
+        "n3ds_roms": {
+          "/mnt/sd/retrodeck/roms/n3ds/Game.3ds": "encrypted"
+        }
+      },
+      "expected": {
+        "installations": [
+          {
+            "kind": "retrodeck",
+            "label": "RetroDECK",
+            "kinds": [
+              "retrodeck"
+            ],
+            "root": "/mnt/sd/retrodeck",
+            "health": []
+          }
+        ],
+        "entry_savefile_location": {
+          "dir": "/mnt/sd/retrodeck/saves/n3ds/azahar/sdmc/Nintendo 3DS/00000000000000000000000000000000/00000000000000000000000000000000/title/<save_id>/data/00000001",
+          "root_kind": "emulator_directory",
+          "needs": [
+            "save_id"
+          ],
+          "fallback_dir": null,
+          "physical_dir": null,
+          "file_set": {
+            "state": "declared",
+            "files": [],
+            "complete": false,
+            "groups": [
+              {
+                "dir": "/mnt/sd/retrodeck/saves/n3ds/azahar/sdmc/Nintendo 3DS/00000000000000000000000000000000/00000000000000000000000000000000/title/<save_id>/data/00000001",
+                "files": null,
+                "granularity": "per-game-directory",
+                "role": "battery",
+                "size_fixed": false,
+                "unit": null
+              },
+              {
+                "dir": "/mnt/sd/retrodeck/saves/n3ds/azahar/sdmc/Nintendo 3DS/00000000000000000000000000000000/00000000000000000000000000000000/extdata",
+                "files": null,
+                "granularity": "per-game-files",
+                "role": "battery",
+                "size_fixed": false,
+                "unit": null
+              }
+            ]
+          },
+          "caveats": [
+            {
+              "code": "file-names-unestablished",
+              "data": {
+                "token": "AZAHAR",
+                "dir": "/mnt/sd/retrodeck/saves/n3ds/azahar/sdmc/Nintendo 3DS/00000000000000000000000000000000/00000000000000000000000000000000/title/<save_id>/data/00000001",
+                "role": "battery",
+                "save_id": "the 3DS title id: <high 8 hex>/<low 8 hex>, lowercase",
+                "save_id_spelling": "title-id-words",
+                "citation": "archive_source_sd_savedata.cpp:21-29 at Azahar 2126.1.1 — '{}Nintendo 3DS/{}/{}/title/' + '{:08x}/{:08x}/data/00000001/'; ID0/ID1 are all-zero (archive.h:22-24)"
+              }
+            },
+            {
+              "code": "file-names-unestablished",
+              "data": {
+                "token": "AZAHAR",
+                "dir": "/mnt/sd/retrodeck/saves/n3ds/azahar/sdmc/Nintendo 3DS/00000000000000000000000000000000/00000000000000000000000000000000/extdata",
+                "role": "battery",
+                "citation": "archive_extsavedata.cpp at Azahar 2126.1.1 — '{}Nintendo 3DS/{}/{}/extdata/'"
+              }
+            },
+            {
+              "code": "redirect-outranked",
+              "data": {
+                "token": "AZAHAR",
+                "via": "variable",
+                "name": "XDG_DATA_HOME",
+                "argument": "<dir>",
+                "file": "qt-config.ini",
+                "key": "[Data Storage] sdmc_directory"
+              }
+            }
+          ],
+          "redirects": [
+            {
+              "via": "working-directory",
+              "name": null,
+              "argument": "<dir>/user/",
+              "moves": [
+                "saves",
+                "savestates",
+                "configuration",
+                "firmware",
+                "installed-content"
+              ]
+            },
+            {
+              "via": "variable",
+              "name": "XDG_DATA_HOME",
+              "argument": "<dir>",
+              "moves": [
+                "saves",
+                "savestates",
+                "firmware",
+                "installed-content"
+              ]
+            }
+          ],
+          "granularity": {
+            "value": "per-game-directory",
+            "mode": "sdmc",
+            "readings": [
+              {
+                "key": "use_custom_storage",
+                "value": "true",
+                "options_file": "/home/deck/.var/app/net.retrodeck.retrodeck/config/azahar-emu/qt-config.ini"
+              },
+              {
+                "key": "sdmc_directory",
+                "value": "/mnt/sd/retrodeck/saves/n3ds/azahar/sdmc/",
+                "options_file": "/home/deck/.var/app/net.retrodeck.retrodeck/config/azahar-emu/qt-config.ini"
+              }
+            ],
+            "alternatives": []
+          }
+        }
+      }
+    },
+    {
+      "name": "azahar-a-truncated-image-keeps-the-hole",
+      "rationale": "The file carries the NCSD magic and its partition 0 runs past the end (not-a-rom): no title is read and the answer keeps the hole.",
+      "input": {
+        "home": "/home/deck",
+        "files": {
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retrodeck/retrodeck.json": "{\"paths\": {\"rd_home_path\": \"/mnt/sd/retrodeck\", \"saves_path\": \"/mnt/sd/retrodeck/saves\"}}",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retroarch/retroarch.cfg": "savefile_directory = \"/mnt/sd/retrodeck/saves\"\nlibretro_directory = \"/app/cores\"\n",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/files/retrodeck/components/es-de/share/es-de/resources/systems/linux/es_systems.xml": "<?xml version=\"1.0\"?>\n<systemList>\n  <system>\n    <name>n3ds</name>\n    <fullname>Nintendo 3DS</fullname>\n    <path>%ROMPATH%/n3ds</path>\n    <extension>.3ds .3DS</extension>\n    <command label=\"Azahar (Standalone)\">%EMULATOR_AZAHAR% %ROM%</command>\n    <platform>n3ds</platform>\n  </system>\n</systemList>\n",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/azahar-emu/qt-config.ini": "[Data%20Storage]\nuse_virtual_sd=true\nuse_virtual_sd\\default=true\nuse_custom_storage=true\nuse_custom_storage\\default=false\nnand_directory=/mnt/sd/retrodeck/saves/n3ds/azahar/nand/\nnand_directory\\default=false\nsdmc_directory=/mnt/sd/retrodeck/saves/n3ds/azahar/sdmc/\nsdmc_directory\\default=false\n",
+          "/mnt/sd/retrodeck/roms/n3ds/Game.3ds": "cci bytes"
+        },
+        "dirs": [
+          "/mnt/sd/retrodeck/saves",
+          "/mnt/sd/retrodeck/saves/n3ds/azahar/sdmc",
+          "/mnt/sd/retrodeck/saves/n3ds/azahar/nand",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/ROMs",
+          "/mnt/sd/retrodeck/bios"
+        ],
+        "entry_savefile_query": {
+          "system": "n3ds",
+          "content_path": "/mnt/sd/retrodeck/roms/n3ds/Game.3ds"
+        },
+        "n3ds_roms": {
+          "/mnt/sd/retrodeck/roms/n3ds/Game.3ds": "not-a-rom"
+        }
+      },
+      "expected": {
+        "installations": [
+          {
+            "kind": "retrodeck",
+            "label": "RetroDECK",
+            "kinds": [
+              "retrodeck"
+            ],
+            "root": "/mnt/sd/retrodeck",
+            "health": []
+          }
+        ],
+        "entry_savefile_location": {
+          "dir": "/mnt/sd/retrodeck/saves/n3ds/azahar/sdmc/Nintendo 3DS/00000000000000000000000000000000/00000000000000000000000000000000/title/<save_id>/data/00000001",
+          "root_kind": "emulator_directory",
+          "needs": [
+            "save_id"
+          ],
+          "fallback_dir": null,
+          "physical_dir": null,
+          "file_set": {
+            "state": "declared",
+            "files": [],
+            "complete": false,
+            "groups": [
+              {
+                "dir": "/mnt/sd/retrodeck/saves/n3ds/azahar/sdmc/Nintendo 3DS/00000000000000000000000000000000/00000000000000000000000000000000/title/<save_id>/data/00000001",
+                "files": null,
+                "granularity": "per-game-directory",
+                "role": "battery",
+                "size_fixed": false,
+                "unit": null
+              },
+              {
+                "dir": "/mnt/sd/retrodeck/saves/n3ds/azahar/sdmc/Nintendo 3DS/00000000000000000000000000000000/00000000000000000000000000000000/extdata",
+                "files": null,
+                "granularity": "per-game-files",
+                "role": "battery",
+                "size_fixed": false,
+                "unit": null
+              }
+            ]
+          },
+          "caveats": [
+            {
+              "code": "file-names-unestablished",
+              "data": {
+                "token": "AZAHAR",
+                "dir": "/mnt/sd/retrodeck/saves/n3ds/azahar/sdmc/Nintendo 3DS/00000000000000000000000000000000/00000000000000000000000000000000/title/<save_id>/data/00000001",
+                "role": "battery",
+                "save_id": "the 3DS title id: <high 8 hex>/<low 8 hex>, lowercase",
+                "save_id_spelling": "title-id-words",
+                "citation": "archive_source_sd_savedata.cpp:21-29 at Azahar 2126.1.1 — '{}Nintendo 3DS/{}/{}/title/' + '{:08x}/{:08x}/data/00000001/'; ID0/ID1 are all-zero (archive.h:22-24)"
+              }
+            },
+            {
+              "code": "file-names-unestablished",
+              "data": {
+                "token": "AZAHAR",
+                "dir": "/mnt/sd/retrodeck/saves/n3ds/azahar/sdmc/Nintendo 3DS/00000000000000000000000000000000/00000000000000000000000000000000/extdata",
+                "role": "battery",
+                "citation": "archive_extsavedata.cpp at Azahar 2126.1.1 — '{}Nintendo 3DS/{}/{}/extdata/'"
+              }
+            },
+            {
+              "code": "redirect-outranked",
+              "data": {
+                "token": "AZAHAR",
+                "via": "variable",
+                "name": "XDG_DATA_HOME",
+                "argument": "<dir>",
+                "file": "qt-config.ini",
+                "key": "[Data Storage] sdmc_directory"
+              }
+            }
+          ],
+          "redirects": [
+            {
+              "via": "working-directory",
+              "name": null,
+              "argument": "<dir>/user/",
+              "moves": [
+                "saves",
+                "savestates",
+                "configuration",
+                "firmware",
+                "installed-content"
+              ]
+            },
+            {
+              "via": "variable",
+              "name": "XDG_DATA_HOME",
+              "argument": "<dir>",
+              "moves": [
+                "saves",
+                "savestates",
+                "firmware",
+                "installed-content"
+              ]
+            }
+          ],
+          "granularity": {
+            "value": "per-game-directory",
+            "mode": "sdmc",
+            "readings": [
+              {
+                "key": "use_custom_storage",
+                "value": "true",
+                "options_file": "/home/deck/.var/app/net.retrodeck.retrodeck/config/azahar-emu/qt-config.ini"
+              },
+              {
+                "key": "sdmc_directory",
+                "value": "/mnt/sd/retrodeck/saves/n3ds/azahar/sdmc/",
+                "options_file": "/home/deck/.var/app/net.retrodeck.retrodeck/config/azahar-emu/qt-config.ini"
+              }
+            ],
+            "alternatives": []
+          }
+        }
+      }
+    }
+  ]
+}

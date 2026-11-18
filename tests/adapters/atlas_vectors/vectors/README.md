@@ -182,6 +182,15 @@ PPSSPP's reader has kept its entries (`["CATEGORY", "SAVEDATA_FILE_LIST", "SAVED
 the one state `"not-an-sfo"`: a file that reader does not keep, or one past atlas's bound. The same rules as
 `switch_packages` for a declared file with no entry, an `unreadable` one and a missing one.
 
+**`n3ds_roms`** — the path of a 3DS image `files` declares → what Azahar reads of it to key the title's saves:
+`{"container": "ncsd" | "ncch", "program_id": …, "extdata_id": …, "extdata_basis": …}`, where `program_id` is the
+program's NCCH header id and `extdata_id` the id its extended header grants, each sixteen lowercase hex digits, and
+`extdata_basis` says how that id was taken — `"exheader-id"` (the storage info's `ext_save_data_id`) or
+`"extended-access-first"` (the first non-zero id extended savedata access lists); both are `null` where the image names
+no extdata. Or one of three states: `"format-not-read"` (no `NCSD` or `NCCH` magic at `0x100` — a CIA, a Z3DS image, or
+no 3DS image), `"encrypted"` (an NCCH Azahar refuses to load) and `"not-a-rom"` (the magic, and a structure that runs
+short). The same rules as `switch_packages` for a declared file with no entry, an `unreadable` one and a missing one.
+
 **`disc_identities`** — the path of a PlayStation disc image `files` declares (a `.cue`, `.bin`, `.img`, `.iso`, `.chd`
 or `.pbp`) → what reading its first data track yields:
 `{"license": …, "system_cnf": …, "boot_found": …, "edc_valid": …}`, where `license` is the start of sector 4's user
@@ -381,12 +390,14 @@ Two rules decide what belongs in a vector:
   established — and the validator refuses a group without it, because a port that leaves the key out has answered a
   question about the file's size by silence; every entry carries `unit` too — `null`, or the statement that the group's
   directory is the asked game's own save,
-  `{"kind": "own-folder", "members": null, "archive_folder": …, "prefix": null}`, or that the files `members` names in
-  it are, `{"kind": "own-files", "members": […], "archive_folder": …, "prefix":
-  null}`, or that the folders in it
-  whose names begin with `prefix` are, less those `members` leaves out,
-  `{"kind": "own-folders-by-prefix", "members": […], "archive_folder": null, "prefix": …}` — set only where a reading
-  established it, never read off the granularity;
+  `{"kind": "own-folder", "members": null, "archive_folder": …, "prefix": null, "archive_roots": null}`, or that the
+  files `members` names in it are,
+  `{"kind": "own-files", "members": […], "archive_folder": …, "prefix": null, "archive_roots": null}`, or that the
+  folders in it whose names begin with `prefix` are, less those `members` leaves out,
+  `{"kind": "own-folders-by-prefix", "members": […], "archive_folder": null, "prefix": …, "archive_roots": null}`, or
+  that several directories are, each packed under an archive root name,
+  `{"kind": "own-folders-by-archive-root", "members": null, "archive_folder": null, "prefix": null, "archive_roots": {"data": "/…", …}}`
+  — the group's own `dir` among them; set only where a reading established it, never read off the granularity;
 - **prose is not** — `sources`, caveat `message` and the `*provenance` fields are for humans and change freely, so they
   are not serialized and not asserted.
 

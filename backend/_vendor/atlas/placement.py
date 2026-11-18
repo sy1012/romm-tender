@@ -1543,8 +1543,9 @@ class SizeFact:
 
 # What a :class:`SaveUnitStatement` says a group's directory is to one game:
 # the whole folder its save, a named few of the files a shared folder holds,
-# or the folders in a shared folder whose names begin with the game's prefix.
-SaveUnitKind = Literal["own-folder", "own-files", "own-folders-by-prefix"]
+# the folders in a shared folder whose names begin with the game's prefix, or
+# several folders of the game's own, each packed under an archive root name.
+SaveUnitKind = Literal["own-folder", "own-files", "own-folders-by-prefix", "own-folders-by-archive-root"]
 SAVE_UNIT_FOLDER: SaveUnitKind = "own-folder"
 """The group's directory is this game's own save, whole: everything below it is the game's, and
 nothing of another game's lies there — a client moves the directory as one unit.
@@ -1562,7 +1563,16 @@ begin with ``prefix`` — ASCII case aside — less those that hold something ot
 client packs each member at the archive's top level, ``<member>/…``; a restore removes the
 current members, and nothing else, before placing the folders it carries.
 """
-SAVE_UNIT_KINDS = (SAVE_UNIT_FOLDER, SAVE_UNIT_MEMBERS, SAVE_UNIT_PREFIXED_FOLDERS)
+SAVE_UNIT_ROOTED_FOLDERS: SaveUnitKind = "own-folders-by-archive-root"
+"""The game's save is several directories of its own, each whole — ``archive_roots`` pairs each
+with the name of the folder it packs under at the archive's top level, ``<root>/…`` (an Azahar
+title's save directory as ``data`` and its extdata directory as ``extdata``). Any of them may be
+absent where the game has not written there yet. A client archives the ones that exist; a restore
+replaces each directory whose root the archive carries, leaves the others alone and never removes
+one the archive does not carry; an archive holding any other top-level entry is not this unit's.
+The group's directory is one of them.
+"""
+SAVE_UNIT_KINDS = (SAVE_UNIT_FOLDER, SAVE_UNIT_MEMBERS, SAVE_UNIT_PREFIXED_FOLDERS, SAVE_UNIT_ROOTED_FOLDERS)
 
 
 _ASCII_UPPER = str.maketrans("abcdefghijklmnopqrstuvwxyz", "ABCDEFGHIJKLMNOPQRSTUVWXYZ")
@@ -1587,26 +1597,27 @@ class SaveUnitStatement:
     its PrimeHack fork's and the libretro Dolphin core's, where the content
     path's disc names the Wii title or the GameCube game code, Eden's, where
     the content names the Switch application, and PPSSPP's, where the
-    content path's disc names the PSP game's id — and is ``None`` on every
+    content path's disc names the PSP game's id, and Azahar's, where the
+    content path's 3DS image names the title — and is ``None`` on every
     other group.
 
     ``kind`` is :data:`SAVE_UNIT_FOLDER`, :data:`SAVE_UNIT_MEMBERS` or
-    :data:`SAVE_UNIT_PREFIXED_FOLDERS`; ``members`` the basenames the second
-    and third name, and ``None`` with the first; ``archive_folder`` the one
-    folder name a client packing this unit into an archive puts its entries
-    under, and ``None`` where the entries sit at the archive's top level;
-    ``prefix`` the name start the third matches folders by, and ``None`` with
-    the other two.
+    :data:`SAVE_UNIT_PREFIXED_FOLDERS` or :data:`SAVE_UNIT_ROOTED_FOLDERS`;
+    ``members`` the basenames the second and third name, and ``None`` with
+    the others; ``archive_folder`` the one folder name a client packing this
+    unit into an archive puts its entries under, and ``None`` where the
+    entries sit at the archive's top level; ``prefix`` the name start the
+    third matches folders by, and ``None`` with the others; ``archive_roots``
+    the directories the fourth names with the root each packs under, and
+    ``None`` with the others.
     """
 
     kind: SaveUnitKind
-    """What the statement covers — one of :data:`SAVE_UNIT_KINDS`: the group's directory whole,
-    or the files ``members`` names in it.
-    """
+    """What the statement covers — one of :data:`SAVE_UNIT_KINDS`."""
     members: tuple[str, ...] | None
     """The basenames lying directly in the group's directory that are this game's save, in name
     order — possibly none — where ``kind`` is ``own-files`` or ``own-folders-by-prefix``, and
-    ``None`` where it is ``own-folder``.
+    ``None`` otherwise.
     """
     archive_folder: str | None
     """The single folder an archive of this unit keeps its entries under — a Wii title's low word,
@@ -1618,11 +1629,17 @@ class SaveUnitStatement:
     nine-character id such as ``ULUS10064`` — where ``kind`` is ``own-folders-by-prefix``, and
     ``None`` otherwise.
     """
+    archive_roots: tuple[tuple[str, str], ...] | None = None
+    """``(root, directory)`` pairs in root-name order, where ``kind`` is
+    ``own-folders-by-archive-root``: each directory — an absolute host path, one of them the
+    group's own — packs at the archive's top level under its root, ``<root>/…``. ``None``
+    otherwise.
+    """
 
     def __post_init__(self) -> None:
         if self.kind not in SAVE_UNIT_KINDS:
             raise ValueError(f"SaveUnitStatement: kind must be one of {SAVE_UNIT_KINDS}, got {self.kind!r}")
-        if (self.members is None) != (self.kind == SAVE_UNIT_FOLDER):
+        if (self.members is None) != (self.kind in (SAVE_UNIT_FOLDER, SAVE_UNIT_ROOTED_FOLDERS)):
             raise ValueError(
                 "SaveUnitStatement: members are stated exactly when kind is 'own-files' or 'own-folders-by-prefix'"
             )
@@ -1643,6 +1660,27 @@ class SaveUnitStatement:
             begins_with_prefix(member, self.prefix) for member in self.members or ()
         ):
             raise ValueError(f"SaveUnitStatement: every member's name begins with the prefix {self.prefix!r}")
+        self._check_archive_roots()
+
+    def _check_archive_roots(self) -> None:
+        """``archive_roots``: stated exactly with its kind, sorted, distinct entry names over absolute paths."""
+        roots = self.archive_roots
+        if (roots is None) != (self.kind != SAVE_UNIT_ROOTED_FOLDERS):
+            raise ValueError(
+                "SaveUnitStatement: archive_roots are stated exactly when kind is 'own-folders-by-archive-root'"
+            )
+        if roots is None:
+            return
+        if self.archive_folder is not None:
+            raise ValueError("SaveUnitStatement: folders packed by archive root sit at the archive's top level")
+        names = [name for name, _ in roots]
+        if not roots or names != sorted(set(names)):
+            raise ValueError("SaveUnitStatement: archive_roots are one or more, each root named once, in name order")
+        for name, directory in roots:
+            if name in _NOT_AN_ENTRY or "/" in name or "\0" in name:
+                raise ValueError(f"SaveUnitStatement: archive root {name!r} is no entry name")
+            if not directory.startswith("/") or "\0" in directory:
+                raise ValueError(f"SaveUnitStatement: archive root {name!r} names no absolute path ({directory!r})")
 
 
 @dataclass(frozen=True, slots=True)

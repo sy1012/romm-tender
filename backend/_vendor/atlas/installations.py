@@ -201,7 +201,7 @@ from .firmware import firmware_for_core as _resolve_for_core
 from .firmware import firmware_for_system as _resolve_for_system
 from .firmware import firmware_inventory as _resolve_inventory
 from .firmware import identify_firmware as _resolve_identification
-from . import dolphin_disc, eden, psp_disc, switch_title
+from . import dolphin_disc, eden, n3ds_rom, psp_disc, switch_title
 from .machine import (
     APPIMAGE_CAPABILITY_MISSING,
     DOLPHIN_DISC_OK,
@@ -385,6 +385,7 @@ from .placement import (
     SAVE_UNIT_FOLDER,
     SAVE_UNIT_MEMBERS,
     SAVE_UNIT_PREFIXED_FOLDERS,
+    SAVE_UNIT_ROOTED_FOLDERS,
     begins_with_prefix,
     SAVE_ID_SPELLING_PATH_SEGMENT,
     MEMBERSHIP_LIMIT_MAKER_CODE_NOT_COMPARED,
@@ -11710,6 +11711,86 @@ def _azahar_sdmc_root(
     return resolved.path, tuple(readings), None
 
 
+_AZAHAR_BUILD = "Azahar 2126.1.1"
+_AZAHAR_SAVE_CITATION = (
+    f"archive_source_sd_savedata.cpp:21-35 at {_AZAHAR_BUILD} — '{{}}Nintendo 3DS/{{}}/{{}}/title/' + "
+    "'{:08x}/{:08x}/data/00000001/' and '.../data/00000001.metadata'; ID0/ID1 are all-zero (archive.h:22-24)"
+)
+_AZAHAR_EXTDATA_CITATION = (
+    f"archive_extsavedata.cpp:183-197 at {_AZAHAR_BUILD} — '{{}}Nintendo 3DS/{{}}/{{}}/extdata/' + "
+    "'{:08X}/{:08X}/' (uppercase), holding user/, boss/, icon and metadata (:279-280, :329-346)"
+)
+# The archive roots an Azahar title's unit packs its two directories under —
+# Argosy's N3dsFolderHandler's roots, so an archive either writes reads in the other.
+_AZAHAR_ROOT_DATA = "data"
+_AZAHAR_ROOT_EXTDATA = "extdata"
+
+
+@dataclass(frozen=True, slots=True)
+class _N3dsTitle:
+    """The content path's 3DS title as the save paths spell it, and the sentences saying how it was read."""
+
+    title: tuple[str, str]
+    extdata: tuple[str, str] | None
+    extended_access: bool
+    basis: tuple[str, ...]
+
+
+def _azahar_title(machine: Machine, content_path: str | None) -> tuple[_N3dsTitle | None, tuple[str, ...]]:
+    """The title the content path's image states — or ``None`` and the sentence saying why it was not read.
+
+    The program id is the NCCH header's, the id Azahar runs the title under
+    and keys its save by; the extdata id is the one its extended header
+    grants, read the way Azahar's ``ReadExtdataId`` reads it
+    (:mod:`atlas.n3ds_rom`).
+    """
+    if content_path is None:
+        return None, ()
+    result = machine.read_n3ds_rom(content_path)
+    if result.facts is None:
+        return None, (
+            f"the content path {content_path} was not read as a 3DS image ({result.status}): atlas reads a "
+            "card image (NCSD — .3ds, .cci) or an NCCH (.cxi) whose no_crypto flag is set; a CIA, a compressed "
+            "Z3DS image and Azahar's console-encrypted file are not read, and an encrypted NCCH is one Azahar "
+            f"does not load (ncch_container.cpp:120-162, :226-229 at {_AZAHAR_BUILD})",
+        )
+    facts = result.facts
+    high, low = n3ds_rom.title_words(facts.program_id)
+    basis = [
+        f"the title id {high}{low} is the program id in the {facts.container.upper()} image's "
+        f"{'partition 0 ' if facts.container == n3ds_rom.CONTAINER_NCSD else ''}NCCH header, the id Azahar "
+        f"creates the title's process under and keys its save by (ncch_container.cpp:680-689, "
+        f"ncch.cpp:122-140 at {_AZAHAR_BUILD})"
+    ]
+    extdata: tuple[str, str] | None = None
+    if facts.extdata_id is None:
+        basis.append(
+            "the image's extended header grants no extdata id (none, or zero), so no extdata directory is "
+            f"the title's (ReadExtdataId, ncch_container.cpp:692-722 at {_AZAHAR_BUILD})"
+        )
+    else:
+        extdata = n3ds_rom.extdata_words(facts.extdata_id)
+        how = (
+            "the first non-zero of the ids its extended savedata access lists — Azahar's own guess at the "
+            "main one"
+            if facts.extdata_basis == n3ds_rom.EXTDATA_EXTENDED_FIRST
+            else "its storage info's ext_save_data_id"
+        )
+        basis.append(
+            f"the extdata id {extdata[0]}/{extdata[1]} is the one the image's extended header grants, {how} — "
+            f"the id Azahar answers for the title (ReadExtdataId, ncch_container.cpp:692-722 at {_AZAHAR_BUILD})"
+        )
+    return (
+        _N3dsTitle(
+            (high, low),
+            extdata,
+            facts.extdata_basis == n3ds_rom.EXTDATA_EXTENDED_FIRST,
+            tuple(basis),
+        ),
+        (),
+    )
+
+
 def _azahar_savefile_placement(
     machine: Machine,
     *,
@@ -11726,11 +11807,14 @@ def _azahar_savefile_placement(
 
     The SD root comes from ``qt-config.ini`` exactly as the emulator resolves
     it — ``use_custom_storage`` routes ``sdmc_directory``, false leaves the
-    XDG default (``<data>/azahar-emu/sdmc/``) — and the unit below it is
-    ``Nintendo 3DS/<ID0>/<ID1>/title/<save_id>/data/00000001/``, the title id
-    as two lowercase 8-hex segments (archive_source_sd_savedata.cpp:21-29).
-    The extdata tree beside it is stated as its own group: save-adjacent data
-    keyed by an id of its own, which no title id fills.
+    XDG default (``<data>/azahar-emu/sdmc/``). Where the content path is a 3DS
+    image atlas reads, the answer is the title's own save directory,
+    ``title/<high>/<low>/data``, and the unit ``own-folders-by-archive-root``
+    states it and the title's extdata directory (:func:`_azahar_title_answer`).
+    Otherwise the answer is ``Nintendo 3DS/<ID0>/<ID1>/title/<save_id>/data/00000001/``,
+    the title id the ``save_id`` hole, and the extdata tree beside it stated as
+    its own group: save-adjacent data keyed by an id of its own, which no title
+    id fills.
     """
     ini_path = _standalone_settings_path(card, homes)
     result = machine.read_text(ini_path)
@@ -11764,6 +11848,21 @@ def _azahar_savefile_placement(
     title_tree = os.path.join(container, "title")
     physical_tree, link_caveats = _link_view(machine, title_tree)
     caveats.extend(link_caveats)
+    title, unread = _azahar_title(machine, content_path)
+    provenance = (
+        f"standalone save card '{card.token}': the emulated SD from qt-config.ini "
+        "(config.cpp:492-511 at 2126.1.1)"
+    )
+    if title is not None:
+        return _azahar_title_answer(
+            card,
+            title,
+            container=container,
+            physical_tree=physical_tree,
+            caveats=caveats,
+            readings=tuple(readings),
+            provenance=provenance,
+        )
     directory = os.path.join(title_tree, TEMPLATE_SAVE_ID, "data", "00000001")
     physical = (
         os.path.join(physical_tree, TEMPLATE_SAVE_ID, "data", "00000001")
@@ -11804,17 +11903,15 @@ def _azahar_savefile_placement(
             },
         )
     )
-    return _per_title_placement(
-        card,
+    return _labelled_per_title_placement(
+        f"standalone save card '{card.token}'",
+        card.provenance,
         directory=directory,
         physical=physical,
         caveats=caveats,
         mode="sdmc",
         readings=tuple(readings),
-        provenance=(
-            f"standalone save card '{card.token}': the emulated SD from qt-config.ini "
-            "(config.cpp:492-511 at 2126.1.1)"
-        ),
+        provenance=provenance,
         extra_groups=(
             FileGroup(
                 dir=extdata,
@@ -11824,6 +11921,78 @@ def _azahar_savefile_placement(
                 size_fixed=False,
             ),
         ),
+        extra_sources=unread,
+    )
+
+
+def _azahar_title_answer(
+    card: StandaloneSaveCard,
+    title: _N3dsTitle,
+    *,
+    container: str,
+    physical_tree: str | None,
+    caveats: list[Caveat],
+    readings: tuple[OptionReading, ...],
+    provenance: str,
+) -> SavefilePlacement:
+    """The answer for a title the content path names: its save directory and extdata directory as one unit.
+
+    The save directory is ``title/<high>/<low>/data`` — the archive's files
+    in ``00000001/`` and its format record ``00000001.metadata`` beside them —
+    and packs under the archive root ``data``; the extdata directory
+    ``extdata/<HIGH>/<LOW>`` packs under ``extdata``. Neither need exist yet.
+    The rule is Argosy's ``N3dsFolderHandler``'s: one title occupies both
+    directories, and a title may keep its progress in either alone.
+    """
+    high, low = title.title
+    directory = os.path.join(container, "title", high, low, "data")
+    physical = os.path.join(physical_tree, high, low, "data") if physical_tree is not None else None
+    roots: list[tuple[str, str]] = [(_AZAHAR_ROOT_DATA, directory)]
+    extra_groups: tuple[FileGroup, ...] = ()
+    caveats.append(
+        Caveat(
+            CAVEAT_FILE_NAMES_UNESTABLISHED,
+            f"the title's save directory holds 00000001/, the save archive's files — the game's own writes — and "
+            "00000001.metadata, its format record; it moves whole, under the archive root data",
+            {"token": card.token, "dir": directory, "role": ROLE_BATTERY, "citation": _AZAHAR_SAVE_CITATION},
+        )
+    )
+    if title.extdata is not None:
+        extdata = os.path.join(container, "extdata", *title.extdata)
+        roots.append((_AZAHAR_ROOT_EXTDATA, extdata))
+        extra_groups = (
+            FileGroup(
+                dir=extdata,
+                files=None,
+                granularity=GRANULARITY_PER_GAME_DIRECTORY,
+                role=ROLE_BATTERY,
+                size_fixed=False,
+            ),
+        )
+        caveats.append(
+            Caveat(
+                CAVEAT_FILE_NAMES_UNESTABLISHED,
+                "the title's extdata directory holds the game's own writes and moves whole, under the archive "
+                "root extdata; its id is the one the title's extended header grants"
+                + (", the first of several its extended savedata access lists" if title.extended_access else "")
+                + " — a game names the extdata it opens in its own request, so one that opens another id keeps "
+                "that data elsewhere in the extdata tree, outside this unit",
+                {"token": card.token, "dir": extdata, "role": ROLE_BATTERY, "citation": _AZAHAR_EXTDATA_CITATION},
+            )
+        )
+    return _labelled_per_title_placement(
+        f"standalone save card '{card.token}'",
+        card.provenance,
+        directory=directory,
+        physical=physical,
+        caveats=caveats,
+        mode="sdmc",
+        readings=readings,
+        provenance=provenance,
+        extra_groups=extra_groups,
+        needs=(),
+        unit=SaveUnitStatement(SAVE_UNIT_ROOTED_FOLDERS, None, None, archive_roots=tuple(sorted(roots))),
+        extra_sources=title.basis,
     )
 
 
