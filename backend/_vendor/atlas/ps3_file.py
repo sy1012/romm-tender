@@ -195,6 +195,24 @@ def _psf_category(handle: BinaryIO, size: int) -> str:
     return category if category in PSF_CATEGORIES else ""
 
 
+def psf_registry(data: bytes) -> dict[bytes, bytes | None] | None:
+    """What ``psf::load`` keeps of a whole ``PARAM.SFO``: each key and its string value (``None`` for an integer), or
+    ``None`` where the loader clears the registry — a check failed, or a ``CATEGORY`` outside its list (PSF.cpp:273-280).
+
+    A string runs to its first NUL and an array is kept whole, as the loader
+    keeps them; ``psf::get_string`` answers either (:375-385). The caller
+    bounds *data*, as :func:`read_facts` does with :data:`PSF_SIZE_LIMIT`.
+    """
+    entries = _psf_entries(data)
+    if entries is None:
+        return None
+    registry = dict(entries)
+    category = registry.get(_PSF_CATEGORY)
+    if (category or b"").decode("latin-1") not in PSF_CATEGORIES:
+        return None
+    return registry
+
+
 def _psf_layout(data: bytes) -> tuple[int, int, int] | None:
     """The header's key-table offset, data-table offset and entry count — ``None`` where the loader refuses the
     header or the entry table runs past the file (PSF.cpp:198-213)."""

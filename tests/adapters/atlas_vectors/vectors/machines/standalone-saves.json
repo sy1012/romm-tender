@@ -4679,7 +4679,9 @@
         "entry_savefile_location": {
           "dir": "/mnt/sd/retrodeck/storage/rpcs3/dev_hdd0/home/00000001/savedata",
           "root_kind": "emulator_directory",
-          "needs": [],
+          "needs": [
+            "save_id"
+          ],
           "fallback_dir": null,
           "physical_dir": null,
           "file_set": {
@@ -4712,7 +4714,9 @@
                 "token": "RPCS3",
                 "dir": "/mnt/sd/retrodeck/storage/rpcs3/dev_hdd0/home/00000001/savedata",
                 "role": "battery",
-                "citation": "'/dev_hdd0/home/%08u/savedata/' as a whole string in the shipped binary (build d5213de6)"
+                "save_id": "the game's TITLE_ID as its PARAM.SFO states it, nine characters — the prefix of its savedata folders' names, not a whole name",
+                "save_id_spelling": "ps3-title-id",
+                "citation": "'/dev_hdd0/home/%08u/savedata/' as a whole string in the shipped binary (build d5213de6); a game names the folders it saves under in savedata, and RPCS3 lists a game's folders by the prefix it asks for, its own by the title id it runs (cellSaveData.cpp:228-249, :312-314, :502, :812-840 at build d5213de6)"
               }
             },
             {
@@ -4803,7 +4807,9 @@
         "entry_savefile_location": {
           "dir": "/mnt/sd/hdd0/home/00000001/savedata",
           "root_kind": "emulator_directory",
-          "needs": [],
+          "needs": [
+            "save_id"
+          ],
           "fallback_dir": null,
           "physical_dir": null,
           "file_set": {
@@ -4844,7 +4850,9 @@
                 "token": "RPCS3",
                 "dir": "/mnt/sd/hdd0/home/00000001/savedata",
                 "role": "battery",
-                "citation": "'/dev_hdd0/home/%08u/savedata/' as a whole string in the shipped binary (build d5213de6)"
+                "save_id": "the game's TITLE_ID as its PARAM.SFO states it, nine characters — the prefix of its savedata folders' names, not a whole name",
+                "save_id_spelling": "ps3-title-id",
+                "citation": "'/dev_hdd0/home/%08u/savedata/' as a whole string in the shipped binary (build d5213de6); a game names the folders it saves under in savedata, and RPCS3 lists a game's folders by the prefix it asks for, its own by the title id it runs (cellSaveData.cpp:228-249, :312-314, :502, :812-840 at build d5213de6)"
               }
             },
             {
@@ -4936,7 +4944,9 @@
         "entry_savefile_location": {
           "dir": "/mnt/sd/hdd0/home/00000001/savedata",
           "root_kind": "emulator_directory",
-          "needs": [],
+          "needs": [
+            "save_id"
+          ],
           "fallback_dir": null,
           "physical_dir": null,
           "file_set": {
@@ -4969,7 +4979,9 @@
                 "token": "RPCS3",
                 "dir": "/mnt/sd/hdd0/home/00000001/savedata",
                 "role": "battery",
-                "citation": "'/dev_hdd0/home/%08u/savedata/' as a whole string in the shipped binary (build d5213de6)"
+                "save_id": "the game's TITLE_ID as its PARAM.SFO states it, nine characters — the prefix of its savedata folders' names, not a whole name",
+                "save_id_spelling": "ps3-title-id",
+                "citation": "'/dev_hdd0/home/%08u/savedata/' as a whole string in the shipped binary (build d5213de6); a game names the folders it saves under in savedata, and RPCS3 lists a game's folders by the prefix it asks for, its own by the title id it runs (cellSaveData.cpp:228-249, :312-314, :502, :812-840 at build d5213de6)"
               }
             },
             {
@@ -5064,7 +5076,9 @@
         "entry_savefile_location": {
           "dir": "/mnt/sd/hdd0/home/00000001/savedata",
           "root_kind": "emulator_directory",
-          "needs": [],
+          "needs": [
+            "save_id"
+          ],
           "fallback_dir": null,
           "physical_dir": null,
           "file_set": {
@@ -5097,7 +5111,9 @@
                 "token": "RPCS3",
                 "dir": "/mnt/sd/hdd0/home/00000001/savedata",
                 "role": "battery",
-                "citation": "'/dev_hdd0/home/%08u/savedata/' as a whole string in the shipped binary (build d5213de6)"
+                "save_id": "the game's TITLE_ID as its PARAM.SFO states it, nine characters — the prefix of its savedata folders' names, not a whole name",
+                "save_id_spelling": "ps3-title-id",
+                "citation": "'/dev_hdd0/home/%08u/savedata/' as a whole string in the shipped binary (build d5213de6); a game names the folders it saves under in savedata, and RPCS3 lists a game's folders by the prefix it asks for, its own by the title id it runs (cellSaveData.cpp:228-249, :312-314, :502, :812-840 at build d5213de6)"
               }
             },
             {
@@ -5183,7 +5199,9 @@
         "entry_savefile_location": {
           "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/config/rpcs3/dev_hdd0/home/00000001/savedata",
           "root_kind": "emulator_directory",
-          "needs": [],
+          "needs": [
+            "save_id"
+          ],
           "fallback_dir": null,
           "physical_dir": null,
           "file_set": {
@@ -5223,7 +5241,9 @@
                 "token": "RPCS3",
                 "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/config/rpcs3/dev_hdd0/home/00000001/savedata",
                 "role": "battery",
-                "citation": "'/dev_hdd0/home/%08u/savedata/' as a whole string in the shipped binary (build d5213de6)"
+                "save_id": "the game's TITLE_ID as its PARAM.SFO states it, nine characters — the prefix of its savedata folders' names, not a whole name",
+                "save_id_spelling": "ps3-title-id",
+                "citation": "'/dev_hdd0/home/%08u/savedata/' as a whole string in the shipped binary (build d5213de6); a game names the folders it saves under in savedata, and RPCS3 lists a game's folders by the prefix it asks for, its own by the title id it runs (cellSaveData.cpp:228-249, :312-314, :502, :812-840 at build d5213de6)"
               }
             },
             {
@@ -5310,7 +5330,9 @@
         "entry_savefile_location": {
           "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/config/rpcs3/dev_hdd0/home/00000001/savedata",
           "root_kind": "emulator_directory",
-          "needs": [],
+          "needs": [
+            "save_id"
+          ],
           "fallback_dir": null,
           "physical_dir": null,
           "file_set": {
@@ -5343,7 +5365,9 @@
                 "token": "RPCS3",
                 "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/config/rpcs3/dev_hdd0/home/00000001/savedata",
                 "role": "battery",
-                "citation": "'/dev_hdd0/home/%08u/savedata/' as a whole string in the shipped binary (build d5213de6)"
+                "save_id": "the game's TITLE_ID as its PARAM.SFO states it, nine characters — the prefix of its savedata folders' names, not a whole name",
+                "save_id_spelling": "ps3-title-id",
+                "citation": "'/dev_hdd0/home/%08u/savedata/' as a whole string in the shipped binary (build d5213de6); a game names the folders it saves under in savedata, and RPCS3 lists a game's folders by the prefix it asks for, its own by the title id it runs (cellSaveData.cpp:228-249, :312-314, :502, :812-840 at build d5213de6)"
               }
             },
             {
@@ -5430,7 +5454,9 @@
         "entry_savefile_location": {
           "dir": "/mnt/sd/retrodeck/storage/rpcs3/dev_hdd0/home/00000001/savedata",
           "root_kind": "emulator_directory",
-          "needs": [],
+          "needs": [
+            "save_id"
+          ],
           "fallback_dir": null,
           "physical_dir": null,
           "file_set": {
@@ -5463,7 +5489,9 @@
                 "token": "RPCS3",
                 "dir": "/mnt/sd/retrodeck/storage/rpcs3/dev_hdd0/home/00000001/savedata",
                 "role": "battery",
-                "citation": "'/dev_hdd0/home/%08u/savedata/' as a whole string in the shipped binary (build d5213de6)"
+                "save_id": "the game's TITLE_ID as its PARAM.SFO states it, nine characters — the prefix of its savedata folders' names, not a whole name",
+                "save_id_spelling": "ps3-title-id",
+                "citation": "'/dev_hdd0/home/%08u/savedata/' as a whole string in the shipped binary (build d5213de6); a game names the folders it saves under in savedata, and RPCS3 lists a game's folders by the prefix it asks for, its own by the title id it runs (cellSaveData.cpp:228-249, :312-314, :502, :812-840 at build d5213de6)"
               }
             },
             {
@@ -5550,7 +5578,9 @@
         "entry_savefile_location": {
           "dir": "/mnt/sd/retrodeck/storage/rpcs3/dev_hdd0/home/00000001/savedata",
           "root_kind": "emulator_directory",
-          "needs": [],
+          "needs": [
+            "save_id"
+          ],
           "fallback_dir": null,
           "physical_dir": null,
           "file_set": {
@@ -5583,7 +5613,9 @@
                 "token": "RPCS3",
                 "dir": "/mnt/sd/retrodeck/storage/rpcs3/dev_hdd0/home/00000001/savedata",
                 "role": "battery",
-                "citation": "'/dev_hdd0/home/%08u/savedata/' as a whole string in the shipped binary (build d5213de6)"
+                "save_id": "the game's TITLE_ID as its PARAM.SFO states it, nine characters — the prefix of its savedata folders' names, not a whole name",
+                "save_id_spelling": "ps3-title-id",
+                "citation": "'/dev_hdd0/home/%08u/savedata/' as a whole string in the shipped binary (build d5213de6); a game names the folders it saves under in savedata, and RPCS3 lists a game's folders by the prefix it asks for, its own by the title id it runs (cellSaveData.cpp:228-249, :312-314, :502, :812-840 at build d5213de6)"
               }
             },
             {
@@ -5764,7 +5796,9 @@
         "entry_savefile_location": {
           "dir": "/home/deck/Emulation/storage/rpcs3/dev_hdd0/home/00000001/savedata",
           "root_kind": "emulator_directory",
-          "needs": [],
+          "needs": [
+            "save_id"
+          ],
           "fallback_dir": null,
           "physical_dir": null,
           "file_set": {
@@ -5797,7 +5831,9 @@
                 "token": "RPCS3",
                 "dir": "/home/deck/Emulation/storage/rpcs3/dev_hdd0/home/00000001/savedata",
                 "role": "battery",
-                "citation": "'/dev_hdd0/home/%08u/savedata/' as a whole string in the shipped binary (build d5213de6)"
+                "save_id": "the game's TITLE_ID as its PARAM.SFO states it, nine characters — the prefix of its savedata folders' names, not a whole name",
+                "save_id_spelling": "ps3-title-id",
+                "citation": "'/dev_hdd0/home/%08u/savedata/' as a whole string in the shipped binary (build d5213de6); a game names the folders it saves under in savedata, and RPCS3 lists a game's folders by the prefix it asks for, its own by the title id it runs (cellSaveData.cpp:228-249, :312-314, :502, :812-840 at build d5213de6)"
               }
             },
             {
@@ -5887,7 +5923,9 @@
         "entry_savefile_location": {
           "dir": "/mnt/sd/hdd0/home/00000001/savedata",
           "root_kind": "emulator_directory",
-          "needs": [],
+          "needs": [
+            "save_id"
+          ],
           "fallback_dir": null,
           "physical_dir": null,
           "file_set": {
@@ -5920,7 +5958,9 @@
                 "token": "RPCS3",
                 "dir": "/mnt/sd/hdd0/home/00000001/savedata",
                 "role": "battery",
-                "citation": "'/dev_hdd0/home/%08u/savedata/' as a whole string in the shipped binary (build d5213de6)"
+                "save_id": "the game's TITLE_ID as its PARAM.SFO states it, nine characters — the prefix of its savedata folders' names, not a whole name",
+                "save_id_spelling": "ps3-title-id",
+                "citation": "'/dev_hdd0/home/%08u/savedata/' as a whole string in the shipped binary (build d5213de6); a game names the folders it saves under in savedata, and RPCS3 lists a game's folders by the prefix it asks for, its own by the title id it runs (cellSaveData.cpp:228-249, :312-314, :502, :812-840 at build d5213de6)"
               }
             },
             {
@@ -6014,7 +6054,9 @@
         "entry_savefile_location": {
           "dir": "/mnt/sd/hdd0/home/00000001/savedata",
           "root_kind": "emulator_directory",
-          "needs": [],
+          "needs": [
+            "save_id"
+          ],
           "fallback_dir": null,
           "physical_dir": null,
           "file_set": {
@@ -6047,7 +6089,9 @@
                 "token": "RPCS3",
                 "dir": "/mnt/sd/hdd0/home/00000001/savedata",
                 "role": "battery",
-                "citation": "'/dev_hdd0/home/%08u/savedata/' as a whole string in the shipped binary (build d5213de6)"
+                "save_id": "the game's TITLE_ID as its PARAM.SFO states it, nine characters — the prefix of its savedata folders' names, not a whole name",
+                "save_id_spelling": "ps3-title-id",
+                "citation": "'/dev_hdd0/home/%08u/savedata/' as a whole string in the shipped binary (build d5213de6); a game names the folders it saves under in savedata, and RPCS3 lists a game's folders by the prefix it asks for, its own by the title id it runs (cellSaveData.cpp:228-249, :312-314, :502, :812-840 at build d5213de6)"
               }
             },
             {
@@ -6141,7 +6185,9 @@
         "entry_savefile_location": {
           "dir": "/mnt/sd/hdd0/home/12345678/savedata",
           "root_kind": "emulator_directory",
-          "needs": [],
+          "needs": [
+            "save_id"
+          ],
           "fallback_dir": null,
           "physical_dir": null,
           "file_set": {
@@ -6182,7 +6228,9 @@
                 "token": "RPCS3",
                 "dir": "/mnt/sd/hdd0/home/12345678/savedata",
                 "role": "battery",
-                "citation": "'/dev_hdd0/home/%08u/savedata/' as a whole string in the shipped binary (build d5213de6)"
+                "save_id": "the game's TITLE_ID as its PARAM.SFO states it, nine characters — the prefix of its savedata folders' names, not a whole name",
+                "save_id_spelling": "ps3-title-id",
+                "citation": "'/dev_hdd0/home/%08u/savedata/' as a whole string in the shipped binary (build d5213de6); a game names the folders it saves under in savedata, and RPCS3 lists a game's folders by the prefix it asks for, its own by the title id it runs (cellSaveData.cpp:228-249, :312-314, :502, :812-840 at build d5213de6)"
               }
             },
             {
@@ -6274,7 +6322,9 @@
         "entry_savefile_location": {
           "dir": "/mnt/sd/hdd0/home/00000001/savedata",
           "root_kind": "emulator_directory",
-          "needs": [],
+          "needs": [
+            "save_id"
+          ],
           "fallback_dir": null,
           "physical_dir": null,
           "file_set": {
@@ -6307,7 +6357,9 @@
                 "token": "RPCS3",
                 "dir": "/mnt/sd/hdd0/home/00000001/savedata",
                 "role": "battery",
-                "citation": "'/dev_hdd0/home/%08u/savedata/' as a whole string in the shipped binary (build d5213de6)"
+                "save_id": "the game's TITLE_ID as its PARAM.SFO states it, nine characters — the prefix of its savedata folders' names, not a whole name",
+                "save_id_spelling": "ps3-title-id",
+                "citation": "'/dev_hdd0/home/%08u/savedata/' as a whole string in the shipped binary (build d5213de6); a game names the folders it saves under in savedata, and RPCS3 lists a game's folders by the prefix it asks for, its own by the title id it runs (cellSaveData.cpp:228-249, :312-314, :502, :812-840 at build d5213de6)"
               }
             },
             {
@@ -6398,7 +6450,9 @@
         "entry_savefile_location": {
           "dir": "/mnt/sd/hdd0/home/00000001/savedata",
           "root_kind": "emulator_directory",
-          "needs": [],
+          "needs": [
+            "save_id"
+          ],
           "fallback_dir": null,
           "physical_dir": null,
           "file_set": {
@@ -6431,7 +6485,9 @@
                 "token": "RPCS3",
                 "dir": "/mnt/sd/hdd0/home/00000001/savedata",
                 "role": "battery",
-                "citation": "'/dev_hdd0/home/%08u/savedata/' as a whole string in the shipped binary (build d5213de6)"
+                "save_id": "the game's TITLE_ID as its PARAM.SFO states it, nine characters — the prefix of its savedata folders' names, not a whole name",
+                "save_id_spelling": "ps3-title-id",
+                "citation": "'/dev_hdd0/home/%08u/savedata/' as a whole string in the shipped binary (build d5213de6); a game names the folders it saves under in savedata, and RPCS3 lists a game's folders by the prefix it asks for, its own by the title id it runs (cellSaveData.cpp:228-249, :312-314, :502, :812-840 at build d5213de6)"
               }
             },
             {
@@ -6527,7 +6583,9 @@
         "entry_savefile_location": {
           "dir": "/mnt/sd/hdd0/home/00000001/savedata",
           "root_kind": "emulator_directory",
-          "needs": [],
+          "needs": [
+            "save_id"
+          ],
           "fallback_dir": null,
           "physical_dir": null,
           "file_set": {
@@ -6560,7 +6618,9 @@
                 "token": "RPCS3",
                 "dir": "/mnt/sd/hdd0/home/00000001/savedata",
                 "role": "battery",
-                "citation": "'/dev_hdd0/home/%08u/savedata/' as a whole string in the shipped binary (build d5213de6)"
+                "save_id": "the game's TITLE_ID as its PARAM.SFO states it, nine characters — the prefix of its savedata folders' names, not a whole name",
+                "save_id_spelling": "ps3-title-id",
+                "citation": "'/dev_hdd0/home/%08u/savedata/' as a whole string in the shipped binary (build d5213de6); a game names the folders it saves under in savedata, and RPCS3 lists a game's folders by the prefix it asks for, its own by the title id it runs (cellSaveData.cpp:228-249, :312-314, :502, :812-840 at build d5213de6)"
               }
             },
             {
@@ -6654,7 +6714,9 @@
         "entry_savefile_location": {
           "dir": "/mnt/sd/hdd0/home/00000001/savedata",
           "root_kind": "emulator_directory",
-          "needs": [],
+          "needs": [
+            "save_id"
+          ],
           "fallback_dir": null,
           "physical_dir": null,
           "file_set": {
@@ -6687,7 +6749,9 @@
                 "token": "RPCS3",
                 "dir": "/mnt/sd/hdd0/home/00000001/savedata",
                 "role": "battery",
-                "citation": "'/dev_hdd0/home/%08u/savedata/' as a whole string in the shipped binary (build d5213de6)"
+                "save_id": "the game's TITLE_ID as its PARAM.SFO states it, nine characters — the prefix of its savedata folders' names, not a whole name",
+                "save_id_spelling": "ps3-title-id",
+                "citation": "'/dev_hdd0/home/%08u/savedata/' as a whole string in the shipped binary (build d5213de6); a game names the folders it saves under in savedata, and RPCS3 lists a game's folders by the prefix it asks for, its own by the title id it runs (cellSaveData.cpp:228-249, :312-314, :502, :812-840 at build d5213de6)"
               }
             },
             {
@@ -6782,7 +6846,9 @@
         "entry_savefile_location": {
           "dir": "/mnt/sd/hdd0/home/00000001/savedata",
           "root_kind": "emulator_directory",
-          "needs": [],
+          "needs": [
+            "save_id"
+          ],
           "fallback_dir": null,
           "physical_dir": null,
           "file_set": {
@@ -6815,7 +6881,9 @@
                 "token": "RPCS3",
                 "dir": "/mnt/sd/hdd0/home/00000001/savedata",
                 "role": "battery",
-                "citation": "'/dev_hdd0/home/%08u/savedata/' as a whole string in the shipped binary (build d5213de6)"
+                "save_id": "the game's TITLE_ID as its PARAM.SFO states it, nine characters — the prefix of its savedata folders' names, not a whole name",
+                "save_id_spelling": "ps3-title-id",
+                "citation": "'/dev_hdd0/home/%08u/savedata/' as a whole string in the shipped binary (build d5213de6); a game names the folders it saves under in savedata, and RPCS3 lists a game's folders by the prefix it asks for, its own by the title id it runs (cellSaveData.cpp:228-249, :312-314, :502, :812-840 at build d5213de6)"
               }
             },
             {
@@ -6910,7 +6978,9 @@
         "entry_savefile_location": {
           "dir": "/mnt/sd/hdd0/home/00000001/savedata",
           "root_kind": "emulator_directory",
-          "needs": [],
+          "needs": [
+            "save_id"
+          ],
           "fallback_dir": null,
           "physical_dir": null,
           "file_set": {
@@ -6943,7 +7013,9 @@
                 "token": "RPCS3",
                 "dir": "/mnt/sd/hdd0/home/00000001/savedata",
                 "role": "battery",
-                "citation": "'/dev_hdd0/home/%08u/savedata/' as a whole string in the shipped binary (build d5213de6)"
+                "save_id": "the game's TITLE_ID as its PARAM.SFO states it, nine characters — the prefix of its savedata folders' names, not a whole name",
+                "save_id_spelling": "ps3-title-id",
+                "citation": "'/dev_hdd0/home/%08u/savedata/' as a whole string in the shipped binary (build d5213de6); a game names the folders it saves under in savedata, and RPCS3 lists a game's folders by the prefix it asks for, its own by the title id it runs (cellSaveData.cpp:228-249, :312-314, :502, :812-840 at build d5213de6)"
               }
             },
             {

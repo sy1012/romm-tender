@@ -191,6 +191,14 @@ no extdata. Or one of three states: `"format-not-read"` (no `NCSD` or `NCCH` mag
 no 3DS image), `"encrypted"` (an NCCH Azahar refuses to load) and `"not-a-rom"` (the magic, and a structure that runs
 short). The same rules as `switch_packages` for a declared file with no entry, an `unreadable` one and a missing one.
 
+**`ps3_titles`** — the path of a PS3 game file `files` declares → the title id it states:
+`{"source": "param-sfo" | "pkg" | "iso", "title_id": …}`, where `title_id` is spelled as the file spells it — `TITLE_ID`
+in a `PARAM.SFO` (`param-sfo`) or in an ISO image's `PS3_GAME/PARAM.SFO` (`iso`), or the nine bytes at offset 55 of a
+PSN package's header, the title part of its content id (`pkg`). Or one of three states: `"format-not-read"` (none of the
+three forms, or a PSP or PS Vita package), `"executable"` (a SELF or ELF, whose id is the `PARAM.SFO` RPCS3 loads beside
+its folder, declared on its own) and `"no-title-id"` (a file of one of the forms that names no id). The same rules as
+`switch_packages` for a declared file with no entry, an `unreadable` one and a missing one.
+
 **`disc_identities`** — the path of a PlayStation disc image `files` declares (a `.cue`, `.bin`, `.img`, `.iso`, `.chd`
 or `.pbp`) → what reading its first data track yields:
 `{"license": …, "system_cnf": …, "boot_found": …, "edc_valid": …}`, where `license` is the start of sector 4's user

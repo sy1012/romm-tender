@@ -65,7 +65,7 @@ from __future__ import annotations
 # tests/test_version.py holds it equal to pyproject — CI's package job holds
 # dist-info to pyproject in a clean venv — so drift is a red test, not a
 # silent fork.
-__version__ = "0.34.0+tender.5"  # x-release-please-version
+__version__ = "0.34.0+tender.6"  # x-release-please-version
 
 # --- The two entry points, and the aggregate over them -----------------------
 from .detect import detect
@@ -745,9 +745,11 @@ from .placement import (
     HOLE_PROFILE_ID,
     CAVEAT_ACTIVE_PROFILE_UNESTABLISHED,
     CAVEAT_PSN_SAVE_PREFIX_MAY_DIFFER,
+    CAVEAT_PS3_SAVE_PREFIX_MAY_DIFFER,
     KEYINGS,
     SAVE_ID_SPELLING_GAME_CODE,
     SAVE_ID_SPELLING_PSP_GAME_ID,
+    SAVE_ID_SPELLING_PS3_TITLE_ID,
     SAVE_ID_SPELLING_PATH_SEGMENT,
     SAVE_ID_SPELLING_TITLE_ID_WORDS,
     SAVE_ID_SPELLINGS,
@@ -1391,6 +1393,7 @@ __all__ = [
     # before filling the hole with it.
     "SAVE_ID_SPELLING_GAME_CODE",
     "SAVE_ID_SPELLING_PSP_GAME_ID",
+    "SAVE_ID_SPELLING_PS3_TITLE_ID",
     "SAVE_ID_SPELLING_PATH_SEGMENT",
     "SAVE_ID_SPELLING_TITLE_ID_WORDS",
     "SAVE_ID_SPELLINGS",
@@ -1635,6 +1638,7 @@ __all__ = [
     "CAVEAT_SAVE_ID_CANDIDATES",
     "CAVEAT_ACTIVE_PROFILE_UNESTABLISHED",
     "CAVEAT_PSN_SAVE_PREFIX_MAY_DIFFER",
+    "CAVEAT_PS3_SAVE_PREFIX_MAY_DIFFER",
     "CAVEAT_SOFT_PATCHING_APPLIES",
     "CAVEAT_SORTED_DIR_MISSING",
     "CAVEAT_SORTED_DIR_UNCREATABLE",

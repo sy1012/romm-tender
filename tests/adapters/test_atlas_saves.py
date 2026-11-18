@@ -39,6 +39,7 @@ from _vendor.atlas import (
     CAVEAT_EMULATOR_CONFIG_UNREADABLE,
     CAVEAT_FILE_NAMES_UNESTABLISHED,
     CAVEAT_FILENAMES_CONTENT_CONDITIONAL,
+    CAVEAT_PS3_SAVE_PREFIX_MAY_DIFFER,
     CAVEAT_PSN_SAVE_PREFIX_MAY_DIFFER,
     CAVEAT_REDIRECT_OUTRANKED,
     CAVEAT_SAVE_FILES_SHARED_WITH_CORE,
@@ -2070,6 +2071,68 @@ class TestAPpssppSave:
         ],
     )
     def test_a_disc_or_folder_that_could_not_be_read_is_no_unit(self, traces, vector_name):
+        answer = self._answer(vector_name, traces)
+
+        assert answer.unit is None
+        assert answer.syncable is False
+
+
+def _rpcs3(vector_name: str, traces: list[str]) -> tuple[AtlasSaveLocationAdapter, str]:
+    """The save adapter over the recorded RPCS3 machine *vector_name*, and the content its query names."""
+    path = os.path.join(os.path.dirname(__file__), "atlas_vectors", "vectors", "machines", "rpcs3-savedata.json")
+    with open(path, encoding="utf-8") as handle:
+        vectors = json.load(handle)["vectors"]
+    inp = next(vector for vector in vectors if vector["name"] == vector_name)["input"]
+    sources = _sources(atlas_detect, traces, machine=fixture_machine(inp))
+    return AtlasSaveLocationAdapter(sources=sources, log_debug=traces.append), inp["entry_savefile_query"][
+        "content_path"
+    ]
+
+
+class TestAnRpcs3Save:
+    """A PS3 game's save in standalone RPCS3: its title id's folders in the one user's savedata, synced as a unit."""
+
+    _SAVEDATA = "/mnt/sd/hdd0/home/00000001/savedata"
+
+    def _answer(self, vector_name: str, traces: list[str]):
+        adapter, content = _rpcs3(vector_name, traces)
+        return adapter.resolve_save_answer(
+            system="ps3", content_path=content, emulator_label="RPCS3 (Standalone)", content_installed=True
+        )
+
+    @pytest.mark.parametrize(
+        "vector_name",
+        ["rpcs3-a-folder-dump-names-the-titles-savedata-folders", "rpcs3-a-dumps-boot-file-names-the-same-title"],
+    )
+    def test_a_folder_dump_s_save_folders_are_one_unit_carrying_the_note(self, traces, vector_name):
+        answer = self._answer(vector_name, traces)
+
+        assert answer.state == SAVE_STATE_PER_GAME_UNIT
+        assert answer.unit == SaveUnit(
+            root=self._SAVEDATA, members=("BLUS30443-AUTOSAVE", "BLUS30443GAMEDATA"), prefix="BLUS30443"
+        )
+        assert CAVEAT_PS3_SAVE_PREFIX_MAY_DIFFER in answer.caveats
+
+    def test_a_psn_package_names_its_title_from_its_header(self, traces):
+        answer = self._answer("rpcs3-a-psn-package-names-its-title-from-its-header", traces)
+
+        assert answer.unit == SaveUnit(root=self._SAVEDATA, members=("NPUB30058SAVE01",), prefix="NPUB30058")
+
+    def test_a_game_never_saved_still_has_a_unit_to_restore_into(self, traces):
+        answer = self._answer("rpcs3-a-game-never-saved-still-has-its-unit", traces)
+
+        assert answer.unit == SaveUnit(root=self._SAVEDATA, members=(), prefix="BLUS30443")
+
+    @pytest.mark.parametrize(
+        "vector_name",
+        [
+            "rpcs3-two-user-accounts-state-no-unit",
+            "rpcs3-a-psp-package-is-not-read-and-keeps-the-hole",
+            "rpcs3-a-param-sfo-naming-no-title-keeps-the-hole",
+            "rpcs3-an-unlistable-savedata-keeps-the-hole",
+        ],
+    )
+    def test_a_title_or_user_that_could_not_be_settled_is_no_unit(self, traces, vector_name):
         answer = self._answer(vector_name, traces)
 
         assert answer.unit is None

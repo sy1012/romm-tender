@@ -1091,12 +1091,12 @@ A save of several files the emulator's answer says are one game's own, moved tog
 file below it (a folder per game, such as a Wii title's `data/`), a named set of files directly in it (a game's `.gci`
 files in a GameCube card folder other games share), or a named set of folders directly in it whose names start with the
 game's id (a PSP game's save folders in PPSSPP's `SAVEDATA`, where a folder of its installed data under the same id is
-not a member); or several folders that are each the game's own, every one zipped under a root name of its own (a 3DS
-title's save folder as `data/` and its extdata folder as `extdata/` in Azahar). It syncs as one zip Tender stages for
-it, `<rom stem>.zip` in `save-units/<rom id>/` under the data root, packed from the unit before anything reads the
-game's saves and unpacked into the unit after anything writes the zip. A `per-game-directory` granularity alone does not
-make one: only an explicit statement that the folder is the game's own does. Detail:
-[Save units](docs/architecture/save-file-sync-architecture.md#save-units).
+not a member, and a PS3 game's in RPCS3's `savedata`); or several folders that are each the game's own, every one zipped
+under a root name of its own (a 3DS title's save folder as `data/` and its extdata folder as `extdata/` in Azahar). It
+syncs as one zip Tender stages for it, `<rom stem>.zip` in `save-units/<rom id>/` under the data root, packed from the
+unit before anything reads the game's saves and unpacked into the unit after anything writes the zip. A
+`per-game-directory` granularity alone does not make one: only an explicit statement that the folder is the game's own
+does. Detail: [Save units](docs/architecture/save-file-sync-architecture.md#save-units).
 
 _Avoid_: calling the staged zip the save — it is the unit's stand-in, rebuilt on every read.
 

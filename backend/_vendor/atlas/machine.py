@@ -95,7 +95,7 @@ from dataclasses import dataclass, field
 from types import MappingProxyType
 from typing import BinaryIO, Callable, Iterable, Literal, Mapping, NamedTuple, Protocol, cast, runtime_checkable
 
-from . import dolphin_disc, eden, lha, n3ds_rom, ps2_bios, ps3_file, ps3_iso, psp_disc, psx_chd, psx_disc, psx_pbp, squashfs, switch_title, whdload
+from . import dolphin_disc, eden, lha, n3ds_rom, ps2_bios, ps3_file, ps3_iso, ps3_title, psp_disc, psx_chd, psx_disc, psx_pbp, squashfs, switch_title, whdload
 from .content_path import archive_delimiter
 
 try:
@@ -327,6 +327,31 @@ N3DS_ROM_STATUSES: tuple[N3dsRomStatus, ...] = (
     N3DS_ROM_FORMAT_NOT_READ,
     N3DS_ROM_ENCRYPTED,
     N3DS_ROM_NOT_A_ROM,
+)
+
+# Reading the title id RPCS3 runs a PS3 game under (atlas.ps3_title) fails the
+# way a plain read fails, and in three ways that are findings about the bytes:
+# "format-not-read" is a file that is no PARAM.SFO, PS3 package or ISO 9660
+# image — a PSP or PS Vita package among them; "executable" a SELF or ELF, whose
+# id is the PARAM.SFO beside its folder; "no-title-id" a file of one of the
+# three forms that names no id — a PARAM.SFO RPCS3's loader clears or that
+# states no TITLE_ID, a package RPCS3 refuses, an image without a
+# PS3_GAME/PARAM.SFO the reading reaches. "missing" is no regular file there
+# once links are followed.
+Ps3TitleStatus = Literal["ok", "missing", "unreadable", "format-not-read", "executable", "no-title-id"]
+PS3_TITLE_OK: Ps3TitleStatus = "ok"
+PS3_TITLE_MISSING: Ps3TitleStatus = "missing"
+PS3_TITLE_UNREADABLE: Ps3TitleStatus = "unreadable"
+PS3_TITLE_FORMAT_NOT_READ: Ps3TitleStatus = "format-not-read"
+PS3_TITLE_EXECUTABLE: Ps3TitleStatus = "executable"
+PS3_TITLE_NO_TITLE_ID: Ps3TitleStatus = "no-title-id"
+PS3_TITLE_STATUSES: tuple[Ps3TitleStatus, ...] = (
+    PS3_TITLE_OK,
+    PS3_TITLE_MISSING,
+    PS3_TITLE_UNREADABLE,
+    PS3_TITLE_FORMAT_NOT_READ,
+    PS3_TITLE_EXECUTABLE,
+    PS3_TITLE_NO_TITLE_ID,
 )
 
 # Reading the keys of a PSP savedata folder's PARAM.SFO (atlas.psp_disc) fails
@@ -616,6 +641,22 @@ class N3dsRomResult:
     def __post_init__(self) -> None:
         if (self.facts is None) == (self.status == N3DS_ROM_OK):
             raise ValueError(f"N3dsRomResult: facts must be set exactly when status is 'ok' (got {self.status!r})")
+
+
+@dataclass(frozen=True, slots=True)
+class Ps3TitleResult:
+    """One read of the title id a PS3 game's file states — ``facts`` is set exactly when ``status`` is ok.
+
+    ``missing`` / ``unreadable`` mean what they mean on :class:`ReadResult`;
+    the facts are :class:`atlas.ps3_title.Ps3TitleFacts`.
+    """
+
+    status: Ps3TitleStatus
+    facts: ps3_title.Ps3TitleFacts | None = None
+
+    def __post_init__(self) -> None:
+        if (self.facts is None) == (self.status == PS3_TITLE_OK):
+            raise ValueError(f"Ps3TitleResult: facts must be set exactly when status is 'ok' (got {self.status!r})")
 
 
 @dataclass(frozen=True, slots=True)
@@ -1444,6 +1485,8 @@ class Machine(Protocol):
 
     def read_n3ds_rom(self, path: str) -> N3dsRomResult: ...
 
+    def read_ps3_title(self, path: str) -> Ps3TitleResult: ...
+
     def read_disc_identity(self, path: str, *, extracted: ExtractedEntry | None = None) -> DiscIdentityResult: ...
 
     def list_archive(self, path: str) -> ArchiveListResult: ...
@@ -2055,6 +2098,39 @@ class RealMachine:
         except OSError:
             return N3dsRomResult(N3DS_ROM_UNREADABLE)
         return N3dsRomResult(N3DS_ROM_OK, facts)
+
+    def read_ps3_title(self, path: str) -> Ps3TitleResult:
+        """The title id the PS3 game file at *path* states — a status, and the facts where it was read.
+
+        A regular file once links are followed, checked before opening, as for
+        :meth:`read_psp_disc`. The reader is :mod:`atlas.ps3_title`: a
+        package's 0x60-byte head, a ``PARAM.SFO`` of at most
+        :data:`atlas.ps3_file.PSF_SIZE_LIMIT` bytes, or an image's descriptors,
+        two directories and its ``PS3_GAME/PARAM.SFO`` under the bounds of
+        :mod:`atlas.ps3_iso`.
+        """
+        try:
+            st = os.stat(path)
+        except (FileNotFoundError, NotADirectoryError):
+            return Ps3TitleResult(PS3_TITLE_MISSING)
+        except OSError:
+            return Ps3TitleResult(PS3_TITLE_UNREADABLE)
+        if not _stat.S_ISREG(st.st_mode):
+            return Ps3TitleResult(PS3_TITLE_MISSING)
+        try:
+            with open(path, "rb") as f:
+                facts = ps3_title.read_facts(f, st.st_size)
+        except (FileNotFoundError, NotADirectoryError):
+            return Ps3TitleResult(PS3_TITLE_MISSING)
+        except ps3_title.Ps3TitleExecutable:
+            return Ps3TitleResult(PS3_TITLE_EXECUTABLE)
+        except ps3_title.Ps3TitleFormatNotRead:
+            return Ps3TitleResult(PS3_TITLE_FORMAT_NOT_READ)
+        except ps3_title.Ps3TitleUnread:
+            return Ps3TitleResult(PS3_TITLE_NO_TITLE_ID)
+        except OSError:
+            return Ps3TitleResult(PS3_TITLE_UNREADABLE)
+        return Ps3TitleResult(PS3_TITLE_OK, facts)
 
     def read_disc_identity(self, path: str, *, extracted: ExtractedEntry | None = None) -> DiscIdentityResult:
         """The bytes a PlayStation disc's emulators decide its region from — a status, and the identity where read.
@@ -3327,6 +3403,42 @@ def _validate_fixture_n3ds_roms(
     return validated
 
 
+_FIXTURE_PS3_TITLE_FIELDS = ("source", "title_id")
+_FIXTURE_PS3_TITLE_STATES = (PS3_TITLE_FORMAT_NOT_READ, PS3_TITLE_EXECUTABLE, PS3_TITLE_NO_TITLE_ID)
+
+
+def _validate_fixture_ps3_titles(
+    declared: Mapping[str, object] | None,
+    files: Mapping[str, tuple[ReadStatus, str | None]],
+) -> dict[str, ps3_title.Ps3TitleFacts | Ps3TitleStatus]:
+    """The declared title id of each PS3 game file — or ``format-not-read`` / ``executable`` / ``no-title-id``.
+
+    The facts describe a file's bytes, so the path must be a declared file
+    whose bytes can be read, as for ``psp_discs``. ``title_id`` is the string
+    the file states, as it spells it.
+    """
+    validated: dict[str, ps3_title.Ps3TitleFacts | Ps3TitleStatus] = {}
+    for path, spec in (declared or {}).items():
+        _declared_bytes("ps3 title", path, files)
+        if spec in _FIXTURE_PS3_TITLE_STATES:
+            validated[path] = cast(Ps3TitleStatus, spec)
+            continue
+        if not isinstance(spec, Mapping) or set(cast("Mapping[str, object]", spec)) != set(_FIXTURE_PS3_TITLE_FIELDS):
+            raise ValueError(
+                f"ps3 title {path!r}: expected one of {list(_FIXTURE_PS3_TITLE_STATES)} or an object with exactly "
+                f"{', '.join(_FIXTURE_PS3_TITLE_FIELDS)}, got {spec!r}"
+            )
+        fields = cast("Mapping[str, object]", spec)
+        try:
+            validated[path] = ps3_title.Ps3TitleFacts(
+                source=cast("ps3_title.Ps3TitleSource", fields["source"]),
+                title_id=cast(str, fields["title_id"]),
+            )
+        except (TypeError, ValueError) as error:
+            raise ValueError(f"ps3 title {path!r}: {error}") from error
+    return validated
+
+
 _FIXTURE_PS3_FILE_FIELDS = ("magic", "iso", "category")
 _FIXTURE_PS3_ISO_FIELDS = ("regions", "watermark")
 _FIXTURE_PS3_ISO_OPTIONAL = ("blocks",)
@@ -3853,6 +3965,7 @@ class FixtureMachine:
         psp_discs: Mapping[str, object] | None = None,
         psp_param_sfos: Mapping[str, object] | None = None,
         n3ds_roms: Mapping[str, object] | None = None,
+        ps3_titles: Mapping[str, object] | None = None,
         disc_identities: Mapping[str, Mapping[str, object] | str] | None = None,
         archives: Mapping[str, object] | None = None,
         whdload_slaves: Mapping[str, object] | None = None,
@@ -3871,6 +3984,7 @@ class FixtureMachine:
         self._psp_discs = _validate_fixture_psp_discs(psp_discs, self._files)
         self._psp_param_sfos = _validate_fixture_psp_param_sfos(psp_param_sfos, self._files)
         self._n3ds_roms = _validate_fixture_n3ds_roms(n3ds_roms, self._files)
+        self._ps3_titles = _validate_fixture_ps3_titles(ps3_titles, self._files)
         self._inaccessible = set(inaccessible or ())
         self._unlistable = set(unlistable or ())
         _refuse_both_unreadable_lists(self._inaccessible, self._unlistable)
@@ -4212,6 +4326,29 @@ class FixtureMachine:
         if resolved in self._files:
             return N3dsRomResult(N3DS_ROM_UNREADABLE)
         return N3dsRomResult(N3DS_ROM_MISSING)
+
+    def read_ps3_title(self, path: str) -> Ps3TitleResult:
+        """The modeled read of the title id a PS3 game file states — the facts declared, RealMachine's outcomes.
+
+        A path declared in ``ps3_titles`` answers its facts, ``format-not-read``,
+        ``executable`` or ``no-title-id``; a declared file with no entry there
+        answers ``unreadable``, so a vector that forgot the key cannot prove a
+        file nobody modeled. A directory, a dead link and nothing at all
+        answer ``missing``.
+        """
+        if self._is_inaccessible(path):
+            return Ps3TitleResult(PS3_TITLE_UNREADABLE)
+        resolved = self._resolve(path).path
+        if resolved is None or resolved in self._dirs:
+            return Ps3TitleResult(PS3_TITLE_MISSING)
+        declared = self._ps3_titles.get(resolved)
+        if isinstance(declared, ps3_title.Ps3TitleFacts):
+            return Ps3TitleResult(PS3_TITLE_OK, declared)
+        if declared is not None:
+            return Ps3TitleResult(declared)
+        if resolved in self._files:
+            return Ps3TitleResult(PS3_TITLE_UNREADABLE)
+        return Ps3TitleResult(PS3_TITLE_MISSING)
 
     def read_disc_identity(self, path: str, *, extracted: ExtractedEntry | None = None) -> DiscIdentityResult:
         """The modeled disc identity read — the four facts in, the same outcomes RealMachine reports.

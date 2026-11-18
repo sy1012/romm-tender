@@ -105,6 +105,27 @@ def magic_blocks(handle: BinaryIO, size: int) -> Blocks | None:
     return BLOCKS_ENCRYPTED if any(not block.startswith(magic) for block, magic in blocks) else BLOCKS_CLEAR
 
 
+def file_bytes(handle: BinaryIO, size: int, path: tuple[str, ...], limit: int) -> bytes | None:
+    """The bytes of the file at *path* in the image *handle* reads, found the way RPCS3 looks a path up — ``None``
+    where the image does not hold it, holds more than *limit* bytes there, or is one this reading does not follow.
+
+    The same walk :func:`magic_blocks` takes: the root of the last primary or
+    supplementary descriptor, then each component the first child of that
+    name (``iso_archive::retrieve``, ISO.cpp:1313-1387). The file's first
+    extent is read whole, and one running past the image comes back short,
+    which is no file either.
+    """
+    try:
+        root, ucs2 = _root(handle, size)
+        record = _lookup(handle, size, root, path, ucs2)
+    except _Refused:
+        return None
+    if record is None or record.directory or record.size > limit:
+        return None
+    data = _read(handle, record.start * SECTOR, record.size, size)
+    return data if len(data) == record.size else None
+
+
 def _read(handle: BinaryIO, offset: int, length: int, size: int) -> bytes:
     if offset >= size:
         return b""

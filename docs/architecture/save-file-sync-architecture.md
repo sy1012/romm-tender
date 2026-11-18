@@ -1175,11 +1175,15 @@ resolver names as members only the folders that are saves; a folder of the game'
 is not one. A disc it does not read (a CSO, a CHD or an EBOOT), or a folder whose `PARAM.SFO` it cannot read, is a hole,
 and the game is not synced. A PSN release's answer carries the note `psn-save-prefix-may-differ` — such a game may save
 under its disc release's id — which changes nothing: the unit is the folders under the id the answer names. And from
-standalone Azahar's: a 3DS `.3ds`, `.cci` or `.cxi` whose headers name the title, as its save folder
-`<sdmc>/Nintendo 3DS/<ID0>/<ID1>/title/<high>/<low>/data` under the root `data` and, where the title is granted extdata,
-its extdata folder `<sdmc>/Nintendo 3DS/<ID0>/<ID1>/extdata/<HIGH>/<LOW>` under `extdata` — stated even where neither
-exists yet. A `.cia`, a compressed image, an encrypted one or bytes with no 3DS header leave the title id a hole, and
-the game is not synced.
+standalone RPCS3's, the same kind: a PS3 game's save folders in `<dev_hdd0>/home/<user>/savedata`, picked by the title
+id read from a folder dump's `PS3_GAME/PARAM.SFO`, a PSN package's header or an ISO's `PARAM.SFO` (`BLUS30443`), where
+exactly one user account is established; several accounts, or a title it cannot read, keep the id a hole. Its note
+`ps3-save-prefix-may-differ` — a game names its folders itself, and may use another title's id — changes nothing, for
+the same reason. And from standalone Azahar's: a 3DS `.3ds`, `.cci` or `.cxi` whose headers name the title, as its save
+folder `<sdmc>/Nintendo 3DS/<ID0>/<ID1>/title/<high>/<low>/data` under the root `data` and, where the title is granted
+extdata, its extdata folder `<sdmc>/Nintendo 3DS/<ID0>/<ID1>/extdata/<HIGH>/<LOW>` under `extdata` — stated even where
+neither exists yet. A `.cia`, a compressed image, an encrypted one or bytes with no 3DS header leave the title id a
+hole, and the game is not synced.
 
 **The staged zip.** A unit is carried as one file, `<rom stem>.zip`, in a staging folder of Tender's own,
 `<data root>/save-units/<rom id>/`. `RomInfoService` stages every unit answer it reads (`SaveUnits.stage`), so the

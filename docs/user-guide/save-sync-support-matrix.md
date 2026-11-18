@@ -112,6 +112,13 @@ game's save, and refuses rather than write over anything else. A compressed imag
 is not read, so nothing is synced for it. A PlayStation Network release may save under the ID of its disc release;
 Tender syncs the folders under the game's own ID. Upload and restore have both been observed on a Steam Deck.
 
+**PS3 syncs on RPCS3 (Standalone)**, the same way: Tender reads the game's title ID (`BLUS30443`, say) — from a folder
+dump's `PS3_GAME/PARAM.SFO`, a PSN package's header or an `.iso` — and carries the folders in RPCS3's `savedata` whose
+names start with it to RomM as one `<game>.zip`, each folder at the top. Where RPCS3 has more than one user account,
+Tender cannot tell which one plays, and nothing is synced. A game may name its save folders under another game's ID (a
+series sharing saves, say); those are not synced with it. A PSN package has to be installed into RPCS3 before it starts,
+which Tender does not do yet. This has not yet been observed on a device.
+
 **Nintendo 3DS syncs on Azahar (Standalone), for a `.3ds`, `.cci` or `.cxi`.** Tender reads the title's ID from the game
 file and carries its save folder and, where the game has one, its extra data (extdata) folder from Azahar's emulated SD
 card to RomM as one `<game>.zip`, under `data/` and `extdata/` the way Argosy lays it out. Restoring replaces each of
@@ -194,6 +201,7 @@ states still work locally). See the full table for specifics.
     | `neogeocdjp` | ❌ | Shared save (the core has a per-content mode) |
     | `ps2` | ❌ | Shared memory card by default (LRPS2), always (PCEE2); per-game `<game>.ps2` available as an LRPS2 core option |
     | `psp` | ✅ | PPSSPP (Standalone): the game's save folders (named by its ID) as one zip — `.iso` only |
+    | `ps3` | ✅ | RPCS3 (Standalone): the game's save folders (named by its title ID) as one zip — not yet observed on a device |
     | `pv1000` | ❌ | Saves are stored separately by the emulator (MAME) |
     | `scummvm` | ❌ | Not synced |
     | `scv` | ❌ | Saves are stored separately by the emulator (MAME) |

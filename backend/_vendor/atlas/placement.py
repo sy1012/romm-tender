@@ -503,6 +503,16 @@ CAVEAT_FILE_MEMBERSHIP_BY_HEADER = "file-membership-by-header"
 # and the ``citation``. atlas keeps no table of which release saves under
 # which: the prefix stands as read.
 CAVEAT_PSN_SAVE_PREFIX_MAY_DIFFER = "psn-save-prefix-may-differ"
+# The folder-name prefix a PS3 save unit matches by is the title id the game
+# runs under, and the game alone names its folders: RPCS3's savedata utility
+# takes any name the game hands it (cellSaveData) and lists by whatever
+# prefixes the game asks for, so a game may keep or read folders under another
+# title's id — a disc release and its PSN one, a series reading its
+# predecessor's save — and the unit lists none of those. Stated beside every
+# PS3 unit. ``data`` carries the ``token``, the ``dir`` the unit matches in,
+# the ``prefix`` it matches by and the ``citation``; atlas keeps no table of
+# which game saves under which id.
+CAVEAT_PS3_SAVE_PREFIX_MAY_DIFFER = "ps3-save-prefix-may-differ"
 # A directory under this answer's own root that the card states and the
 # observation did not read. An observed set's groups describe the one directory
 # that was read, so a mode whose parts lie in sibling subdirectories — Kronos's
@@ -1362,7 +1372,7 @@ def checked_appendconfig(appendconfig: Sequence[str]) -> tuple[str, ...]:
 # caller checks its value against it before filling (:func:`checked_save_id`):
 # a source that hands over a Wii disc's low word alone is caught as one word
 # short instead of naming a folder the emulator never opens.
-SaveIdSpelling = Literal["title-id-words", "path-segment", "game-code", "psp-game-id"]
+SaveIdSpelling = Literal["title-id-words", "path-segment", "game-code", "psp-game-id", "ps3-title-id"]
 SAVE_ID_SPELLING_TITLE_ID_WORDS: SaveIdSpelling = "title-id-words"
 """The title id as its two words: eight lowercase hex digits for the high word, ``/``, and
 eight for the low word, such as ``00010000/524d4745`` — two path segments, composed the way
@@ -1383,11 +1393,17 @@ SAVE_ID_SPELLING_PSP_GAME_ID: SaveIdSpelling = "psp-game-id"
 digits, without the dash a disc's ``UMD_DATA.BIN`` spells, such as ``ULUS10064`` — the prefix of
 the folder names, not a whole name.
 """
+SAVE_ID_SPELLING_PS3_TITLE_ID: SaveIdSpelling = "ps3-title-id"
+"""A PS3 game's title id as its savedata folders begin with it: four ASCII uppercase letters and five
+digits, such as ``BLUS30443`` — the ``TITLE_ID`` its ``PARAM.SFO`` states, the prefix of the folder names,
+not a whole name.
+"""
 SAVE_ID_SPELLINGS = (
     SAVE_ID_SPELLING_TITLE_ID_WORDS,
     SAVE_ID_SPELLING_PATH_SEGMENT,
     SAVE_ID_SPELLING_GAME_CODE,
     SAVE_ID_SPELLING_PSP_GAME_ID,
+    SAVE_ID_SPELLING_PS3_TITLE_ID,
 )
 _TITLE_ID_WORD = re.compile(r"[0-9a-f]{8}")
 _GAME_CODE = re.compile(r"[A-Z0-9]{4}")
@@ -1426,7 +1442,7 @@ def checked_save_id(spelling: str, value: str) -> str:
                 f"save_id spelled {spelling!r} is four characters, each an ASCII uppercase letter "
                 f"or digit, got {value!r}"
             )
-    elif spelling == SAVE_ID_SPELLING_PSP_GAME_ID:
+    elif spelling in (SAVE_ID_SPELLING_PSP_GAME_ID, SAVE_ID_SPELLING_PS3_TITLE_ID):
         if not _PSP_GAME_ID.fullmatch(value):
             raise ValueError(
                 f"save_id spelled {spelling!r} is four ASCII uppercase letters and five digits, got {value!r}"
@@ -1597,9 +1613,10 @@ class SaveUnitStatement:
     its PrimeHack fork's and the libretro Dolphin core's, where the content
     path's disc names the Wii title or the GameCube game code, Eden's, where
     the content names the Switch application, and PPSSPP's, where the
-    content path's disc names the PSP game's id, and Azahar's, where the
-    content path's 3DS image names the title — and is ``None`` on every
-    other group.
+    content path's disc names the PSP game's id, Azahar's, where the
+    content path's 3DS image names the title, and RPCS3's, where the content
+    path names the PS3 game's title id and one user account is established —
+    and is ``None`` on every other group.
 
     ``kind`` is :data:`SAVE_UNIT_FOLDER`, :data:`SAVE_UNIT_MEMBERS` or
     :data:`SAVE_UNIT_PREFIXED_FOLDERS` or :data:`SAVE_UNIT_ROOTED_FOLDERS`;
@@ -1626,8 +1643,8 @@ class SaveUnitStatement:
     """
     prefix: str | None = None
     """The start every member's name has, compared ASCII case-insensitively — a PSP game's
-    nine-character id such as ``ULUS10064`` — where ``kind`` is ``own-folders-by-prefix``, and
-    ``None`` otherwise.
+    nine-character id such as ``ULUS10064``, or a PS3 game's title id such as ``BLUS30443`` — where
+    ``kind`` is ``own-folders-by-prefix``, and ``None`` otherwise.
     """
     archive_roots: tuple[tuple[str, str], ...] | None = None
     """``(root, directory)`` pairs in root-name order, where ``kind`` is

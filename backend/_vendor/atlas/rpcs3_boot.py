@@ -119,6 +119,8 @@ _NO_GUI = "--no-gui"
 # The serial argument ES-DE's Game Serial entry hands RPCS3, as the catalogue spells it.
 _GAME_ID_ARGUMENT = "%RPCS3_GAMEID%:%INJECT%=%BASENAME%.ps3"
 _BOOT_LIST = ("EBOOT.BIN", "USRDIR/EBOOT.BIN", "USRDIR/ISO.BIN.EDAT", "PS3_GAME/USRDIR/EBOOT.BIN")
+# The four boot files a directory is searched for, in order (GetElfPathFromDir, System.cpp:1036-1063).
+BOOT_FILES: Final = _BOOT_LIST
 _SAVESTATE_SUFFIXES = (".SAVESTAT", ".zst", ".gz")
 _KEY_SUFFIXES = (".dkey", ".key")
 _ASCII_DIGITS = "0123456789"

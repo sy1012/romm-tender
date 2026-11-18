@@ -168,10 +168,12 @@ application id or the Eden user is not established, Eden's answer keeps that par
 `profile_id`) and the game is not synced; where several Eden AppImages put Eden's data in different places, nothing is
 established. Standalone PPSSPP's answer states it for a PSP `.iso`'s save folders in `<memory stick>/PSP/SAVEDATA`,
 picked by the disc's id; a disc it cannot read, or a save folder whose `PARAM.SFO` it cannot read, keeps the id as a
-`save_id` hole. Standalone Azahar's answer states it for a 3DS `.3ds`, `.cci` or `.cxi` whose headers name the title:
-its save folder under `title/<high>/<low>/data` and, where the title is granted extdata, its extdata folder under
-`extdata/<HIGH>/<LOW>`, each zipped under its own root name; a `.cia`, a compressed or encrypted image, or bytes with no
-3DS header keep the title id as a `save_id` hole.
+`save_id` hole. Standalone RPCS3's answer states the same kind for a PS3 game's save folders in the one user account's
+`savedata`, picked by the title id of a folder dump, a PSN package or an ISO; several user accounts, or a title it
+cannot read, keep the id a hole. Standalone Azahar's answer states it for a 3DS `.3ds`, `.cci` or `.cxi` whose headers
+name the title: its save folder under `title/<high>/<low>/data` and, where the title is granted extdata, its extdata
+folder under `extdata/<HIGH>/<LOW>`, each zipped under its own root name; a `.cia`, a compressed or encrypted image, or
+bytes with no 3DS header keep the title id as a `save_id` hole.
 
 **Where several apply, the first in this order is named:** a shape Tender never syncs (shared, inside the content), then
 a missing saves root, then a place not read, then what cannot be established yet (a hole, not established).
