@@ -140,6 +140,10 @@ def _placement_core(placement: SavefilePlacement | SavestatePlacement) -> dict[s
                         "kind": group.unit.kind,
                         "members": None if group.unit.members is None else list(group.unit.members),
                         "archive_folder": group.unit.archive_folder,
+                        "prefix": group.unit.prefix,
+                        "archive_roots": None
+                        if group.unit.archive_roots is None
+                        else dict(group.unit.archive_roots),
                     },
                 }
                 for group in placement.file_set.groups

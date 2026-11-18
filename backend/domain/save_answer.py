@@ -198,21 +198,79 @@ BENIGN_SYNC_SKIP_REASONS: frozenset[str] = frozenset(
 
 @dataclass(frozen=True, slots=True)
 class SaveUnit:
-    """Which files under one folder are one game's save, moved together as one.
+    """Which files are one game's save, moved together as one.
 
-    ``members`` is ``None`` for a folder that is the game's own: every regular
-    file below ``root``, at any depth. A tuple names the game's files directly
-    in ``root``, a folder other games' files share. ``archive_folder`` is the
-    name every entry sits under inside the zip, ``None`` for entries at its
-    top: other RomM clients lay a unit out under the folder's own name, and a
-    zip only meets theirs laid out the same way
-    (docs/architecture/save-file-sync-architecture.md, "Save units"). All three
-    are the emulator's answer; this type holds no rule for any of them.
+    Four shapes, told apart by ``archive_roots`` first, ``prefix`` second and
+    ``members`` third:
+
+    - ``archive_roots`` is set: several folders that are each the game's own,
+      whole, every one archived under its root name — ``(root name, folder)``
+      pairs, the names distinct single path components, the folders absolute,
+      ``root`` one of them. Any folder may not exist yet.
+    - ``members`` is ``None``: a folder that is the game's own — every regular
+      file below ``root``, at any depth.
+    - ``members`` names files and ``prefix`` is ``None``: the game's files
+      directly in ``root``, a folder other games' files share.
+    - ``prefix`` is set: the game's FOLDERS directly in ``root``, each named
+      starting with ``prefix`` (ASCII case-insensitively), and ``members``
+      names the ones that are its save — possibly none, so a restore still
+      has a place to put them. A folder whose name starts with ``prefix`` and
+      is not a member is not this save, and nothing that moves the unit may
+      touch it.
+
+    ``archive_folder`` is the name every entry sits under inside the zip,
+    ``None`` for entries at its top: other RomM clients lay a unit out under
+    the folder's own name, and a zip only meets theirs laid out the same way
+    (docs/architecture/save-file-sync-architecture.md, "Save units"). Every
+    field is the emulator's answer; this type holds no rule for any of them
+    beyond their agreeing with each other, and raises ``ValueError`` where
+    they do not.
     """
 
     root: str
     members: tuple[str, ...] | None = None
     archive_folder: str | None = None
+    prefix: str | None = None
+    archive_roots: tuple[tuple[str, str], ...] | None = None
+
+    def __post_init__(self) -> None:
+        if self.archive_roots is not None:
+            self._check_archive_roots(self.archive_roots)
+            return
+        if self.prefix is None:
+            return
+        if not self.prefix or not self.prefix.isascii():
+            raise ValueError(f"a save unit's folder prefix must be non-empty ASCII: {self.prefix!r}")
+        if self.members is None:
+            raise ValueError("a save unit picked by a prefix names its member folders")
+        if self.archive_folder is not None:
+            raise ValueError("a save unit picked by a prefix keeps its folders at the zip's top")
+        stray = [name for name in self.members if not self.prefix_matches(name)]
+        if stray:
+            raise ValueError(f"save unit members {stray!r} do not start with {self.prefix!r}")
+
+    def _check_archive_roots(self, roots: tuple[tuple[str, str], ...]) -> None:
+        if self.members is not None or self.prefix is not None or self.archive_folder is not None:
+            raise ValueError("a save unit of archive roots names no members, prefix or archive folder")
+        if not roots:
+            raise ValueError("a save unit of archive roots names at least one")
+        names = [name for name, _folder in roots]
+        if len(set(names)) != len(names):
+            raise ValueError(f"a save unit's archive roots are each named once: {names!r}")
+        for name, folder in roots:
+            if name in ("", ".", "..") or any(char in name for char in "/\\\x00"):
+                raise ValueError(f"a save unit's archive root name must be one path component: {name!r}")
+            if not folder.startswith("/") or "\x00" in folder:
+                raise ValueError(f"a save unit's archive root {name!r} names no absolute folder: {folder!r}")
+        if self.root not in (folder for _name, folder in roots):
+            raise ValueError(f"a save unit's root {self.root!r} is not one of its archive roots")
+
+    def prefix_matches(self, name: str) -> bool:
+        """Whether *name* starts with this unit's ``prefix``, ASCII case-insensitively; ``False`` without one."""
+        if self.prefix is None:
+            return False
+        head = name[: len(self.prefix)]
+        return len(head) == len(self.prefix) and head.isascii() and head.lower() == self.prefix.lower()
 
 
 @dataclass(frozen=True, slots=True)
@@ -630,11 +688,13 @@ def unit_answer(
     emulator_identity: str | None,
     content_installed: bool,
     granularity: str | None = None,
+    caveats: tuple[str, ...] = (),
 ) -> SaveAnswer:
     """The answer for a save that is *unit*, before a staging folder is named for it.
 
     It names no directory and no file, so it syncs nothing until
-    :func:`stage_unit` places its zip.
+    :func:`stage_unit` places its zip. *caveats* are the resolver's notes on
+    the placement, carried as on every other answer.
     """
     return SaveAnswer(
         state=SAVE_STATE_PER_GAME_UNIT,
@@ -645,7 +705,7 @@ def unit_answer(
         granularity=granularity,
         needs=(),
         components=(),
-        caveats=(),
+        caveats=caveats,
         content_installed=content_installed,
         unit=unit,
         emulator_identity=emulator_identity,

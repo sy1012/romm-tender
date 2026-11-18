@@ -11493,7 +11493,7 @@
     },
     {
       "name": "catalogue-a-standalone-entry-carries-no-core",
-      "rationale": "The catalogue's two kinds, in one answer and in ES-DE's own declared order: the standalone entry carries no core_so and is identified by the token its command spells, the libretro one carries both its core file and that same file as its identity. The standalone row's save question is answered rather than refused, because a packaged card covers PPSSPP: the memstick tree the emulator compiles in (<memstick>/PSP/SAVEDATA), stated with file-names-unestablished, since the game names its own savedata directory and no name can be derived from the content path. This fixture spelled the token %EMULATOR_PPSSPP-SA% until 2026-09-10, which no frontend writes — PPSSPP-SA is RetroDECK's saves directory name, not an ES-DE emulator token — and under it the entry matched no card and the save question came back standalone-unsupported. The refusal itself is covered by the vectors that reach it with an emulator atlas really has no card for.",
+      "rationale": "The catalogue's two kinds, in one answer and in ES-DE's own declared order: the standalone entry carries no core_so and is identified by the token its command spells, the libretro one carries both its core file and that same file as its identity. The standalone row's save question is answered rather than refused, because a packaged card covers PPSSPP: the memstick tree the emulator compiles in (<memstick>/PSP/SAVEDATA), stated with file-names-unestablished and the save_id hole, since the game names its own savedata folders after its id and no disc is named to read it from. This fixture spelled the token %EMULATOR_PPSSPP-SA% until 2026-09-10, which no frontend writes — PPSSPP-SA is RetroDECK's saves directory name, not an ES-DE emulator token — and under it the entry matched no card and the save question came back standalone-unsupported. The refusal itself is covered by the vectors that reach it with an emulator atlas really has no card for.",
       "input": {
         "home": "/home/deck",
         "files": {
@@ -11573,7 +11573,9 @@
         "entry_savefile_location": {
           "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/config/ppsspp/PSP/SAVEDATA",
           "root_kind": "emulator_directory",
-          "needs": [],
+          "needs": [
+            "save_id"
+          ],
           "fallback_dir": null,
           "physical_dir": null,
           "file_set": {
@@ -11598,7 +11600,9 @@
                 "token": "PPSSPP",
                 "dir": "/home/deck/.var/app/net.retrodeck.retrodeck/config/ppsspp/PSP/SAVEDATA",
                 "role": "battery",
-                "citation": "the game names its savedata directory; the tree is <memstick>/PSP/SAVEDATA (PathUtil.cpp:52,:62-63 at ppsspp v1.20.4)"
+                "save_id": "the game's id as its disc's PSP_GAME/PARAM.SFO states DISC_ID, nine characters without a dash — the prefix of its savedata folders' names, not a whole name",
+                "save_id_spelling": "psp-game-id",
+                "citation": "the tree is <memstick>/PSP/SAVEDATA (PathUtil.cpp:52,:62-63 at ppsspp v1.20.4); the game names its folders <gameName><saveName> (SavedataParam.cpp:49, :238-245, :269-272 and :1563-1571 at ppsspp v1.20.4); SavedataParam.cpp:533, :538 and PSPGamedataInstallDialog.cpp:211-243 at ppsspp v1.20.4"
               }
             }
           ],

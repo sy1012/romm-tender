@@ -368,3 +368,519 @@ class TestClear:
         adapter.clear(SaveUnit(root=str(tmp_path / "absent"), members=("a.gci",)))
 
         assert not (tmp_path / "absent").exists()
+
+
+class TestPrefixedFolders:
+    """A PSP game's save folders in PPSSPP's SAVEDATA, which other games' folders share, picked by the game's id."""
+
+    _PREFIX = "ULUS10064"
+
+    def _savedata(self, tmp_path: Path) -> Path:
+        savedata = tmp_path / "PSP" / "SAVEDATA"
+        _write(savedata / "ULUS10064DATA00" / "PARAM.SFO", b"sfo 0", 1_000)
+        _write(savedata / "ULUS10064DATA00" / "DATA.BIN", b"progress 0", 3_000)
+        _write(savedata / "ULUS10064DATA01" / "PARAM.SFO", b"sfo 1", 2_000)
+        _write(savedata / "ULUS10064INSTALL" / "CACHE.BIN", b"installed data")
+        _write(savedata / "ULES00151DATA" / "PARAM.SFO", b"another game")
+        return savedata
+
+    def _unit(self, savedata: Path, members: tuple[str, ...] = ("ULUS10064DATA00", "ULUS10064DATA01")) -> SaveUnit:
+        return SaveUnit(root=str(savedata), members=members, prefix=self._PREFIX)
+
+    def test_each_member_folder_packs_at_the_zip_s_top(self, adapter, tmp_path):
+        savedata = self._savedata(tmp_path)
+        staged = tmp_path / "Game.zip"
+
+        assert adapter.pack(self._unit(savedata), str(staged)) is True
+
+        with zipfile.ZipFile(staged) as archive:
+            assert archive.namelist() == [
+                "ULUS10064DATA00/DATA.BIN",
+                "ULUS10064DATA00/PARAM.SFO",
+                "ULUS10064DATA01/PARAM.SFO",
+            ]
+        assert os.stat(staged).st_mtime == 3_000
+
+    def test_a_unit_with_no_member_folders_leaves_no_zip(self, adapter, tmp_path):
+        savedata = self._savedata(tmp_path)
+        staged = tmp_path / "Game.zip"
+
+        assert adapter.pack(self._unit(savedata, members=()), str(staged)) is False
+        assert not staged.exists()
+
+    def test_a_member_folder_that_is_a_link_is_not_packed(self, adapter, tmp_path):
+        savedata = tmp_path / "SAVEDATA"
+        _write(tmp_path / "elsewhere" / "secret.bin", b"secret")
+        savedata.mkdir()
+        (savedata / "ULUS10064DATA00").symlink_to(tmp_path / "elsewhere")
+
+        assert adapter.pack(self._unit(savedata, members=("ULUS10064DATA00",)), str(tmp_path / "Game.zip")) is False
+
+    def test_a_round_trip_gives_the_same_files_and_leaves_the_other_folders(self, adapter, tmp_path):
+        savedata = self._savedata(tmp_path)
+        before = _files(savedata)
+        staged = tmp_path / "Game.zip"
+        adapter.pack(self._unit(savedata), str(staged))
+        adapter.clear(self._unit(savedata))
+
+        adapter.unpack(str(staged), self._unit(savedata, members=()))
+
+        assert _files(savedata) == before
+        assert set(os.listdir(tmp_path / "PSP")) == {"SAVEDATA"}
+
+    def test_a_restore_replaces_the_members_and_leaves_another_game_and_the_installed_data(self, adapter, tmp_path):
+        savedata = self._savedata(tmp_path)
+        staged = tmp_path / "Game.zip"
+        _zip(staged, {"ULUS10064DATA00/PARAM.SFO": b"new sfo", "ULUS10064DATA02/PARAM.SFO": b"new slot"})
+
+        adapter.unpack(str(staged), self._unit(savedata))
+
+        assert _files(savedata) == {
+            "ULUS10064DATA00/PARAM.SFO": b"new sfo",
+            "ULUS10064DATA02/PARAM.SFO": b"new slot",
+            "ULUS10064INSTALL/CACHE.BIN": b"installed data",
+            "ULES00151DATA/PARAM.SFO": b"another game",
+        }
+        assert set(os.listdir(tmp_path / "PSP")) == {"SAVEDATA"}
+
+    def test_a_folder_the_zip_brings_over_one_that_is_not_a_member_is_refused(self, adapter, tmp_path):
+        savedata = self._savedata(tmp_path)
+        before = _files(savedata)
+        staged = tmp_path / "Game.zip"
+        _zip(staged, {"ULUS10064DATA00/PARAM.SFO": b"new", "ULUS10064INSTALL/CACHE.BIN": b"overwrites"})
+
+        with pytest.raises(ValueError, match="not this game's save"):
+            adapter.unpack(str(staged), self._unit(savedata))
+
+        assert _files(savedata) == before
+        assert set(os.listdir(tmp_path / "PSP")) == {"SAVEDATA"}
+
+    def test_a_case_different_folder_name_still_matches_the_prefix(self, adapter, tmp_path):
+        savedata = tmp_path / "SAVEDATA"
+        staged = tmp_path / "Game.zip"
+        _zip(staged, {"ulus10064data00/PARAM.SFO": b"sfo"})
+
+        adapter.unpack(str(staged), self._unit(savedata, members=()))
+
+        assert _files(savedata) == {"ulus10064data00/PARAM.SFO": b"sfo"}
+
+    def test_a_restore_onto_a_fresh_memory_stick_creates_the_folder(self, adapter, tmp_path):
+        savedata = tmp_path / "memstick" / "PSP" / "SAVEDATA"
+        staged = tmp_path / "Game.zip"
+        _zip(staged, {"ULUS10064DATA00/PARAM.SFO": b"sfo", "ULUS10064DATA00/sub/DATA.BIN": b"data"})
+
+        adapter.unpack(str(staged), self._unit(savedata, members=()))
+
+        assert _files(savedata) == {"ULUS10064DATA00/PARAM.SFO": b"sfo", "ULUS10064DATA00/sub/DATA.BIN": b"data"}
+        assert os.listdir(tmp_path / "memstick" / "PSP") == ["SAVEDATA"]
+
+    def test_a_root_reached_through_a_link_is_written_where_the_link_leads(self, adapter, tmp_path):
+        savedata = self._savedata(tmp_path / "sd")
+        link = tmp_path / "config" / "PSP" / "SAVEDATA"
+        link.parent.mkdir(parents=True)
+        link.symlink_to(savedata)
+        staged = tmp_path / "Game.zip"
+        _zip(staged, {"ULUS10064DATA00/PARAM.SFO": b"new"})
+
+        adapter.unpack(str(staged), self._unit(link, members=("ULUS10064DATA00",)))
+
+        assert _files(savedata)["ULUS10064DATA00/PARAM.SFO"] == b"new"
+        assert "ULUS10064DATA01/PARAM.SFO" in _files(savedata)
+        assert os.listdir(tmp_path / "config" / "PSP") == ["SAVEDATA"]
+        assert os.listdir(tmp_path / "sd" / "PSP") == ["SAVEDATA"]
+
+    @pytest.mark.parametrize(
+        "name",
+        [
+            "ULES00151DATA/PARAM.SFO",
+            "PARAM.SFO",
+            "ULUS10064DATA00",
+            "ULUS10064DATA00/../escape.bin",
+            "../ULUS10064DATA00/escape.bin",
+            "/ULUS10064DATA00/escape.bin",
+            "ULUS10064DATA00\\escape.bin",
+            "ULUS10064DATA00//a.bin",
+            "ULUS1006/a.bin",
+        ],
+    )
+    def test_an_entry_outside_a_prefixed_folder_is_refused_with_nothing_written(self, adapter, tmp_path, name):
+        savedata = self._savedata(tmp_path)
+        before = _files(savedata)
+        staged = tmp_path / "Game.zip"
+        with zipfile.ZipFile(staged, "w") as archive:
+            archive.writestr("ULUS10064DATA00/PARAM.SFO", b"new")
+            archive.writestr(zipfile.ZipInfo(name), b"evil")
+
+        with pytest.raises(PathTraversalError):
+            adapter.unpack(str(staged), self._unit(savedata))
+
+        assert _files(savedata) == before
+        assert set(os.listdir(tmp_path / "PSP")) == {"SAVEDATA"}
+        assert not (tmp_path / "escape.bin").exists()
+
+    def test_a_member_that_is_a_link_is_refused_with_nothing_written(self, adapter, tmp_path):
+        savedata = tmp_path / "SAVEDATA"
+        _write(tmp_path / "elsewhere" / "kept.bin", b"kept")
+        savedata.mkdir()
+        (savedata / "ULUS10064DATA00").symlink_to(tmp_path / "elsewhere")
+        staged = tmp_path / "Game.zip"
+        _zip(staged, {"ULUS10064DATA01/PARAM.SFO": b"new"})
+
+        with pytest.raises(OSError, match="link"):
+            adapter.unpack(str(staged), self._unit(savedata, members=("ULUS10064DATA00",)))
+
+        assert os.listdir(savedata) == ["ULUS10064DATA00"]
+
+        assert _files(tmp_path / "elsewhere") == {"kept.bin": b"kept"}
+        assert (savedata / "ULUS10064DATA00").is_symlink()
+
+    def test_a_failure_while_moving_in_puts_the_members_back(self, adapter, tmp_path, monkeypatch):
+        savedata = self._savedata(tmp_path)
+        before = _files(savedata)
+        staged = tmp_path / "Game.zip"
+        _zip(staged, {"ULUS10064DATA00/PARAM.SFO": b"new 0", "ULUS10064DATA01/PARAM.SFO": b"new 1"})
+        real_rename = os.rename
+
+        def rename(src, dst):
+            if ".unpacking-" in src and os.path.basename(src) == "ULUS10064DATA01":
+                raise OSError("disk full")
+            real_rename(src, dst)
+
+        monkeypatch.setattr(os, "rename", rename)
+
+        with pytest.raises(OSError, match="disk full"):
+            adapter.unpack(str(staged), self._unit(savedata))
+
+        assert _files(savedata) == before
+        assert set(os.listdir(tmp_path / "PSP")) == {"SAVEDATA"}
+
+    def test_a_failed_put_back_keeps_the_moved_out_folders(self, adapter, tmp_path, monkeypatch):
+        savedata = self._savedata(tmp_path)
+        staged = tmp_path / "Game.zip"
+        _zip(staged, {"ULUS10064DATA00/PARAM.SFO": b"new 0"})
+        real_rename = os.rename
+
+        def rename(src, dst):
+            if ".unpacking-" in src or ".previous-" in src:
+                raise OSError("disk gone")
+            real_rename(src, dst)
+
+        monkeypatch.setattr(os, "rename", rename)
+
+        with pytest.raises(OSError, match="disk gone"):
+            adapter.unpack(str(staged), self._unit(savedata))
+
+        (aside,) = [name for name in os.listdir(tmp_path / "PSP") if ".previous-" in name]
+        assert _files(tmp_path / "PSP" / aside) == {
+            "ULUS10064DATA00/DATA.BIN": b"progress 0",
+            "ULUS10064DATA00/PARAM.SFO": b"sfo 0",
+            "ULUS10064DATA01/PARAM.SFO": b"sfo 1",
+        }
+
+    def test_clear_removes_only_the_member_folders(self, adapter, tmp_path):
+        savedata = self._savedata(tmp_path)
+
+        adapter.clear(self._unit(savedata, members=("ULUS10064DATA00", "ULUS10064DATA01", "ULUS10064DATA09")))
+
+        assert _files(savedata) == {
+            "ULUS10064INSTALL/CACHE.BIN": b"installed data",
+            "ULES00151DATA/PARAM.SFO": b"another game",
+        }
+
+    def test_clear_refuses_a_member_that_is_a_link_and_removes_nothing(self, adapter, tmp_path):
+        savedata = self._savedata(tmp_path)
+        _write(tmp_path / "elsewhere" / "kept.bin", b"kept")
+        (savedata / "ULUS10064DATA02").symlink_to(tmp_path / "elsewhere")
+        before = _files(savedata)
+
+        with pytest.raises(OSError, match="link"):
+            adapter.clear(self._unit(savedata, members=("ULUS10064DATA00", "ULUS10064DATA02")))
+
+        assert _files(savedata) == before
+        assert _files(tmp_path / "elsewhere") == {"kept.bin": b"kept"}
+
+
+class TestArchiveRoots:
+    """A 3DS title's save folder and its extdata folder in Azahar's sdmc, each archived under its root name."""
+
+    _TITLE = ("Nintendo 3DS", "0" * 32, "0" * 32, "title", "00040000", "00113200", "data")
+    _EXTDATA = ("Nintendo 3DS", "0" * 32, "0" * 32, "extdata", "00000000", "00001132")
+
+    def _sdmc(self, tmp_path: Path) -> Path:
+        sdmc = tmp_path / "sdmc"
+        data = sdmc.joinpath(*self._TITLE)
+        extdata = sdmc.joinpath(*self._EXTDATA)
+        _write(data / "00000001" / "main", b"save", 1_000)
+        _write(data / "00000001.metadata", b"save meta", 2_000)
+        _write(extdata / "user" / "Data", b"ext", 4_000)
+        _write(extdata / "metadata", b"ext meta", 3_000)
+        _write(sdmc.joinpath(*self._TITLE[:4], "00040000", "00099900", "data", "00000001", "main"), b"another title")
+        _write(sdmc.joinpath(*self._EXTDATA[:4], "00000000", "00000999", "user", "Data"), b"another extdata")
+        return sdmc
+
+    def _unit(self, sdmc: Path, *, extdata: bool = True) -> SaveUnit:
+        data = str(sdmc.joinpath(*self._TITLE))
+        roots = [("data", data)]
+        if extdata:
+            roots.append(("extdata", str(sdmc.joinpath(*self._EXTDATA))))
+        return SaveUnit(root=data, archive_roots=tuple(roots))
+
+    def _data(self, sdmc: Path) -> Path:
+        return sdmc.joinpath(*self._TITLE)
+
+    def _extdata(self, sdmc: Path) -> Path:
+        return sdmc.joinpath(*self._EXTDATA)
+
+    def test_each_folder_packs_under_its_root_name(self, adapter, tmp_path):
+        sdmc = self._sdmc(tmp_path)
+        staged = tmp_path / "Game.zip"
+
+        assert adapter.pack(self._unit(sdmc), str(staged)) is True
+
+        with zipfile.ZipFile(staged) as archive:
+            assert archive.namelist() == [
+                "data/00000001.metadata",
+                "data/00000001/main",
+                "extdata/metadata",
+                "extdata/user/Data",
+            ]
+        assert os.stat(staged).st_mtime == 4_000
+
+    def test_a_folder_that_does_not_exist_is_left_out_of_the_pack(self, adapter, tmp_path):
+        sdmc = self._sdmc(tmp_path)
+        shutil.rmtree(self._data(sdmc))
+        staged = tmp_path / "Game.zip"
+
+        assert adapter.pack(self._unit(sdmc), str(staged)) is True
+
+        with zipfile.ZipFile(staged) as archive:
+            assert archive.namelist() == ["extdata/metadata", "extdata/user/Data"]
+
+    def test_neither_folder_existing_leaves_no_zip(self, adapter, tmp_path):
+        sdmc = tmp_path / "sdmc"
+        staged = tmp_path / "Game.zip"
+        _write(staged, b"stale")
+
+        assert adapter.pack(self._unit(sdmc), str(staged)) is False
+        assert not staged.exists()
+
+    def test_a_round_trip_restores_both_folders_and_leaves_the_other_titles(self, adapter, tmp_path):
+        sdmc = self._sdmc(tmp_path)
+        before = _files(sdmc)
+        staged = tmp_path / "Game.zip"
+        adapter.pack(self._unit(sdmc), str(staged))
+        adapter.clear(self._unit(sdmc))
+        assert not self._data(sdmc).exists()
+        assert not self._extdata(sdmc).exists()
+
+        adapter.unpack(str(staged), self._unit(sdmc))
+
+        assert _files(sdmc) == before
+        assert set(os.listdir(self._data(sdmc).parent)) == {"data"}
+        assert set(os.listdir(self._extdata(sdmc).parent)) == {"00001132", "00000999"}
+
+    def test_a_restore_replaces_both_folders_whole(self, adapter, tmp_path):
+        sdmc = self._sdmc(tmp_path)
+        staged = tmp_path / "Game.zip"
+        _zip(staged, {"data/00000001/main": b"new save", "extdata/user/Data": b"new ext"})
+
+        adapter.unpack(str(staged), self._unit(sdmc))
+
+        assert _files(self._data(sdmc)) == {"00000001/main": b"new save"}
+        assert _files(self._extdata(sdmc)) == {"user/Data": b"new ext"}
+
+    def test_a_data_only_zip_keeps_the_existing_extdata(self, adapter, tmp_path):
+        sdmc = self._sdmc(tmp_path)
+        extdata_before = _files(self._extdata(sdmc))
+        staged = tmp_path / "Game.zip"
+        _zip(staged, {"data/00000001/main": b"legacy save", "data/00000001.metadata": b"legacy meta"})
+
+        adapter.unpack(str(staged), self._unit(sdmc))
+
+        assert _files(self._data(sdmc)) == {"00000001/main": b"legacy save", "00000001.metadata": b"legacy meta"}
+        assert _files(self._extdata(sdmc)) == extdata_before
+
+    def test_an_extdata_only_zip_keeps_the_existing_save_folder(self, adapter, tmp_path):
+        sdmc = self._sdmc(tmp_path)
+        data_before = _files(self._data(sdmc))
+        staged = tmp_path / "Game.zip"
+        _zip(staged, {"extdata/user/Data": b"new ext"})
+
+        adapter.unpack(str(staged), self._unit(sdmc))
+
+        assert _files(self._data(sdmc)) == data_before
+        assert _files(self._extdata(sdmc)) == {"user/Data": b"new ext"}
+
+    def test_a_folder_entry_alone_does_not_empty_a_folder(self, adapter, tmp_path):
+        sdmc = self._sdmc(tmp_path)
+        before = _files(sdmc)
+        staged = tmp_path / "Game.zip"
+        with zipfile.ZipFile(staged, "w") as archive:
+            archive.writestr(zipfile.ZipInfo("extdata/"), b"")
+            archive.writestr(zipfile.ZipInfo("extdata/user/"), b"")
+
+        adapter.unpack(str(staged), self._unit(sdmc))
+
+        assert _files(sdmc) == before
+
+    def test_a_restore_onto_a_fresh_machine_creates_the_title_s_folders(self, adapter, tmp_path):
+        sdmc = tmp_path / "sdmc"
+        staged = tmp_path / "Game.zip"
+        _zip(staged, {"data/00000001/main": b"save", "extdata/user/Data": b"ext"})
+
+        adapter.unpack(str(staged), self._unit(sdmc))
+
+        assert _files(sdmc) == {
+            "/".join((*self._TITLE, "00000001", "main")): b"save",
+            "/".join((*self._EXTDATA, "user", "Data")): b"ext",
+        }
+
+    def test_a_folder_reached_through_a_linked_sdmc_is_written_where_the_link_leads(self, adapter, tmp_path):
+        real = self._sdmc(tmp_path / "sd")
+        link = tmp_path / "config" / "sdmc"
+        link.parent.mkdir(parents=True)
+        link.symlink_to(real)
+        staged = tmp_path / "Game.zip"
+        _zip(staged, {"data/00000001/main": b"new save", "extdata/user/Data": b"new ext"})
+
+        adapter.unpack(str(staged), self._unit(link))
+
+        assert _files(self._data(real)) == {"00000001/main": b"new save"}
+        assert _files(self._extdata(real)) == {"user/Data": b"new ext"}
+        assert os.listdir(tmp_path / "config") == ["sdmc"]
+        assert set(os.listdir(self._data(real).parent)) == {"data"}
+        assert set(os.listdir(self._extdata(real).parent)) == {"00001132", "00000999"}
+
+    def test_a_root_folder_that_is_a_link_is_refused_with_nothing_written(self, adapter, tmp_path):
+        sdmc = self._sdmc(tmp_path)
+        _write(tmp_path / "elsewhere" / "kept.bin", b"kept")
+        shutil.rmtree(self._extdata(sdmc))
+        self._extdata(sdmc).symlink_to(tmp_path / "elsewhere")
+        before = _files(self._data(sdmc))
+        staged = tmp_path / "Game.zip"
+        _zip(staged, {"data/00000001/main": b"new", "extdata/user/Data": b"new ext"})
+
+        with pytest.raises(OSError, match="link"):
+            adapter.unpack(str(staged), self._unit(sdmc))
+
+        assert _files(self._data(sdmc)) == before
+        assert _files(tmp_path / "elsewhere") == {"kept.bin": b"kept"}
+        assert self._extdata(sdmc).is_symlink()
+        assert set(os.listdir(self._data(sdmc).parent)) == {"data"}
+
+    @pytest.mark.parametrize(
+        "name",
+        [
+            "nand/00000001/main",
+            "00000001.metadata",
+            "data",
+            "data/../escape.bin",
+            "data/00000001/../../escape.bin",
+            "../data/escape.bin",
+            "/data/escape.bin",
+            "data\\escape.bin",
+            "data//escape.bin",
+            "Data/00000001/main",
+        ],
+    )
+    def test_an_entry_under_no_root_is_refused_with_nothing_written(self, adapter, tmp_path, name):
+        sdmc = self._sdmc(tmp_path)
+        before = _files(sdmc)
+        staged = tmp_path / "Game.zip"
+        with zipfile.ZipFile(staged, "w") as archive:
+            archive.writestr("data/00000001/main", b"new")
+            archive.writestr(zipfile.ZipInfo(name), b"evil")
+
+        with pytest.raises(PathTraversalError):
+            adapter.unpack(str(staged), self._unit(sdmc))
+
+        assert _files(sdmc) == before
+        assert set(os.listdir(self._data(sdmc).parent)) == {"data"}
+        assert not (tmp_path / "escape.bin").exists()
+
+    def test_a_folder_entry_under_no_root_is_refused(self, adapter, tmp_path):
+        sdmc = self._sdmc(tmp_path)
+        staged = tmp_path / "Game.zip"
+        with zipfile.ZipFile(staged, "w") as archive:
+            archive.writestr("data/00000001/main", b"new")
+            archive.writestr(zipfile.ZipInfo("other/"), b"")
+
+        with pytest.raises(PathTraversalError):
+            adapter.unpack(str(staged), self._unit(sdmc))
+
+    def test_an_extdata_entry_is_refused_for_a_title_granted_no_extdata(self, adapter, tmp_path):
+        sdmc = self._sdmc(tmp_path)
+        before = _files(sdmc)
+        staged = tmp_path / "Game.zip"
+        _zip(staged, {"data/00000001/main": b"new", "extdata/user/Data": b"new ext"})
+
+        with pytest.raises(PathTraversalError):
+            adapter.unpack(str(staged), self._unit(sdmc, extdata=False))
+
+        assert _files(sdmc) == before
+
+    def test_a_failure_while_moving_the_second_folder_in_puts_both_back(self, adapter, tmp_path, monkeypatch):
+        sdmc = self._sdmc(tmp_path)
+        before = _files(sdmc)
+        staged = tmp_path / "Game.zip"
+        _zip(staged, {"data/00000001/main": b"new save", "extdata/user/Data": b"new ext"})
+        real_rename = os.rename
+
+        def rename(src, dst):
+            if ".00001132.unpacking-" in src and not src.endswith(".previous"):
+                raise OSError("disk full")
+            real_rename(src, dst)
+
+        monkeypatch.setattr(os, "rename", rename)
+
+        with pytest.raises(OSError, match="disk full"):
+            adapter.unpack(str(staged), self._unit(sdmc))
+
+        assert _files(sdmc) == before
+        assert set(os.listdir(self._data(sdmc).parent)) == {"data"}
+        assert set(os.listdir(self._extdata(sdmc).parent)) == {"00001132", "00000999"}
+
+    def test_a_failed_put_back_keeps_the_moved_out_folder(self, adapter, tmp_path, monkeypatch):
+        sdmc = self._sdmc(tmp_path)
+        staged = tmp_path / "Game.zip"
+        _zip(staged, {"data/00000001/main": b"new save"})
+        real_rename = os.rename
+
+        def rename(src, dst):
+            if src.endswith(".previous") or (".unpacking-" in src and not dst.endswith(".previous")):
+                raise OSError("disk gone")
+            real_rename(src, dst)
+
+        monkeypatch.setattr(os, "rename", rename)
+
+        with pytest.raises(OSError, match="disk gone"):
+            adapter.unpack(str(staged), self._unit(sdmc))
+
+        (aside,) = [name for name in os.listdir(self._data(sdmc).parent) if name.endswith(".previous")]
+        assert _files(self._data(sdmc).parent / aside) == {"00000001/main": b"save", "00000001.metadata": b"save meta"}
+
+    def test_clear_removes_both_folders_and_nothing_beside_them(self, adapter, tmp_path):
+        sdmc = self._sdmc(tmp_path)
+
+        adapter.clear(self._unit(sdmc))
+
+        assert _files(sdmc) == {
+            "/".join((*self._TITLE[:4], "00040000", "00099900", "data", "00000001", "main")): b"another title",
+            "/".join((*self._EXTDATA[:4], "00000000", "00000999", "user", "Data")): b"another extdata",
+        }
+
+    def test_clear_of_folders_already_gone_is_no_error(self, adapter, tmp_path):
+        adapter.clear(self._unit(tmp_path / "sdmc"))
+
+    def test_clear_refuses_a_folder_that_is_a_link_and_removes_nothing(self, adapter, tmp_path):
+        sdmc = self._sdmc(tmp_path)
+        _write(tmp_path / "elsewhere" / "kept.bin", b"kept")
+        shutil.rmtree(self._extdata(sdmc))
+        self._extdata(sdmc).symlink_to(tmp_path / "elsewhere")
+        before = _files(self._data(sdmc))
+
+        with pytest.raises(OSError, match="link"):
+            adapter.clear(self._unit(sdmc))
+
+        assert _files(self._data(sdmc)) == before
+        assert _files(tmp_path / "elsewhere") == {"kept.bin": b"kept"}

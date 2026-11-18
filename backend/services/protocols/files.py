@@ -668,9 +668,12 @@ class SaveUnitStore(Protocol):
         """Replace *unit*'s files with the entries of *zip_path*, or raise with the unit as it was.
 
         Every entry must name a file below the unit's root; a member set's
-        entries must be plain names. Raises ``PathTraversalError`` or
-        ``ValueError`` for an entry that may not be written, ``OSError`` for
-        a write that failed.
+        entries must be plain names, a unit of prefixed folders' entries
+        files inside a folder named with its prefix, and a unit of archive
+        roots' entries files inside a folder named as one of its roots, of
+        which only those the zip carries are replaced. Raises
+        ``PathTraversalError`` or ``ValueError`` for an entry that may not be
+        written, ``OSError`` for a write that failed.
         """
         ...
 
@@ -679,7 +682,10 @@ class SaveUnitStore(Protocol):
 
         A folder unit loses its root and everything below it, and a root that
         is a link raises ``OSError`` with nothing removed. A member set loses
-        only its named members directly in the root.
+        only its named members directly in the root, a unit of prefixed
+        folders only its member folders, and a unit of archive roots each of
+        its folders, raising ``OSError`` with nothing removed where one is a
+        link.
         """
         ...
 

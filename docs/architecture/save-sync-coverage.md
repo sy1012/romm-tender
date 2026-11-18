@@ -111,16 +111,16 @@ that directory moves, because the files are on the disk either way
 not read from the emulator's settings, which the follow carries nothing into, and a directory with a hole still in it,
 which names no folder.
 
-| State                  | What it means                                                                                                        | Example on a stock RetroDECK        |
-| ---------------------- | -------------------------------------------------------------------------------------------------------------------- | ----------------------------------- |
-| **per-game files**     | The answer names concrete files with no hole. Sync as usual, any number.                                             | Game Boy Advance, Saturn            |
-| **shared**             | One card or file that many games write, so per-game sync would overwrite.                                            | PS2, and a Sega CD disc image       |
-| **inside the content** | The save is written into the game file itself; there is nothing separate.                                            | an Amiga `.adf`                     |
-| **hole**               | The shape is known, but part of the path or name is the game's own identity, or the folder the game is started from. | Dreamcast, GameCube, 3DS, Wii U     |
-| **not established**    | Nobody established what this emulator writes, or the names in a known folder.                                        | MAME, PSP, ScummVM, unaudited cores |
-| **saves root missing** | The source read its saves folder from its settings, and it is missing.                                               | saves on an SD card that is out     |
-| **place not read**     | The emulator's own settings did not name the place, so its defaults stand in for them.                               | a standalone emulator never started |
-| **per-game unit**      | The answer says a folder, or a named set of files in a shared folder, is the game's own. Synced as one staged zip.   | GameCube, Wii; Switch on Eden       |
+| State                  | What it means                                                                                                                                  | Example on a stock RetroDECK                                |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| **per-game files**     | The answer names concrete files with no hole. Sync as usual, any number.                                                                       | Game Boy Advance, Saturn                                    |
+| **shared**             | One card or file that many games write, so per-game sync would overwrite.                                                                      | PS2, and a Sega CD disc image                               |
+| **inside the content** | The save is written into the game file itself; there is nothing separate.                                                                      | an Amiga `.adf`                                             |
+| **hole**               | The shape is known, but part of the path or name is the game's own identity, or the folder the game is started from.                           | Dreamcast, GameCube, a 3DS `.cia`, Wii U                    |
+| **not established**    | Nobody established what this emulator writes, or the names in a known folder.                                                                  | MAME, ScummVM, unaudited cores                              |
+| **saves root missing** | The source read its saves folder from its settings, and it is missing.                                                                         | saves on an SD card that is out                             |
+| **place not read**     | The emulator's own settings did not name the place, so its defaults stand in for them.                                                         | a standalone emulator never started                         |
+| **per-game unit**      | The answer says a folder, several folders, or a named set of files or folders in a shared folder, is the game's own. Synced as one staged zip. | GameCube, Wii; Switch on Eden; PSP on PPSSPP; 3DS on Azahar |
 
 **The sixth is about the emulator source, not the emulator.** While the answering source reports `saves-root-missing`
 for a saves root it read from its settings (its roots answer states that root `read`), the resolver still places a save
@@ -157,15 +157,21 @@ read** where it exists). The answer keeps the directory the resolver named, so t
 game's saves there.
 
 **The eighth is a save of several files the answer says are the game's own** — a folder per game (a Wii title's `data/`
-folder) or a game's files in a shared folder (GameCube `.gci` files). It syncs as one zip Tender stages for it
-([Save units](save-file-sync-architecture.md#save-units)). Only an explicit statement makes one: a `per-game-directory`
-granularity alone does not, because RPCS3 answers it with the parent of every title's folder, and such an answer stays
-**not established**. Dolphin's answers state it for a Wii title's folder and a GameCube game's `.gci` files, and a
-standalone Eden AppImage's for a Switch game's own save folder,
+folder), a game's files in a shared folder (GameCube `.gci` files), or a game's folders in a shared folder picked by its
+id (PSP save folders in PPSSPP's `SAVEDATA`), or several folders of the game's own (a 3DS title's save and extdata
+folders in Azahar). It syncs as one zip Tender stages for it ([Save units](save-file-sync-architecture.md#save-units)).
+Only an explicit statement makes one: a `per-game-directory` granularity alone does not, because RPCS3 answers it with
+the parent of every title's folder, and such an answer stays **not established**. Dolphin's answers state it for a Wii
+title's folder and a GameCube game's `.gci` files, and a standalone Eden AppImage's for a Switch game's own save folder,
 `<save root>/user/save/0000000000000000/<user>/<application id>`, laid out under the application id. Where the
 application id or the Eden user is not established, Eden's answer keeps that part of the path as a hole (`save_id`,
 `profile_id`) and the game is not synced; where several Eden AppImages put Eden's data in different places, nothing is
-established.
+established. Standalone PPSSPP's answer states it for a PSP `.iso`'s save folders in `<memory stick>/PSP/SAVEDATA`,
+picked by the disc's id; a disc it cannot read, or a save folder whose `PARAM.SFO` it cannot read, keeps the id as a
+`save_id` hole. Standalone Azahar's answer states it for a 3DS `.3ds`, `.cci` or `.cxi` whose headers name the title:
+its save folder under `title/<high>/<low>/data` and, where the title is granted extdata, its extdata folder under
+`extdata/<HIGH>/<LOW>`, each zipped under its own root name; a `.cia`, a compressed or encrypted image, or bytes with no
+3DS header keep the title id as a `save_id` hole.
 
 **Where several apply, the first in this order is named:** a shape Tender never syncs (shared, inside the content), then
 a missing saves root, then a place not read, then what cannot be established yet (a hole, not established).

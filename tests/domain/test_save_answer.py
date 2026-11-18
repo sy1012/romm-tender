@@ -542,3 +542,84 @@ class TestASaveUnit:
             answer = _answer(**overrides)
             assert answer.state != SAVE_STATE_PER_GAME_UNIT
             assert answer.unit is None
+
+
+class TestASaveUnitOfPrefixedFolders:
+    """A game's save folders in a folder other games' share, picked by a name prefix and named by the answer."""
+
+    def test_the_members_may_be_none_yet(self):
+        unit = SaveUnit(root="/psp/SAVEDATA", members=(), prefix="ULUS10064")
+
+        assert unit.members == ()
+
+    def test_a_unit_answer_carries_the_resolver_s_notes(self):
+        unit = SaveUnit(root="/psp/SAVEDATA", members=(), prefix="NPUH10001")
+        answer = unit_answer(
+            unit=unit, emulator="PPSSPP", emulator_identity="PPSSPP", content_installed=True, caveats=("a-note",)
+        )
+
+        assert answer.caveats == ("a-note",)
+        assert answer.state == SAVE_STATE_PER_GAME_UNIT
+
+    @pytest.mark.parametrize("name", ["ULUS10064", "ULUS10064DATA00", "ulus10064data00", "UlUs10064X"])
+    def test_a_name_that_starts_with_the_prefix_in_any_ascii_case_matches(self, name):
+        assert SaveUnit(root="/s", members=(), prefix="ULUS10064").prefix_matches(name) is True
+
+    @pytest.mark.parametrize("name", ["ULUS1006", "ULES10064DATA", "XULUS10064", "", "ULUS1006İDATA"])
+    def test_any_other_name_does_not(self, name):
+        assert SaveUnit(root="/s", members=(), prefix="ULUS10064").prefix_matches(name) is False
+
+    def test_a_unit_without_a_prefix_matches_nothing(self):
+        assert SaveUnit(root="/s", members=("ULUS10064DATA",)).prefix_matches("ULUS10064DATA") is False
+
+    @pytest.mark.parametrize(
+        ("members", "archive_folder", "prefix"),
+        [
+            (None, None, "ULUS10064"),
+            (("ULUS10064DATA",), "ULUS10064", "ULUS10064"),
+            (("ULES00151DATA",), None, "ULUS10064"),
+            (("ULUS10064DATA",), None, ""),
+            (("ULUS10064DATA",), None, "ULUS1006İ"),
+        ],
+    )
+    def test_fields_that_disagree_are_refused(self, members, archive_folder, prefix):
+        with pytest.raises(ValueError):
+            SaveUnit(root="/s", members=members, archive_folder=archive_folder, prefix=prefix)
+
+
+class TestASaveUnitOfArchiveRoots:
+    """Several folders that are each the game's own, every one archived under its root name."""
+
+    _DATA = "/sdmc/title/00040000/00113200/data"
+    _EXTDATA = "/sdmc/extdata/00000000/00001132"
+
+    def test_two_named_folders_make_a_unit(self):
+        unit = SaveUnit(root=self._DATA, archive_roots=(("data", self._DATA), ("extdata", self._EXTDATA)))
+
+        assert unit.archive_roots == (("data", self._DATA), ("extdata", self._EXTDATA))
+        assert unit.members is None
+
+    def test_one_named_folder_makes_a_unit(self):
+        assert SaveUnit(root=self._DATA, archive_roots=(("data", self._DATA),)).archive_roots is not None
+
+    @pytest.mark.parametrize(
+        ("fields", "roots"),
+        [
+            ({"members": ()}, (("data", _DATA),)),
+            ({"members": ("a",), "prefix": "a"}, (("data", _DATA),)),
+            ({"archive_folder": "data"}, (("data", _DATA),)),
+            ({}, ()),
+            ({}, (("data", _DATA), ("data", _EXTDATA))),
+            ({}, (("", _DATA),)),
+            ({}, ((".", _DATA),)),
+            ({}, (("..", _DATA),)),
+            ({}, (("da/ta", _DATA),)),
+            ({}, (("da\\ta", _DATA),)),
+            ({}, (("da\x00ta", _DATA),)),
+            ({}, (("data", "sdmc/data"),)),
+            ({}, (("extdata", _EXTDATA),)),
+        ],
+    )
+    def test_fields_that_disagree_are_refused(self, fields, roots):
+        with pytest.raises(ValueError):
+            SaveUnit(root=self._DATA, archive_roots=roots, **fields)
