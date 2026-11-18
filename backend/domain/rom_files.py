@@ -310,6 +310,29 @@ def ps3_folder_lift(rom_dir: str | None, launch_path: str) -> Ps3FolderLift | No
     )
 
 
+# What may lie beside a game folder that is lifted all the same, carried into it:
+# a RomM game folder can hold the dump beside a playlist RomM serves with it,
+# which RPCS3 never reads and which keeps nothing from booting where it lies.
+PS3_LIFT_COMPANION_SUFFIX = ".m3u"
+
+
+def ps3_lift_companions(entries: list[tuple[str, str]], inner_name: str) -> tuple[str, ...] | None:
+    """The files beside a game folder a lift carries into it, or ``None`` where it may not be lifted.
+
+    *entries* are ``(name, kind)`` for everything directly in the install's
+    folder; *inner_name* is the game folder's name. A lift goes ahead only
+    where the game folder is there and everything else is a playlist file
+    (:data:`PS3_LIFT_COMPANION_SUFFIX`, any case), which then goes inside the
+    game folder so nothing of the download is left outside the install.
+    """
+    if (inner_name, "dir") not in entries:
+        return None
+    others = [(name, kind) for name, kind in entries if name != inner_name]
+    if any(kind != "file" or not name.lower().endswith(PS3_LIFT_COMPANION_SUFFIX) for name, kind in others):
+        return None
+    return tuple(sorted(name for name, _kind in others))
+
+
 def folder_boot_layout_root(files: list[str]) -> str | None:
     """Return the game root of a folder-boot layout among *files*, or ``None``.
 

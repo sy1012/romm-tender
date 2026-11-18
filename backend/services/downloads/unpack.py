@@ -30,6 +30,7 @@ from domain.rom_files import (
     needs_m3u,
     ps3_folder_lift,
     ps3_folder_rename,
+    ps3_lift_companions,
 )
 from domain.served_shape import holds_disc_image, is_zip_name, served_shapes, wrapper_prefix
 from lib.path_safety import is_inside_folder, safe_join
@@ -525,25 +526,36 @@ class DownloadUnpacker:
         """Place a game folder found one level inside *extract_dir* as *extract_dir* itself (:func:`ps3_folder_lift`).
 
         Returns the launch file where it then lies, or *launch_file* unchanged:
-        for any other layout, and where the game folder is not the only entry
-        of *extract_dir*, so nothing beside it is deleted or left behind outside
-        the install (#2195 D39). A failure from the first move on removes the
-        staging folder before it is raised, as the caller removes *extract_dir*.
+        for any other layout, and where anything but playlist files lies beside
+        the game folder (:func:`ps3_lift_companions`), so nothing beside it is
+        deleted or left behind outside the install (#2195 D39). The playlists
+        go inside the game folder, never over a file of its own. A failure
+        from the first move on removes the staging folder before it is raised,
+        as the caller removes *extract_dir*.
         """
+        store = self._download_file_store
         lift = ps3_folder_lift(extract_dir, launch_file)
         if lift is None:
             return launch_file
-        names = [entry["name"] for entry in self._download_file_store.list_top_level_names(extract_dir)]
-        if names != [os.path.basename(lift.inner)]:
+        entries = [(entry["name"], entry["kind"]) for entry in store.list_top_level_names(extract_dir)]
+        companions = ps3_lift_companions(entries, os.path.basename(lift.inner))
+        if companions is None:
             self._logger.info("PS3 game folder %s is not alone in %s; left where it is", lift.inner, extract_dir)
             return launch_file
-        if self._download_file_store.exists(lift.staging):
+        if any(store.exists(os.path.join(lift.inner, name)) for name in companions):
+            self._logger.info(
+                "PS3 game folder %s already holds a file named like a playlist beside it; left", lift.inner
+            )
+            return launch_file
+        if store.exists(lift.staging):
             self._logger.warning("PS3 folder lift skipped: '%s' already exists; keeping '%s'", lift.staging, lift.inner)
             return launch_file
         try:
-            self._download_file_store.move_dir(lift.inner, lift.staging)
-            self._download_file_store.remove_empty_dir(extract_dir)
-            self._download_file_store.move_dir(lift.staging, extract_dir)
+            store.move_dir(lift.inner, lift.staging)
+            for name in companions:
+                store.rename(os.path.join(extract_dir, name), os.path.join(lift.staging, name))
+            store.remove_empty_dir(extract_dir)
+            store.move_dir(lift.staging, extract_dir)
         except BaseException:
             self._remove_extract_dir(lift.staging)
             raise

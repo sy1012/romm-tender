@@ -2389,6 +2389,8 @@ class TestDoDownloadMultiFile:
             download_file_store=store,
         )
         downloads.accepted_extensions = frozenset({".ps3", ".PS3", ".ps3dir", ".PS3DIR"})
+        # ES-DE's ps3 accept-list carries no .m3u, so a playlist served with the dump is never the launch file.
+        downloads.m3u_supported = False
         roms_dir = tmp_path / "retrodeck" / "roms" / "ps3"
         roms_dir.mkdir(parents=True)
         if staging_taken:
@@ -2465,6 +2467,27 @@ class TestDoDownloadMultiFile:
         assert installed.rom_dir == str(placed)
         assert installed.file_path == str(placed / "Inner" / "PS3_GAME" / "USRDIR" / "EBOOT.BIN")
         assert (placed / "readme.txt").read_bytes() == b"kept"
+
+    @pytest.mark.asyncio
+    async def test_a_ps3_game_folder_beside_a_playlist_is_lifted_with_the_playlist_inside(
+        self, make_downloads, tmp_path
+    ):
+        """A RomM game folder can hold the dump beside a playlist RomM serves with it; RPCS3 boots the dump."""
+        roms_dir, installed = await self._download_ps3_zip(
+            make_downloads,
+            tmp_path,
+            {
+                "Inner/PS3_GAME/USRDIR/EBOOT.BIN": b"\x00" * 100,
+                "Inner/PS3_DISC.SFB": b"\x00" * 10,
+                "MyGame.m3u": b"Inner",
+            },
+        )
+
+        placed = roms_dir / "MyGame.ps3"
+        assert installed is not None
+        assert installed.file_path == str(placed / "PS3_GAME" / "USRDIR" / "EBOOT.BIN")
+        assert (placed / "MyGame.m3u").read_bytes() == b"Inner"
+        assert sorted(path.name for path in roms_dir.iterdir()) == ["MyGame.ps3"]
 
     @pytest.mark.asyncio
     async def test_a_ps3_game_folder_whose_staging_name_is_taken_is_left_where_it_is(self, make_downloads, tmp_path):

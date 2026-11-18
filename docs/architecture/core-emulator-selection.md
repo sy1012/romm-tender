@@ -682,9 +682,10 @@ marker run above decides which directory inside it a start is asked with, until 
 suffix the accept-list carries, compared verbatim as ES-DE compares it, keeps its name, and so does one whose new name
 is taken: nothing is moved over another folder. A download whose game folder lies exactly one level inside the folder it
 was unpacked into has that game folder placed as the folder itself (`ps3_folder_lift`), since ES-DE, the resolver and
-RPCS3 look only at the folder and find nothing to boot one level above the game (D39) — only where the game folder is
-its only entry, so nothing beside it is deleted or left outside the install. An older install is renamed and lifted once
-at start-up (D27, D39; see [Launch-target validation](backend-architecture.md#launch-target-validation)).
+RPCS3 look only at the folder and find nothing to boot one level above the game (D39) — only where nothing but playlist
+files (`.m3u`, which RomM can serve beside the dump) lies beside the game folder; those go inside it, never over a file
+of its own, so nothing beside it is deleted or left outside the install. An older install is renamed and lifted once at
+start-up (D27, D39; see [Launch-target validation](backend-architecture.md#launch-target-validation)).
 
 ### The picker use cases
 
