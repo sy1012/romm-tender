@@ -20,6 +20,7 @@ from _factories import (
 from _spawns import record_spawns
 from fakes.fake_core_info_provider import FakeCoreInfoProvider
 from fakes.fake_extra_content_reader import FakeExtraContentReader
+from fakes.fake_package_install import FakePackageInstallControl, FakePackageInstallReader, write_boot_file
 from fakes.fake_platform_core_reader import FakePlatformCoreReader
 from fakes.fake_platform_systems import RETRODECK_SOURCE, FakePlatformSystems
 from fakes.fake_retrodeck_folders import FakeRetroDeckFolders
@@ -30,6 +31,7 @@ from fakes.system_time import FakeClock
 from adapters.adoption_move import AdoptionMoveAdapter
 from adapters.download_file import DownloadFileAdapter
 from adapters.rom_files import RomFileAdapter
+from domain.package_install import NO_BOOT_FILE, InstalledTitle, PackageInstallPlan
 from domain.platform_system import NO_SYSTEM, SWITCHED_OFF, PlatformSystem
 from domain.refusal import DomainRefused
 from domain.retrodeck_folders import GAME_DOWNLOAD, FolderRefused, finding_refusal, switched_off
@@ -43,6 +45,8 @@ from lib.errors import NotInstalled, Refused, RommNotFoundError
 from lib.prune_conflicts import PruneConflicts
 from services.active_core_resolver import ActiveCoreResolver, ActiveCoreResolverConfig
 from services.downloads import (
+    DownloadPackageInstall,
+    DownloadPackageInstallConfig,
     DownloadQueue,
     DownloadQueueConfig,
     DownloadService,
@@ -190,7 +194,8 @@ class DownloadsHarness:
     ``system_extensions`` seam, every system's accept-list alike.
     ``extra_content`` is the resolver's reading of extra content in folders
     the offer asks, and ``install_recorder`` the recorder every part writes
-    an install through.
+    an install through. ``package_installs`` is the resolver's reading of a
+    package install, and ``package_install_control`` runs it.
     """
 
     service: DownloadService
@@ -209,6 +214,8 @@ class DownloadsHarness:
     retrodeck_folders: FakeRetroDeckFolders
     extra_content: FakeExtraContentReader
     install_recorder: RomInstallRecorder
+    package_installs: FakePackageInstallReader
+    package_install_control: FakePackageInstallControl
     m3u_supported: bool = True
     accepted_extensions: frozenset[str] = frozenset()
 
@@ -338,11 +345,27 @@ async def make_downloads(emit, logger) -> MakeDownloads:
                 logger=logger,
             ),
         )
+        package_installs = FakePackageInstallReader()
+        package_install_control = FakePackageInstallControl()
+        package_install = DownloadPackageInstall(
+            config=DownloadPackageInstallConfig(
+                package_installs=package_installs,
+                install_control=package_install_control,
+                download_file_store=download_store,
+                retrodeck_folders=download_folders,
+                uow_factory=FakeUnitOfWorkFactory(uow),
+                queue=queue,
+                loop=download_loop,
+                logger=logger,
+                timeout_seconds=60,
+            ),
+        )
         transfer = DownloadTransfer(
             config=DownloadTransferConfig(
                 state=state,
                 queue=queue,
                 unpacker=unpacker,
+                package_install=package_install,
                 romm_api=romm_api,
                 install_recorder=install_recorder,
                 download_file_store=download_store,
@@ -419,6 +442,8 @@ async def make_downloads(emit, logger) -> MakeDownloads:
             retrodeck_folders=download_folders,
             extra_content=extra_content,
             install_recorder=install_recorder,
+            package_installs=package_installs,
+            package_install_control=package_install_control,
         )
         return harness
 
@@ -8871,3 +8896,102 @@ class TestTheExtraContentOffer:
             await downloads.service.get_extra_content(404)
 
         assert refused.value.reason == "not_found"
+
+
+# ── A download whose content is a package, installed into its emulator ────
+
+
+class TestADownloadWhoseContentIsAPackage:
+    """A ps3 game RomM keeps as a folder of a game package and its licence, installed into RPCS3 once in place."""
+
+    @pytest.fixture
+    def roms(self, tmp_path):
+        roms = tmp_path / "retrodeck" / "roms"
+        (roms / "ps3").mkdir(parents=True)
+        return roms
+
+    @pytest.fixture
+    def downloads(self, make_downloads, roms, tmp_path):
+        return make_downloads(
+            retrodeck_folders=FakeRetroDeckFolders(roms=str(roms), bios=str(tmp_path / "bios")),
+            removal_folders=FakeRetroDeckFolders(roms=str(roms)),
+        )
+
+    @staticmethod
+    def _title(tmp_path) -> InstalledTitle:
+        folder = tmp_path / "rpcs3" / "dev_hdd0" / "game" / "NPUB30000"
+        return InstalledTitle(str(folder), str(folder / "USRDIR" / "EBOOT.BIN"), "/in/USRDIR/EBOOT.BIN")
+
+    @staticmethod
+    async def _run(downloads, roms) -> None:
+        from unittest.mock import patch
+
+        detail = _folder_game(
+            _rom_file(11, "Game.pkg", "game", 1000), _rom_file(12, "update/Update.pkg", "update", 10), multiple=True
+        )
+        fake_download, _asked = _content_by_id()
+        _seed_rom(downloads.uow, 1, platform_slug="ps3")
+        downloads.queue.enqueue(1, {"rom_id": 1, "status": "downloading", "progress": 0})
+        with patch.object(downloads.romm_api, "download_rom_content", side_effect=fake_download):
+            await downloads.transfer.run(
+                1, detail, str(roms / "ps3" / "Game"), "ps3", "Game", _admitted(downloads, 1), platform_name="PS3"
+            )
+
+    async def test_the_completed_download_names_the_installed_title(self, downloads, roms, tmp_path, emit):
+        title = self._title(tmp_path)
+        downloads.package_installs.answer = PackageInstallPlan(argv=("rpcs3",), title=title, installer="RPCS3")
+        downloads.package_install_control.effect = write_boot_file(title.boot_file)
+
+        await self._run(downloads, roms)
+
+        installed = downloads.uow.rom_installs.get(1)
+        assert installed is not None
+        assert (installed.file_path, installed.package_boot_file) == (title.boot_file, "/in/USRDIR/EBOOT.BIN")
+        assert list((roms / "ps3").iterdir()) == []
+        complete = [c.args[1] for c in emit.await_args_list if c.args[0] == "download_complete"]
+        assert complete[0]["file_path"] == title.boot_file
+        assert "package_not_installed" not in complete[0]
+        assert downloads.queue.entries[1]["status"] == "completed"
+
+    async def test_an_install_that_left_no_boot_file_completes_the_download_and_says_why(
+        self, downloads, roms, tmp_path, emit
+    ):
+        title = self._title(tmp_path)
+        downloads.package_installs.answer = PackageInstallPlan(argv=("rpcs3",), title=title, installer="RPCS3")
+
+        await self._run(downloads, roms)
+
+        installed = downloads.uow.rom_installs.get(1)
+        assert installed is not None
+        assert installed.package_boot_file is None
+        assert installed.rom_dir is not None and Path(installed.rom_dir).is_dir()
+        complete = [c.args[1] for c in emit.await_args_list if c.args[0] == "download_complete"]
+        assert complete[0]["package_not_installed"] == {"reason": NO_BOOT_FILE, "installer": "RPCS3"}
+
+    async def test_a_download_that_is_no_package_completes_as_it_always_did(self, downloads, roms, emit):
+        await self._run(downloads, roms)
+
+        complete = [c.args[1] for c in emit.await_args_list if c.args[0] == "download_complete"]
+        assert "package_not_installed" not in complete[0]
+        assert downloads.package_install_control.ran == []
+
+    async def test_an_installed_title_takes_no_extra_content_download(self, downloads, roms, tmp_path):
+        title = self._title(tmp_path)
+        downloads.package_installs.answer = PackageInstallPlan(argv=("rpcs3",), title=title, installer="RPCS3")
+        downloads.package_install_control.effect = write_boot_file(title.boot_file)
+        await self._run(downloads, roms)
+
+        with pytest.raises(Refused) as refused:
+            await downloads.service._start_extra_content(1, (12,))
+
+        assert refused.value.reason == "unknown_extra_content"
+
+    async def test_an_installed_title_is_offered_no_extra_content(self, downloads, roms, tmp_path):
+        title = self._title(tmp_path)
+        downloads.package_installs.answer = PackageInstallPlan(argv=("rpcs3",), title=title, installer="RPCS3")
+        downloads.package_install_control.effect = write_boot_file(title.boot_file)
+        await self._run(downloads, roms)
+
+        answer = await downloads.service.get_extra_content(1)
+
+        assert (answer["offered"], answer["installed"], answer["files"]) == (False, True, [])

@@ -274,6 +274,8 @@ export interface CachedGameDetail extends BiosAnswer {
    * otherwise. The page then shows its missing-file state instead of Play.
    */
   file_missing_at?: string | null;
+  /** Installed into its emulator from a downloaded package: the install is the emulator's own copy of the game. */
+  installed_from_package?: boolean;
 }
 
 // get_cached_game_detail wiring lives in utils/cachedGameDetailStore.ts so the

@@ -17,6 +17,7 @@ from dataclasses import dataclass
 from functools import partial
 from typing import TYPE_CHECKING, Any
 
+from domain.package_install import drive_game_folder
 from domain.retrodeck_folders import FolderRefused, folder_of
 from lib.background_tasks import BackgroundTasks
 from lib.errors import NamedRefused, NotInstalled, Refused
@@ -155,6 +156,9 @@ class RomRemovalService:
         a caller removing many installs asked for once, or :meth:`_rom_folder`
         answers here.
 
+        A game installed into its emulator from a package is removed by
+        :meth:`_delete_installed_title` instead, which no ROM folder bounds.
+
         *claims* is the claim map a cleanup run that sealed a recovery bundle
         hands in; its absence marks a caller that has no bundle at all and
         therefore seals its own claim — see :meth:`_remove_under_claim`.
@@ -162,6 +166,8 @@ class RomRemovalService:
         rom_dir = install.rom_dir
         file_path = install.file_path
 
+        if install.package_boot_file is not None:
+            return self._delete_installed_title(install, claims, on_progress)
         if folder is None:
             folder = self._rom_folder(install.system)
         if rom_dir:
@@ -177,6 +183,28 @@ class RomRemovalService:
                 raise ValueError(f"Expected installed ROM file, found a directory: {file_path}")
             return self._remove_under_claim(file_path, folder, claims, on_progress)
         return {"success": True, "changed": False, "ambiguous": False, "message": "No installed path recorded"}
+
+    def _delete_installed_title(
+        self,
+        install: RomInstall,
+        claims: dict[str, SourceClaim] | None,
+        on_progress: Callable[[int, int], None] | None,
+    ) -> MutationOutcome:
+        """Delete the title a package install left in the emulator's drive (ADR-0051), held to the drive's game folder.
+
+        The title's folder is removed whole, and only where it lies directly
+        in the drive's game folder (:func:`~domain.package_install.drive_game_folder`),
+        which is also the bound the removal is claimed under: nothing outside
+        that folder — the drive's user folders, where the saves lie, among it —
+        is reachable from it.
+        """
+        rom_dir = install.rom_dir
+        bound = drive_game_folder(rom_dir) if rom_dir else None
+        if rom_dir is None or bound is None:
+            raise ValueError(f"Refusing to delete an installed title outside its emulator's game folder: {rom_dir}")
+        if self._rom_file_store.exists(rom_dir) and not self._rom_file_store.is_dir(rom_dir):
+            raise ValueError(f"Expected installed title directory, found another file type: {rom_dir}")
+        return self._remove_under_claim(rom_dir, bound, claims, on_progress)
 
     def _remove_under_claim(
         self,
@@ -252,8 +280,13 @@ class RomRemovalService:
             install = uow.rom_installs.get(int(rom_id))
         if install is None:
             return InstalledContentRemoval(changed=False, ambiguous=False)
-        # No bound, so nothing was touched: a refusal, never an ambiguity.
-        folder = folder_of(self._retrodeck_folders.rom_folders([install.system]), install.system)
+        # No bound, so nothing was touched: a refusal, never an ambiguity. A
+        # title installed from a package is bounded by its own drive's folder.
+        folder = (
+            None
+            if install.package_boot_file is not None
+            else folder_of(self._retrodeck_folders.rom_folders([install.system]), install.system)
+        )
         if isinstance(folder, FolderRefused):
             return InstalledContentRemoval(changed=False, ambiguous=False, failure=folder.message)
         try:

@@ -495,6 +495,34 @@ describe("DownloadQueue", () => {
   });
 
   // ---------------------------------------------------------------------------
+  // installing (a downloaded package installed into its emulator)
+  // ---------------------------------------------------------------------------
+  describe("installing", () => {
+    it("keeps an installing item in the active section with the 'Installing…' caption and no control", async () => {
+      vi.mocked(backend.getDownloadQueue).mockResolvedValue({
+        downloads: [
+          makeItem({
+            rom_id: 93,
+            rom_name: "Puppeteer",
+            status: "installing",
+            bytes_downloaded: 10000,
+            total_bytes: 10000,
+            resumable: false,
+          }),
+        ],
+      });
+      const { container } = render(<DownloadQueue onBack={() => {}} />);
+      await flushMount();
+
+      expect(container.querySelector('[data-testid="dl-caption"]')?.textContent).toBe(
+        "Puppeteer (Genesis) — Installing…",
+      );
+      expect(buttonByText(container, "Pause Puppeteer")).toBeNull();
+      expect(buttonByText(container, "Cancel Puppeteer")).toBeNull();
+    });
+  });
+
+  // ---------------------------------------------------------------------------
   // handleClearCompleted
   // ---------------------------------------------------------------------------
   describe("handleClearCompleted", () => {

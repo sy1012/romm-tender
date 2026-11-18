@@ -135,7 +135,7 @@ def test_the_sweep_reaches_every_verdict_and_every_effect():
         verdicts.add(launchable["verdict"])
         stated |= {caveat["data"]["effect"] for caveat in launchable["caveats"] if "effect" in caveat.get("data", {})}
 
-    assert len(_VECTORS) == 134
+    assert len(_VECTORS) == 137
     assert verdicts == {*_REFUSING, VERDICT_LAUNCHABLE, "unknown"}
     assert stated == {EFFECT_STOPS, EFFECT_GOES_ON, EFFECT_UNESTABLISHED}
 

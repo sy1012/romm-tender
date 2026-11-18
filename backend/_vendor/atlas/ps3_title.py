@@ -24,7 +24,10 @@ whichever of three forms the file is, told apart by its own first bytes:
   reads the nine bytes at offset 55 as the title id it installs the game
   under — the title part of the content id the header carries from offset
   0x30, ``UP0001-NPUB30000_00-…`` (``read_metadata``, :249-253). A PSP or
-  PS Vita package is no PS3 game's.
+  PS Vita package is no PS3 game's. The metadata packets that follow the
+  header lie unencrypted too, and two of them decide where an install puts
+  the package (:func:`read_facts` reads them): its content type, and an
+  install directory that replaces those nine bytes (:257-551).
 - **an ISO 9660 image** (``CD001`` at ``0x8001``, ``is_iso_file``,
   ``rpcs3/Loader/ISO.cpp:63-118``): ``PS3_GAME/PARAM.SFO`` in it, the folder
   RPCS3 loads an image's ``PARAM.SFO`` from
@@ -61,6 +64,17 @@ _PKG_TYPES: Final = (0x8000, 0x0000)  # PKG_RELEASE_TYPE_RELEASE, _DEBUG (unpkg.
 _PKG_PLATFORM_PS3: Final = 0x0001  # PKG_PLATFORM_TYPE_PS3 (unpkg.h:26)
 _PKG_PLATFORM_PSP_PSVITA: Final = 0x0002  # PKG_PLATFORM_TYPE_PSP_PSVITA (unpkg.h:27)
 _PKG_TITLE_ID: Final = slice(55, 55 + 9)
+# The metadata's place and count, big-endian at 8 and 12 (PKGHeader, unpkg.h:108-109).
+_PKG_META_PLACE: Final = 8
+# The packets ``read_metadata`` keeps a value from where this reading needs one:
+# the content type, four bytes (:286-299), and an install directory, the text
+# after the packet's first eight bytes (:423-436).
+_PKG_PACKET_CONTENT_TYPE: Final = 0x2
+_PKG_PACKET_INSTALL_DIR: Final = 0xA
+# Bounds on the metadata this reading walks: more packets, or packets reaching
+# further, leave the metadata unread rather than read in part.
+PKG_META_PACKETS_LIMIT: Final = 64
+PKG_META_BYTES_LIMIT: Final = 1 << 16
 _ISO_IDENTIFIER: Final = b"CD001"
 _ISO_SFO: Final = ("PS3_GAME", "PARAM.SFO")
 _TITLE_ID_KEY: Final = b"TITLE_ID"
@@ -86,16 +100,32 @@ class Ps3TitleExecutable(Exception):
 
 @dataclass(frozen=True, slots=True)
 class Ps3TitleFacts:
-    """Where a title id was read from, and the id as the file states it."""
+    """Where a title id was read from, and the id as the file states it.
+
+    A package also carries what its metadata says about where RPCS3 installs
+    it: ``content_type`` the value of its content-type packet, ``0`` where it
+    has none (``PKGMetaData``'s default, unpkg.h:171), and ``None`` where the
+    metadata was not read; ``install_dir`` the directory an install-directory
+    packet names in place of the header's nine bytes, ``None`` where there is
+    none or the metadata was not read. Both are ``None`` on every other source.
+    """
 
     source: Ps3TitleSource
     title_id: str
+    content_type: int | None = None
+    install_dir: str | None = None
 
     def __post_init__(self) -> None:
         if self.source not in PS3_TITLE_SOURCES:
             raise ValueError(f"Ps3TitleFacts: source must be one of {PS3_TITLE_SOURCES}, got {self.source!r}")
         if not self.title_id or "\0" in self.title_id:
             raise ValueError("Ps3TitleFacts: title_id is the non-empty string the file states")
+        if self.source != SOURCE_PKG and (self.content_type is not None or self.install_dir is not None):
+            raise ValueError("Ps3TitleFacts: content_type and install_dir are a package's alone")
+        if self.content_type is None and self.install_dir is not None:
+            raise ValueError("Ps3TitleFacts: an install_dir is read from metadata whose content type was read too")
+        if self.content_type is not None and not 0 <= self.content_type <= 0xFFFFFFFF:
+            raise ValueError("Ps3TitleFacts: content_type is an unsigned 32-bit value")
 
 
 def title_id(facts: Ps3TitleFacts) -> str | None:
@@ -119,7 +149,11 @@ def read_facts(handle: BinaryIO, size: int) -> Ps3TitleFacts:
     head = handle.read(_PKG_HEAD)
     magic = head[:4]
     if magic == _PKG_MAGIC:
-        return Ps3TitleFacts(SOURCE_PKG, _pkg_title_id(head))
+        title = _pkg_title_id(head)
+        metadata = _pkg_metadata(handle, size, head)
+        if metadata is None:
+            return Ps3TitleFacts(SOURCE_PKG, title)
+        return Ps3TitleFacts(SOURCE_PKG, title, *metadata)
     if magic == MAGIC_PSF.encode("latin-1"):
         return Ps3TitleFacts(SOURCE_PARAM_SFO, _sfo_title_id(_whole(handle, size)))
     if magic in (MAGIC_SELF.encode("latin-1"), MAGIC_ELF.encode("latin-1")):
@@ -167,3 +201,39 @@ def _pkg_title_id(head: bytes) -> str:
     if not raw:
         raise Ps3TitleUnread("a package whose content id names no title")
     return raw.decode("latin-1")
+
+
+def _pkg_metadata(handle: BinaryIO, size: int, head: bytes) -> tuple[int, str | None] | None:
+    """The content type and install directory ``read_metadata`` keeps — ``None`` where the metadata is not read.
+
+    The walk is RPCS3's (unpkg.cpp:257-551): ``meta_count`` packets from
+    ``meta_offset``, each an eight-byte id and size and then its data; a
+    content-type packet four bytes long sets the type, an install-directory
+    packet longer than eight bytes sets the directory to its text after those
+    eight, up to the first NUL (``c_str() + 8``), and a later packet of either
+    replaces an earlier one. Every other packet, and one of either whose size
+    RPCS3 refuses, is passed over. A walk beyond the file's end, or beyond
+    :data:`PKG_META_PACKETS_LIMIT` packets or :data:`PKG_META_BYTES_LIMIT`
+    bytes, is not read: RPCS3 would read on into what is not there.
+    """
+    offset, count = struct.unpack_from(">II", head, _PKG_META_PLACE)
+    if count > PKG_META_PACKETS_LIMIT:
+        return None
+    content_type = 0
+    install_dir: str | None = None
+    position = offset
+    for _ in range(count):
+        if position + 8 > size or position + 8 - offset > PKG_META_BYTES_LIMIT:
+            return None
+        handle.seek(position)
+        packet_id, packet_size = struct.unpack(">II", handle.read(8))
+        end = position + 8 + packet_size
+        if end > size or end - offset > PKG_META_BYTES_LIMIT:
+            return None
+        if packet_id == _PKG_PACKET_CONTENT_TYPE and packet_size == 4:
+            content_type = struct.unpack(">I", handle.read(4))[0]
+        elif packet_id == _PKG_PACKET_INSTALL_DIR and packet_size > 8:
+            data = handle.read(packet_size)
+            install_dir = data[8:].split(b"\0", 1)[0].decode("latin-1")
+        position = end
+    return content_type, install_dir

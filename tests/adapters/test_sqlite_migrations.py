@@ -95,8 +95,8 @@ def _set_user_version(db_path: str, version: int) -> None:
 # + 042_add_rom_install_fetched_size + 043_key_firmware_store_by_platform_folder
 # + 044_key_platform_sync_state_by_platform_folder
 # + 045_key_downloaded_bios_by_platform_folder
-# + 046_add_rom_install_extra_content).
-_SHIPPED_VERSION = 46
+# + 046_add_rom_install_extra_content + 047_add_rom_install_package_boot_file).
+_SHIPPED_VERSION = 47
 
 # Tables after every shipped migration: the v1 set plus 006's play-session outbox,
 # 012's per-platform completion stamp, 019's per-collection completion stamp,
@@ -3001,7 +3001,7 @@ class Test046AddRomInstallExtraContent:
         finally:
             conn.close()
 
-        assert apply_migrations(db_path) == 46
+        assert apply_migrations(db_path) == _SHIPPED_VERSION
 
         assert _columns(db_path, "rom_install_extra_content") == {"rom_id", "file_id", "rel_path", "size_bytes"}
         conn = sqlite3.connect(db_path, isolation_level=None)
@@ -3033,3 +3033,30 @@ class Test046AddRomInstallExtraContent:
             assert conn.execute("SELECT COUNT(*) FROM rom_install_extra_content").fetchone()[0] == 0
         finally:
             conn.close()
+
+
+class Test047AddRomInstallPackageBootFile:
+    """047 — an install records the boot file of a title installed into its emulator from a package (ADR-0051)."""
+
+    def test_an_install_from_before_it_was_not_installed_from_a_package(self, tmp_path: Path):
+        db_path = str(tmp_path / "romm_sync.db")
+        apply_migrations(db_path, str(_only_migrations_through(tmp_path, 46)))
+        conn = sqlite3.connect(db_path, isolation_level=None)
+        try:
+            _insert_rom(conn, 1, 100)
+            conn.execute(
+                "INSERT INTO rom_installs (rom_id, file_path, rom_dir, platform_slug, system, installed_at) "
+                "VALUES (1, '/roms/ps3/G/G.pkg', '/roms/ps3/G', 'ps3', 'ps3', 'now')"
+            )
+        finally:
+            conn.close()
+        assert "package_boot_file" not in _columns(db_path, "rom_installs")
+
+        assert apply_migrations(db_path) == _SHIPPED_VERSION
+
+        conn = sqlite3.connect(db_path)
+        try:
+            row = conn.execute("SELECT file_path, package_boot_file FROM rom_installs WHERE rom_id = 1").fetchone()
+        finally:
+            conn.close()
+        assert row == ("/roms/ps3/G/G.pkg", None)

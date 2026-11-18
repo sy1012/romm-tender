@@ -1,0 +1,1125 @@
+{
+  "family": "machines",
+  "schema": 5,
+  "spec": "atlas/package_install.py; atlas/installations.py PackageInstallAnswer, RetroDeck; docs/how-to-use.md",
+  "description": "The command that installs a PS3 package, or a folder of them, into RPCS3, and what the install leaves: every package it takes, where each goes, the boot file of a game's folder — read the way RPCS3 d5213de6 installs.",
+  "vectors": [
+    {
+      "name": "package-install-rpcs3-installs-a-folder-of-packages",
+      "rationale": "RetroDECK runs RPCS3 for ps3: handed the game's folder, rpcs3 --headless --installpkg takes every file whose path contains .pkg, sorted by name — the licence package into user 00000001's exdata, the game into dev_hdd0/game/<the header's title id>, its executable as USRDIR/EBOOT.BIN — and exits 0 whatever came of it (rpcs3.cpp:1146-1187; main_window.cpp:818-936; unpkg.cpp:860-919 at d5213de6).",
+      "input": {
+        "home": "/home/deck",
+        "files": {
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retrodeck/retrodeck.json": "{\"paths\": {\"rd_home_path\": \"/mnt/sd/retrodeck\", \"saves_path\": \"/mnt/sd/retrodeck/saves\"}}",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retroarch/retroarch.cfg": "",
+          "/mnt/sd/retrodeck/roms/systeminfo.txt": "",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/files/retrodeck/components/es-de/share/es-de/resources/systems/linux/es_systems.xml": "<?xml version=\"1.0\"?>\n<systemList>\n  <system>\n    <name>ps3</name>\n    <path>%ROMPATH%/ps3</path>\n    <extension>.desktop .iso .ISO .ps3 .PS3 .ps3dir .PS3DIR</extension>\n    <command label=\"RPCS3 Shortcut (Standalone)\">%ENABLESHORTCUTS% %EMULATOR_OS-SHELL% %ROM%</command>\n    <command label=\"RPCS3 Game Serial (Standalone)\">%EMULATOR_RPCS3% --no-gui %RPCS3_GAMEID%:%INJECT%=%BASENAME%.ps3</command>\n    <command label=\"RPCS3 Directory (Standalone)\">%EMULATOR_RPCS3% --no-gui %ROM%</command>\n    <command label=\"RPCS3 ISO (Standalone)\">%EMULATOR_RPCS3% --no-gui %ROM%</command>\n  </system>\n</systemList>\n",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/files/retrodeck/components/es-de/share/es-de/resources/systems/linux/es_find_rules.xml": "<?xml version=\"1.0\"?>\n<ruleList>\n    <emulator name=\"RPCS3\">\n        <rule type=\"staticpath\">\n            <entry>/app/retrodeck/components/rpcs3/component_launcher.sh</entry>\n        </rule>\n    </emulator>\n</ruleList>\n",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/metadata": "[Application]\nname=net.retrodeck.retrodeck\nruntime=org.kde.Platform/x86_64/6.11\nsdk=org.kde.Sdk/x86_64/6.11\ncommand=retrodeck\n\n[Context]\nfilesystems=host;\n",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/files/retrodeck/components/rpcs3/component_launcher.sh": "#!/bin/bash\n",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/files/retrodeck/components/es-de/component_version": "retrodeck-main-20260926-172324\n",
+          "/var/lib/flatpak/runtime/org.kde.Platform/x86_64/6.11/active/files/bin/bash": "",
+          "/home/deck/retrodeck/roms/ps3/Game/UP0001-NPUB30000_00-GAME000000000001.pkg": "",
+          "/home/deck/retrodeck/roms/ps3/Game/UP0001-NPUB30000_00-GAME000000000001-edat.pkg": ""
+        },
+        "dirs": [
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/ROMs",
+          "/home/deck/retrodeck/roms/ps3/Game",
+          "/mnt/sd/retrodeck/bios",
+          "/mnt/sd/retrodeck/saves"
+        ],
+        "ps3_titles": {
+          "/home/deck/retrodeck/roms/ps3/Game/UP0001-NPUB30000_00-GAME000000000001.pkg": {
+            "source": "pkg",
+            "title_id": "NPUB30000",
+            "content_type": 5
+          },
+          "/home/deck/retrodeck/roms/ps3/Game/UP0001-NPUB30000_00-GAME000000000001-edat.pkg": {
+            "source": "pkg",
+            "title_id": "NPUB30000",
+            "content_type": 11
+          }
+        },
+        "package_install_query": {
+          "system": "ps3",
+          "content_path": "/home/deck/retrodeck/roms/ps3/Game"
+        }
+      },
+      "expected": {
+        "installations": [
+          {
+            "kind": "retrodeck",
+            "label": "RetroDECK",
+            "kinds": [
+              "retrodeck"
+            ],
+            "root": "/mnt/sd/retrodeck",
+            "health": []
+          }
+        ],
+        "package_install_command": {
+          "entry": {
+            "system": "ps3",
+            "label": "RPCS3 Directory (Standalone)",
+            "kind": "standalone",
+            "core_so": null,
+            "emulator": "RPCS3",
+            "declared_index": 2,
+            "selection": null,
+            "availability": "startable",
+            "launcher": {
+              "path": "/app/retrodeck/components/rpcs3/component_launcher.sh",
+              "replacement_command": null,
+              "app_id": "net.retrodeck.retrodeck",
+              "rule": "staticpath",
+              "entry": "/app/retrodeck/components/rpcs3/component_launcher.sh"
+            },
+            "core_path": null,
+            "caveats": []
+          },
+          "command": {
+            "program": {
+              "variant": "flatpak",
+              "app_id": "net.retrodeck.retrodeck",
+              "command": "/app/retrodeck/components/rpcs3/component_launcher.sh",
+              "path": null
+            },
+            "arguments": [
+              "--headless",
+              "--installpkg",
+              "/home/deck/retrodeck/roms/ps3/Game"
+            ],
+            "environment": [],
+            "working_folder": null,
+            "injections": [],
+            "launcher_script": null,
+            "distribution_environment": null
+          },
+          "exit_status_reports_outcome": false,
+          "package_targets": [
+            {
+              "package": "/home/deck/retrodeck/roms/ps3/Game/UP0001-NPUB30000_00-GAME000000000001-edat.pkg",
+              "title_id": "NPUB30000",
+              "content_type": 11,
+              "destination": "package-licence-folder",
+              "install_folder": {
+                "frontend_path": "/home/deck/.var/app/net.retrodeck.retrodeck/config/rpcs3/dev_hdd0/home/00000001/exdata",
+                "host_path": "/home/deck/.var/app/net.retrodeck.retrodeck/config/rpcs3/dev_hdd0/home/00000001/exdata"
+              },
+              "boot_file": null
+            },
+            {
+              "package": "/home/deck/retrodeck/roms/ps3/Game/UP0001-NPUB30000_00-GAME000000000001.pkg",
+              "title_id": "NPUB30000",
+              "content_type": 5,
+              "destination": "package-game-folder",
+              "install_folder": {
+                "frontend_path": "/home/deck/.var/app/net.retrodeck.retrodeck/config/rpcs3/dev_hdd0/game/NPUB30000",
+                "host_path": "/home/deck/.var/app/net.retrodeck.retrodeck/config/rpcs3/dev_hdd0/game/NPUB30000"
+              },
+              "boot_file": {
+                "frontend_path": "/home/deck/.var/app/net.retrodeck.retrodeck/config/rpcs3/dev_hdd0/game/NPUB30000/USRDIR/EBOOT.BIN",
+                "host_path": "/home/deck/.var/app/net.retrodeck.retrodeck/config/rpcs3/dev_hdd0/game/NPUB30000/USRDIR/EBOOT.BIN"
+              }
+            }
+          ],
+          "licence_files": [],
+          "licence_folder": {
+            "frontend_path": "/home/deck/.var/app/net.retrodeck.retrodeck/config/rpcs3/dev_hdd0/home/00000001/exdata",
+            "host_path": "/home/deck/.var/app/net.retrodeck.retrodeck/config/rpcs3/dev_hdd0/home/00000001/exdata"
+          },
+          "caveats": [
+            {
+              "code": "launch-environment-unpinned",
+              "data": {
+                "path": "/app/retrodeck/components/rpcs3/component_launcher.sh",
+                "blob": "a9bf588e2f88457fdf73ac7361ef1d596fb81453"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "package-install-rpcs3-installs-one-package",
+      "rationale": "Handed one package, the install takes that file alone; its program is the RPCS3 entry's own.",
+      "input": {
+        "home": "/home/deck",
+        "files": {
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retrodeck/retrodeck.json": "{\"paths\": {\"rd_home_path\": \"/mnt/sd/retrodeck\", \"saves_path\": \"/mnt/sd/retrodeck/saves\"}}",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retroarch/retroarch.cfg": "",
+          "/mnt/sd/retrodeck/roms/systeminfo.txt": "",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/files/retrodeck/components/es-de/share/es-de/resources/systems/linux/es_systems.xml": "<?xml version=\"1.0\"?>\n<systemList>\n  <system>\n    <name>ps3</name>\n    <path>%ROMPATH%/ps3</path>\n    <extension>.desktop .iso .ISO .ps3 .PS3 .ps3dir .PS3DIR</extension>\n    <command label=\"RPCS3 Shortcut (Standalone)\">%ENABLESHORTCUTS% %EMULATOR_OS-SHELL% %ROM%</command>\n    <command label=\"RPCS3 Game Serial (Standalone)\">%EMULATOR_RPCS3% --no-gui %RPCS3_GAMEID%:%INJECT%=%BASENAME%.ps3</command>\n    <command label=\"RPCS3 Directory (Standalone)\">%EMULATOR_RPCS3% --no-gui %ROM%</command>\n    <command label=\"RPCS3 ISO (Standalone)\">%EMULATOR_RPCS3% --no-gui %ROM%</command>\n  </system>\n</systemList>\n",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/files/retrodeck/components/es-de/share/es-de/resources/systems/linux/es_find_rules.xml": "<?xml version=\"1.0\"?>\n<ruleList>\n    <emulator name=\"RPCS3\">\n        <rule type=\"staticpath\">\n            <entry>/app/retrodeck/components/rpcs3/component_launcher.sh</entry>\n        </rule>\n    </emulator>\n</ruleList>\n",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/metadata": "[Application]\nname=net.retrodeck.retrodeck\nruntime=org.kde.Platform/x86_64/6.11\nsdk=org.kde.Sdk/x86_64/6.11\ncommand=retrodeck\n\n[Context]\nfilesystems=host;\n",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/files/retrodeck/components/rpcs3/component_launcher.sh": "#!/bin/bash\n",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/files/retrodeck/components/es-de/component_version": "retrodeck-main-20260926-172324\n",
+          "/var/lib/flatpak/runtime/org.kde.Platform/x86_64/6.11/active/files/bin/bash": "",
+          "/home/deck/retrodeck/roms/ps3/Game/UP0001-NPUB30000_00-GAME000000000001.pkg": "",
+          "/home/deck/retrodeck/roms/ps3/Game/UP0001-NPUB30000_00-GAME000000000001-edat.pkg": ""
+        },
+        "dirs": [
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/ROMs",
+          "/home/deck/retrodeck/roms/ps3/Game",
+          "/mnt/sd/retrodeck/bios",
+          "/mnt/sd/retrodeck/saves"
+        ],
+        "ps3_titles": {
+          "/home/deck/retrodeck/roms/ps3/Game/UP0001-NPUB30000_00-GAME000000000001.pkg": {
+            "source": "pkg",
+            "title_id": "NPUB30000",
+            "content_type": 5
+          },
+          "/home/deck/retrodeck/roms/ps3/Game/UP0001-NPUB30000_00-GAME000000000001-edat.pkg": {
+            "source": "pkg",
+            "title_id": "NPUB30000",
+            "content_type": 11
+          }
+        },
+        "package_install_query": {
+          "system": "ps3",
+          "content_path": "/home/deck/retrodeck/roms/ps3/Game/UP0001-NPUB30000_00-GAME000000000001.pkg"
+        }
+      },
+      "expected": {
+        "installations": [
+          {
+            "kind": "retrodeck",
+            "label": "RetroDECK",
+            "kinds": [
+              "retrodeck"
+            ],
+            "root": "/mnt/sd/retrodeck",
+            "health": []
+          }
+        ],
+        "package_install_command": {
+          "entry": {
+            "system": "ps3",
+            "label": "RPCS3 Directory (Standalone)",
+            "kind": "standalone",
+            "core_so": null,
+            "emulator": "RPCS3",
+            "declared_index": 2,
+            "selection": null,
+            "availability": "startable",
+            "launcher": {
+              "path": "/app/retrodeck/components/rpcs3/component_launcher.sh",
+              "replacement_command": null,
+              "app_id": "net.retrodeck.retrodeck",
+              "rule": "staticpath",
+              "entry": "/app/retrodeck/components/rpcs3/component_launcher.sh"
+            },
+            "core_path": null,
+            "caveats": []
+          },
+          "command": {
+            "program": {
+              "variant": "flatpak",
+              "app_id": "net.retrodeck.retrodeck",
+              "command": "/app/retrodeck/components/rpcs3/component_launcher.sh",
+              "path": null
+            },
+            "arguments": [
+              "--headless",
+              "--installpkg",
+              "/home/deck/retrodeck/roms/ps3/Game/UP0001-NPUB30000_00-GAME000000000001.pkg"
+            ],
+            "environment": [],
+            "working_folder": null,
+            "injections": [],
+            "launcher_script": null,
+            "distribution_environment": null
+          },
+          "exit_status_reports_outcome": false,
+          "package_targets": [
+            {
+              "package": "/home/deck/retrodeck/roms/ps3/Game/UP0001-NPUB30000_00-GAME000000000001.pkg",
+              "title_id": "NPUB30000",
+              "content_type": 5,
+              "destination": "package-game-folder",
+              "install_folder": {
+                "frontend_path": "/home/deck/.var/app/net.retrodeck.retrodeck/config/rpcs3/dev_hdd0/game/NPUB30000",
+                "host_path": "/home/deck/.var/app/net.retrodeck.retrodeck/config/rpcs3/dev_hdd0/game/NPUB30000"
+              },
+              "boot_file": {
+                "frontend_path": "/home/deck/.var/app/net.retrodeck.retrodeck/config/rpcs3/dev_hdd0/game/NPUB30000/USRDIR/EBOOT.BIN",
+                "host_path": "/home/deck/.var/app/net.retrodeck.retrodeck/config/rpcs3/dev_hdd0/game/NPUB30000/USRDIR/EBOOT.BIN"
+              }
+            }
+          ],
+          "licence_files": [],
+          "licence_folder": {
+            "frontend_path": "/home/deck/.var/app/net.retrodeck.retrodeck/config/rpcs3/dev_hdd0/home/00000001/exdata",
+            "host_path": "/home/deck/.var/app/net.retrodeck.retrodeck/config/rpcs3/dev_hdd0/home/00000001/exdata"
+          },
+          "caveats": [
+            {
+              "code": "launch-environment-unpinned",
+              "data": {
+                "path": "/app/retrodeck/components/rpcs3/component_launcher.sh",
+                "blob": "a9bf588e2f88457fdf73ac7361ef1d596fb81453"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "package-install-an-install-directory-packet-names-the-folder",
+      "rationale": "A package whose metadata names an install directory goes into that folder in place of the header's nine bytes (read_metadata, unpkg.cpp:423-436).",
+      "input": {
+        "home": "/home/deck",
+        "files": {
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retrodeck/retrodeck.json": "{\"paths\": {\"rd_home_path\": \"/mnt/sd/retrodeck\", \"saves_path\": \"/mnt/sd/retrodeck/saves\"}}",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retroarch/retroarch.cfg": "",
+          "/mnt/sd/retrodeck/roms/systeminfo.txt": "",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/files/retrodeck/components/es-de/share/es-de/resources/systems/linux/es_systems.xml": "<?xml version=\"1.0\"?>\n<systemList>\n  <system>\n    <name>ps3</name>\n    <path>%ROMPATH%/ps3</path>\n    <extension>.desktop .iso .ISO .ps3 .PS3 .ps3dir .PS3DIR</extension>\n    <command label=\"RPCS3 Shortcut (Standalone)\">%ENABLESHORTCUTS% %EMULATOR_OS-SHELL% %ROM%</command>\n    <command label=\"RPCS3 Game Serial (Standalone)\">%EMULATOR_RPCS3% --no-gui %RPCS3_GAMEID%:%INJECT%=%BASENAME%.ps3</command>\n    <command label=\"RPCS3 Directory (Standalone)\">%EMULATOR_RPCS3% --no-gui %ROM%</command>\n    <command label=\"RPCS3 ISO (Standalone)\">%EMULATOR_RPCS3% --no-gui %ROM%</command>\n  </system>\n</systemList>\n",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/files/retrodeck/components/es-de/share/es-de/resources/systems/linux/es_find_rules.xml": "<?xml version=\"1.0\"?>\n<ruleList>\n    <emulator name=\"RPCS3\">\n        <rule type=\"staticpath\">\n            <entry>/app/retrodeck/components/rpcs3/component_launcher.sh</entry>\n        </rule>\n    </emulator>\n</ruleList>\n",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/metadata": "[Application]\nname=net.retrodeck.retrodeck\nruntime=org.kde.Platform/x86_64/6.11\nsdk=org.kde.Sdk/x86_64/6.11\ncommand=retrodeck\n\n[Context]\nfilesystems=host;\n",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/files/retrodeck/components/rpcs3/component_launcher.sh": "#!/bin/bash\n",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/files/retrodeck/components/es-de/component_version": "retrodeck-main-20260926-172324\n",
+          "/var/lib/flatpak/runtime/org.kde.Platform/x86_64/6.11/active/files/bin/bash": "",
+          "/home/deck/retrodeck/roms/ps3/Game/UP0001-NPUB30000_00-GAME000000000001.pkg": "",
+          "/home/deck/retrodeck/roms/ps3/Game/UP0001-NPUB30000_00-GAME000000000001-edat.pkg": ""
+        },
+        "dirs": [
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/ROMs",
+          "/home/deck/retrodeck/roms/ps3/Game",
+          "/mnt/sd/retrodeck/bios",
+          "/mnt/sd/retrodeck/saves"
+        ],
+        "ps3_titles": {
+          "/home/deck/retrodeck/roms/ps3/Game/UP0001-NPUB30000_00-GAME000000000001.pkg": {
+            "source": "pkg",
+            "title_id": "NPUB30000",
+            "content_type": 4,
+            "install_dir": "NPUB30001"
+          },
+          "/home/deck/retrodeck/roms/ps3/Game/UP0001-NPUB30000_00-GAME000000000001-edat.pkg": {
+            "source": "pkg",
+            "title_id": "NPUB30000",
+            "content_type": 11
+          }
+        },
+        "package_install_query": {
+          "system": "ps3",
+          "content_path": "/home/deck/retrodeck/roms/ps3/Game/UP0001-NPUB30000_00-GAME000000000001.pkg"
+        }
+      },
+      "expected": {
+        "installations": [
+          {
+            "kind": "retrodeck",
+            "label": "RetroDECK",
+            "kinds": [
+              "retrodeck"
+            ],
+            "root": "/mnt/sd/retrodeck",
+            "health": []
+          }
+        ],
+        "package_install_command": {
+          "entry": {
+            "system": "ps3",
+            "label": "RPCS3 Directory (Standalone)",
+            "kind": "standalone",
+            "core_so": null,
+            "emulator": "RPCS3",
+            "declared_index": 2,
+            "selection": null,
+            "availability": "startable",
+            "launcher": {
+              "path": "/app/retrodeck/components/rpcs3/component_launcher.sh",
+              "replacement_command": null,
+              "app_id": "net.retrodeck.retrodeck",
+              "rule": "staticpath",
+              "entry": "/app/retrodeck/components/rpcs3/component_launcher.sh"
+            },
+            "core_path": null,
+            "caveats": []
+          },
+          "command": {
+            "program": {
+              "variant": "flatpak",
+              "app_id": "net.retrodeck.retrodeck",
+              "command": "/app/retrodeck/components/rpcs3/component_launcher.sh",
+              "path": null
+            },
+            "arguments": [
+              "--headless",
+              "--installpkg",
+              "/home/deck/retrodeck/roms/ps3/Game/UP0001-NPUB30000_00-GAME000000000001.pkg"
+            ],
+            "environment": [],
+            "working_folder": null,
+            "injections": [],
+            "launcher_script": null,
+            "distribution_environment": null
+          },
+          "exit_status_reports_outcome": false,
+          "package_targets": [
+            {
+              "package": "/home/deck/retrodeck/roms/ps3/Game/UP0001-NPUB30000_00-GAME000000000001.pkg",
+              "title_id": "NPUB30000",
+              "content_type": 4,
+              "destination": "package-game-folder",
+              "install_folder": {
+                "frontend_path": "/home/deck/.var/app/net.retrodeck.retrodeck/config/rpcs3/dev_hdd0/game/NPUB30001",
+                "host_path": "/home/deck/.var/app/net.retrodeck.retrodeck/config/rpcs3/dev_hdd0/game/NPUB30001"
+              },
+              "boot_file": {
+                "frontend_path": "/home/deck/.var/app/net.retrodeck.retrodeck/config/rpcs3/dev_hdd0/game/NPUB30001/USRDIR/EBOOT.BIN",
+                "host_path": "/home/deck/.var/app/net.retrodeck.retrodeck/config/rpcs3/dev_hdd0/game/NPUB30001/USRDIR/EBOOT.BIN"
+              }
+            }
+          ],
+          "licence_files": [],
+          "licence_folder": {
+            "frontend_path": "/home/deck/.var/app/net.retrodeck.retrodeck/config/rpcs3/dev_hdd0/home/00000001/exdata",
+            "host_path": "/home/deck/.var/app/net.retrodeck.retrodeck/config/rpcs3/dev_hdd0/home/00000001/exdata"
+          },
+          "caveats": [
+            {
+              "code": "launch-environment-unpinned",
+              "data": {
+                "path": "/app/retrodeck/components/rpcs3/component_launcher.sh",
+                "blob": "a9bf588e2f88457fdf73ac7361ef1d596fb81453"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "package-install-a-package-whose-metadata-is-unread-states-no-folder",
+      "rationale": "Where the package's metadata was not read, its content type and so its folder are not established.",
+      "input": {
+        "home": "/home/deck",
+        "files": {
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retrodeck/retrodeck.json": "{\"paths\": {\"rd_home_path\": \"/mnt/sd/retrodeck\", \"saves_path\": \"/mnt/sd/retrodeck/saves\"}}",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retroarch/retroarch.cfg": "",
+          "/mnt/sd/retrodeck/roms/systeminfo.txt": "",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/files/retrodeck/components/es-de/share/es-de/resources/systems/linux/es_systems.xml": "<?xml version=\"1.0\"?>\n<systemList>\n  <system>\n    <name>ps3</name>\n    <path>%ROMPATH%/ps3</path>\n    <extension>.desktop .iso .ISO .ps3 .PS3 .ps3dir .PS3DIR</extension>\n    <command label=\"RPCS3 Shortcut (Standalone)\">%ENABLESHORTCUTS% %EMULATOR_OS-SHELL% %ROM%</command>\n    <command label=\"RPCS3 Game Serial (Standalone)\">%EMULATOR_RPCS3% --no-gui %RPCS3_GAMEID%:%INJECT%=%BASENAME%.ps3</command>\n    <command label=\"RPCS3 Directory (Standalone)\">%EMULATOR_RPCS3% --no-gui %ROM%</command>\n    <command label=\"RPCS3 ISO (Standalone)\">%EMULATOR_RPCS3% --no-gui %ROM%</command>\n  </system>\n</systemList>\n",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/files/retrodeck/components/es-de/share/es-de/resources/systems/linux/es_find_rules.xml": "<?xml version=\"1.0\"?>\n<ruleList>\n    <emulator name=\"RPCS3\">\n        <rule type=\"staticpath\">\n            <entry>/app/retrodeck/components/rpcs3/component_launcher.sh</entry>\n        </rule>\n    </emulator>\n</ruleList>\n",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/metadata": "[Application]\nname=net.retrodeck.retrodeck\nruntime=org.kde.Platform/x86_64/6.11\nsdk=org.kde.Sdk/x86_64/6.11\ncommand=retrodeck\n\n[Context]\nfilesystems=host;\n",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/files/retrodeck/components/rpcs3/component_launcher.sh": "#!/bin/bash\n",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/files/retrodeck/components/es-de/component_version": "retrodeck-main-20260926-172324\n",
+          "/var/lib/flatpak/runtime/org.kde.Platform/x86_64/6.11/active/files/bin/bash": "",
+          "/home/deck/retrodeck/roms/ps3/Game/UP0001-NPUB30000_00-GAME000000000001.pkg": "",
+          "/home/deck/retrodeck/roms/ps3/Game/UP0001-NPUB30000_00-GAME000000000001-edat.pkg": ""
+        },
+        "dirs": [
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/ROMs",
+          "/home/deck/retrodeck/roms/ps3/Game",
+          "/mnt/sd/retrodeck/bios",
+          "/mnt/sd/retrodeck/saves"
+        ],
+        "ps3_titles": {
+          "/home/deck/retrodeck/roms/ps3/Game/UP0001-NPUB30000_00-GAME000000000001.pkg": {
+            "source": "pkg",
+            "title_id": "NPUB30000"
+          },
+          "/home/deck/retrodeck/roms/ps3/Game/UP0001-NPUB30000_00-GAME000000000001-edat.pkg": {
+            "source": "pkg",
+            "title_id": "NPUB30000",
+            "content_type": 11
+          }
+        },
+        "package_install_query": {
+          "system": "ps3",
+          "content_path": "/home/deck/retrodeck/roms/ps3/Game/UP0001-NPUB30000_00-GAME000000000001.pkg"
+        }
+      },
+      "expected": {
+        "installations": [
+          {
+            "kind": "retrodeck",
+            "label": "RetroDECK",
+            "kinds": [
+              "retrodeck"
+            ],
+            "root": "/mnt/sd/retrodeck",
+            "health": []
+          }
+        ],
+        "package_install_command": {
+          "entry": {
+            "system": "ps3",
+            "label": "RPCS3 Directory (Standalone)",
+            "kind": "standalone",
+            "core_so": null,
+            "emulator": "RPCS3",
+            "declared_index": 2,
+            "selection": null,
+            "availability": "startable",
+            "launcher": {
+              "path": "/app/retrodeck/components/rpcs3/component_launcher.sh",
+              "replacement_command": null,
+              "app_id": "net.retrodeck.retrodeck",
+              "rule": "staticpath",
+              "entry": "/app/retrodeck/components/rpcs3/component_launcher.sh"
+            },
+            "core_path": null,
+            "caveats": []
+          },
+          "command": {
+            "program": {
+              "variant": "flatpak",
+              "app_id": "net.retrodeck.retrodeck",
+              "command": "/app/retrodeck/components/rpcs3/component_launcher.sh",
+              "path": null
+            },
+            "arguments": [
+              "--headless",
+              "--installpkg",
+              "/home/deck/retrodeck/roms/ps3/Game/UP0001-NPUB30000_00-GAME000000000001.pkg"
+            ],
+            "environment": [],
+            "working_folder": null,
+            "injections": [],
+            "launcher_script": null,
+            "distribution_environment": null
+          },
+          "exit_status_reports_outcome": false,
+          "package_targets": [
+            {
+              "package": "/home/deck/retrodeck/roms/ps3/Game/UP0001-NPUB30000_00-GAME000000000001.pkg",
+              "title_id": "NPUB30000",
+              "content_type": null,
+              "destination": "package-destination-unread",
+              "install_folder": null,
+              "boot_file": null
+            }
+          ],
+          "licence_files": [],
+          "licence_folder": {
+            "frontend_path": "/home/deck/.var/app/net.retrodeck.retrodeck/config/rpcs3/dev_hdd0/home/00000001/exdata",
+            "host_path": "/home/deck/.var/app/net.retrodeck.retrodeck/config/rpcs3/dev_hdd0/home/00000001/exdata"
+          },
+          "caveats": [
+            {
+              "code": "launch-environment-unpinned",
+              "data": {
+                "path": "/app/retrodeck/components/rpcs3/component_launcher.sh",
+                "blob": "a9bf588e2f88457fdf73ac7361ef1d596fb81453"
+              }
+            },
+            {
+              "code": "package-header-unread",
+              "data": {
+                "package": "/home/deck/retrodeck/roms/ps3/Game/UP0001-NPUB30000_00-GAME000000000001.pkg"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "package-install-a-file-that-is-no-package-takes-nothing",
+      "rationale": "RPCS3 installs only paths containing .pkg; anything else installs nothing, and the answer says so.",
+      "input": {
+        "home": "/home/deck",
+        "files": {
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retrodeck/retrodeck.json": "{\"paths\": {\"rd_home_path\": \"/mnt/sd/retrodeck\", \"saves_path\": \"/mnt/sd/retrodeck/saves\"}}",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retroarch/retroarch.cfg": "",
+          "/mnt/sd/retrodeck/roms/systeminfo.txt": "",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/files/retrodeck/components/es-de/share/es-de/resources/systems/linux/es_systems.xml": "<?xml version=\"1.0\"?>\n<systemList>\n  <system>\n    <name>ps3</name>\n    <path>%ROMPATH%/ps3</path>\n    <extension>.desktop .iso .ISO .ps3 .PS3 .ps3dir .PS3DIR</extension>\n    <command label=\"RPCS3 Shortcut (Standalone)\">%ENABLESHORTCUTS% %EMULATOR_OS-SHELL% %ROM%</command>\n    <command label=\"RPCS3 Game Serial (Standalone)\">%EMULATOR_RPCS3% --no-gui %RPCS3_GAMEID%:%INJECT%=%BASENAME%.ps3</command>\n    <command label=\"RPCS3 Directory (Standalone)\">%EMULATOR_RPCS3% --no-gui %ROM%</command>\n    <command label=\"RPCS3 ISO (Standalone)\">%EMULATOR_RPCS3% --no-gui %ROM%</command>\n  </system>\n</systemList>\n",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/files/retrodeck/components/es-de/share/es-de/resources/systems/linux/es_find_rules.xml": "<?xml version=\"1.0\"?>\n<ruleList>\n    <emulator name=\"RPCS3\">\n        <rule type=\"staticpath\">\n            <entry>/app/retrodeck/components/rpcs3/component_launcher.sh</entry>\n        </rule>\n    </emulator>\n</ruleList>\n",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/metadata": "[Application]\nname=net.retrodeck.retrodeck\nruntime=org.kde.Platform/x86_64/6.11\nsdk=org.kde.Sdk/x86_64/6.11\ncommand=retrodeck\n\n[Context]\nfilesystems=host;\n",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/files/retrodeck/components/rpcs3/component_launcher.sh": "#!/bin/bash\n",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/files/retrodeck/components/es-de/component_version": "retrodeck-main-20260926-172324\n",
+          "/var/lib/flatpak/runtime/org.kde.Platform/x86_64/6.11/active/files/bin/bash": "",
+          "/home/deck/retrodeck/roms/ps3/Game/UP0001-NPUB30000_00-GAME000000000001.pkg": "",
+          "/home/deck/retrodeck/roms/ps3/Game/UP0001-NPUB30000_00-GAME000000000001-edat.pkg": "",
+          "/home/deck/retrodeck/roms/ps3/Game/notes.txt": ""
+        },
+        "dirs": [
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/ROMs",
+          "/home/deck/retrodeck/roms/ps3/Game",
+          "/mnt/sd/retrodeck/bios",
+          "/mnt/sd/retrodeck/saves"
+        ],
+        "ps3_titles": {
+          "/home/deck/retrodeck/roms/ps3/Game/UP0001-NPUB30000_00-GAME000000000001.pkg": {
+            "source": "pkg",
+            "title_id": "NPUB30000",
+            "content_type": 5
+          },
+          "/home/deck/retrodeck/roms/ps3/Game/UP0001-NPUB30000_00-GAME000000000001-edat.pkg": {
+            "source": "pkg",
+            "title_id": "NPUB30000",
+            "content_type": 11
+          }
+        },
+        "package_install_query": {
+          "system": "ps3",
+          "content_path": "/home/deck/retrodeck/roms/ps3/Game/notes.txt"
+        }
+      },
+      "expected": {
+        "installations": [
+          {
+            "kind": "retrodeck",
+            "label": "RetroDECK",
+            "kinds": [
+              "retrodeck"
+            ],
+            "root": "/mnt/sd/retrodeck",
+            "health": []
+          }
+        ],
+        "package_install_command": {
+          "entry": {
+            "system": "ps3",
+            "label": "RPCS3 Directory (Standalone)",
+            "kind": "standalone",
+            "core_so": null,
+            "emulator": "RPCS3",
+            "declared_index": 2,
+            "selection": null,
+            "availability": "startable",
+            "launcher": {
+              "path": "/app/retrodeck/components/rpcs3/component_launcher.sh",
+              "replacement_command": null,
+              "app_id": "net.retrodeck.retrodeck",
+              "rule": "staticpath",
+              "entry": "/app/retrodeck/components/rpcs3/component_launcher.sh"
+            },
+            "core_path": null,
+            "caveats": []
+          },
+          "command": {
+            "program": {
+              "variant": "flatpak",
+              "app_id": "net.retrodeck.retrodeck",
+              "command": "/app/retrodeck/components/rpcs3/component_launcher.sh",
+              "path": null
+            },
+            "arguments": [
+              "--headless",
+              "--installpkg",
+              "/home/deck/retrodeck/roms/ps3/Game/notes.txt"
+            ],
+            "environment": [],
+            "working_folder": null,
+            "injections": [],
+            "launcher_script": null,
+            "distribution_environment": null
+          },
+          "exit_status_reports_outcome": false,
+          "package_targets": [],
+          "licence_files": [],
+          "licence_folder": {
+            "frontend_path": "/home/deck/.var/app/net.retrodeck.retrodeck/config/rpcs3/dev_hdd0/home/00000001/exdata",
+            "host_path": "/home/deck/.var/app/net.retrodeck.retrodeck/config/rpcs3/dev_hdd0/home/00000001/exdata"
+          },
+          "caveats": [
+            {
+              "code": "launch-environment-unpinned",
+              "data": {
+                "path": "/app/retrodeck/components/rpcs3/component_launcher.sh",
+                "blob": "a9bf588e2f88457fdf73ac7361ef1d596fb81453"
+              }
+            },
+            {
+              "code": "package-install-takes-nothing",
+              "data": {
+                "path": "/home/deck/retrodeck/roms/ps3/Game/notes.txt"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "package-install-a-non-rpcs3-entry-is-not-stated",
+      "rationale": "The shortcut entry runs the shell, which installs nothing atlas reads: no command, package-install-unstated.",
+      "input": {
+        "home": "/home/deck",
+        "files": {
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retrodeck/retrodeck.json": "{\"paths\": {\"rd_home_path\": \"/mnt/sd/retrodeck\", \"saves_path\": \"/mnt/sd/retrodeck/saves\"}}",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retroarch/retroarch.cfg": "",
+          "/mnt/sd/retrodeck/roms/systeminfo.txt": "",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/files/retrodeck/components/es-de/share/es-de/resources/systems/linux/es_systems.xml": "<?xml version=\"1.0\"?>\n<systemList>\n  <system>\n    <name>ps3</name>\n    <path>%ROMPATH%/ps3</path>\n    <extension>.desktop .iso .ISO .ps3 .PS3 .ps3dir .PS3DIR</extension>\n    <command label=\"RPCS3 Shortcut (Standalone)\">%ENABLESHORTCUTS% %EMULATOR_OS-SHELL% %ROM%</command>\n    <command label=\"RPCS3 Game Serial (Standalone)\">%EMULATOR_RPCS3% --no-gui %RPCS3_GAMEID%:%INJECT%=%BASENAME%.ps3</command>\n    <command label=\"RPCS3 Directory (Standalone)\">%EMULATOR_RPCS3% --no-gui %ROM%</command>\n    <command label=\"RPCS3 ISO (Standalone)\">%EMULATOR_RPCS3% --no-gui %ROM%</command>\n  </system>\n</systemList>\n",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/files/retrodeck/components/es-de/share/es-de/resources/systems/linux/es_find_rules.xml": "<?xml version=\"1.0\"?>\n<ruleList>\n    <emulator name=\"RPCS3\">\n        <rule type=\"staticpath\">\n            <entry>/app/retrodeck/components/rpcs3/component_launcher.sh</entry>\n        </rule>\n    </emulator>\n</ruleList>\n",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/metadata": "[Application]\nname=net.retrodeck.retrodeck\nruntime=org.kde.Platform/x86_64/6.11\nsdk=org.kde.Sdk/x86_64/6.11\ncommand=retrodeck\n\n[Context]\nfilesystems=host;\n",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/files/retrodeck/components/rpcs3/component_launcher.sh": "#!/bin/bash\n",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/files/retrodeck/components/es-de/component_version": "retrodeck-main-20260926-172324\n",
+          "/var/lib/flatpak/runtime/org.kde.Platform/x86_64/6.11/active/files/bin/bash": "",
+          "/home/deck/retrodeck/roms/ps3/Game/UP0001-NPUB30000_00-GAME000000000001.pkg": "",
+          "/home/deck/retrodeck/roms/ps3/Game/UP0001-NPUB30000_00-GAME000000000001-edat.pkg": ""
+        },
+        "dirs": [
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/ROMs",
+          "/home/deck/retrodeck/roms/ps3/Game",
+          "/mnt/sd/retrodeck/bios",
+          "/mnt/sd/retrodeck/saves"
+        ],
+        "ps3_titles": {
+          "/home/deck/retrodeck/roms/ps3/Game/UP0001-NPUB30000_00-GAME000000000001.pkg": {
+            "source": "pkg",
+            "title_id": "NPUB30000",
+            "content_type": 5
+          },
+          "/home/deck/retrodeck/roms/ps3/Game/UP0001-NPUB30000_00-GAME000000000001-edat.pkg": {
+            "source": "pkg",
+            "title_id": "NPUB30000",
+            "content_type": 11
+          }
+        },
+        "package_install_query": {
+          "system": "ps3",
+          "content_path": "/home/deck/retrodeck/roms/ps3/Game",
+          "label": "RPCS3 Shortcut (Standalone)"
+        }
+      },
+      "expected": {
+        "installations": [
+          {
+            "kind": "retrodeck",
+            "label": "RetroDECK",
+            "kinds": [
+              "retrodeck"
+            ],
+            "root": "/mnt/sd/retrodeck",
+            "health": []
+          }
+        ],
+        "package_install_command": {
+          "entry": {
+            "system": "ps3",
+            "label": "RPCS3 Shortcut (Standalone)",
+            "kind": "standalone",
+            "core_so": null,
+            "emulator": "OS-SHELL",
+            "declared_index": 0,
+            "selection": null,
+            "availability": "unestablished",
+            "launcher": null,
+            "core_path": null,
+            "caveats": [
+              {
+                "code": "emulator-rules-missing",
+                "data": {
+                  "emulator_token": "OS-SHELL"
+                }
+              }
+            ]
+          },
+          "command": null,
+          "exit_status_reports_outcome": null,
+          "package_targets": [],
+          "licence_files": [],
+          "licence_folder": null,
+          "caveats": [
+            {
+              "code": "package-install-unstated",
+              "data": {
+                "installation": "retrodeck",
+                "entry": "RPCS3 Shortcut (Standalone)"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "package-install-licences-go-to-the-installers-account",
+      "rationale": "A .rap beside the packages is copied into user 00000001's exdata first; with a second account on the drive, the user RPCS3 reads licences for at launch may be another, which atlas does not read: package-licence-account.",
+      "input": {
+        "home": "/home/deck",
+        "files": {
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retrodeck/retrodeck.json": "{\"paths\": {\"rd_home_path\": \"/mnt/sd/retrodeck\", \"saves_path\": \"/mnt/sd/retrodeck/saves\"}}",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retroarch/retroarch.cfg": "",
+          "/mnt/sd/retrodeck/roms/systeminfo.txt": "",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/files/retrodeck/components/es-de/share/es-de/resources/systems/linux/es_systems.xml": "<?xml version=\"1.0\"?>\n<systemList>\n  <system>\n    <name>ps3</name>\n    <path>%ROMPATH%/ps3</path>\n    <extension>.desktop .iso .ISO .ps3 .PS3 .ps3dir .PS3DIR</extension>\n    <command label=\"RPCS3 Shortcut (Standalone)\">%ENABLESHORTCUTS% %EMULATOR_OS-SHELL% %ROM%</command>\n    <command label=\"RPCS3 Game Serial (Standalone)\">%EMULATOR_RPCS3% --no-gui %RPCS3_GAMEID%:%INJECT%=%BASENAME%.ps3</command>\n    <command label=\"RPCS3 Directory (Standalone)\">%EMULATOR_RPCS3% --no-gui %ROM%</command>\n    <command label=\"RPCS3 ISO (Standalone)\">%EMULATOR_RPCS3% --no-gui %ROM%</command>\n  </system>\n</systemList>\n",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/files/retrodeck/components/es-de/share/es-de/resources/systems/linux/es_find_rules.xml": "<?xml version=\"1.0\"?>\n<ruleList>\n    <emulator name=\"RPCS3\">\n        <rule type=\"staticpath\">\n            <entry>/app/retrodeck/components/rpcs3/component_launcher.sh</entry>\n        </rule>\n    </emulator>\n</ruleList>\n",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/metadata": "[Application]\nname=net.retrodeck.retrodeck\nruntime=org.kde.Platform/x86_64/6.11\nsdk=org.kde.Sdk/x86_64/6.11\ncommand=retrodeck\n\n[Context]\nfilesystems=host;\n",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/files/retrodeck/components/rpcs3/component_launcher.sh": "#!/bin/bash\n",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/files/retrodeck/components/es-de/component_version": "retrodeck-main-20260926-172324\n",
+          "/var/lib/flatpak/runtime/org.kde.Platform/x86_64/6.11/active/files/bin/bash": "",
+          "/home/deck/retrodeck/roms/ps3/Game/UP0001-NPUB30000_00-GAME000000000001.pkg": "",
+          "/home/deck/retrodeck/roms/ps3/Game/UP0001-NPUB30000_00-GAME000000000001-edat.pkg": "",
+          "/home/deck/retrodeck/roms/ps3/Game/UP0001-NPUB30000_00-GAME000000000001.rap": "",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/rpcs3/dev_hdd0/home/00000001/localusername": "User",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/rpcs3/dev_hdd0/home/00000002/localusername": "Other"
+        },
+        "dirs": [
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/ROMs",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/rpcs3/dev_hdd0/home",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/rpcs3/dev_hdd0/home/00000001",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/rpcs3/dev_hdd0/home/00000002",
+          "/home/deck/retrodeck/roms/ps3/Game",
+          "/mnt/sd/retrodeck/bios",
+          "/mnt/sd/retrodeck/saves"
+        ],
+        "ps3_titles": {
+          "/home/deck/retrodeck/roms/ps3/Game/UP0001-NPUB30000_00-GAME000000000001.pkg": {
+            "source": "pkg",
+            "title_id": "NPUB30000",
+            "content_type": 5
+          },
+          "/home/deck/retrodeck/roms/ps3/Game/UP0001-NPUB30000_00-GAME000000000001-edat.pkg": {
+            "source": "pkg",
+            "title_id": "NPUB30000",
+            "content_type": 11
+          }
+        },
+        "package_install_query": {
+          "system": "ps3",
+          "content_path": "/home/deck/retrodeck/roms/ps3/Game"
+        }
+      },
+      "expected": {
+        "installations": [
+          {
+            "kind": "retrodeck",
+            "label": "RetroDECK",
+            "kinds": [
+              "retrodeck"
+            ],
+            "root": "/mnt/sd/retrodeck",
+            "health": []
+          }
+        ],
+        "package_install_command": {
+          "entry": {
+            "system": "ps3",
+            "label": "RPCS3 Directory (Standalone)",
+            "kind": "standalone",
+            "core_so": null,
+            "emulator": "RPCS3",
+            "declared_index": 2,
+            "selection": null,
+            "availability": "startable",
+            "launcher": {
+              "path": "/app/retrodeck/components/rpcs3/component_launcher.sh",
+              "replacement_command": null,
+              "app_id": "net.retrodeck.retrodeck",
+              "rule": "staticpath",
+              "entry": "/app/retrodeck/components/rpcs3/component_launcher.sh"
+            },
+            "core_path": null,
+            "caveats": []
+          },
+          "command": {
+            "program": {
+              "variant": "flatpak",
+              "app_id": "net.retrodeck.retrodeck",
+              "command": "/app/retrodeck/components/rpcs3/component_launcher.sh",
+              "path": null
+            },
+            "arguments": [
+              "--headless",
+              "--installpkg",
+              "/home/deck/retrodeck/roms/ps3/Game"
+            ],
+            "environment": [],
+            "working_folder": null,
+            "injections": [],
+            "launcher_script": null,
+            "distribution_environment": null
+          },
+          "exit_status_reports_outcome": false,
+          "package_targets": [
+            {
+              "package": "/home/deck/retrodeck/roms/ps3/Game/UP0001-NPUB30000_00-GAME000000000001-edat.pkg",
+              "title_id": "NPUB30000",
+              "content_type": 11,
+              "destination": "package-licence-folder",
+              "install_folder": {
+                "frontend_path": "/home/deck/.var/app/net.retrodeck.retrodeck/config/rpcs3/dev_hdd0/home/00000001/exdata",
+                "host_path": "/home/deck/.var/app/net.retrodeck.retrodeck/config/rpcs3/dev_hdd0/home/00000001/exdata"
+              },
+              "boot_file": null
+            },
+            {
+              "package": "/home/deck/retrodeck/roms/ps3/Game/UP0001-NPUB30000_00-GAME000000000001.pkg",
+              "title_id": "NPUB30000",
+              "content_type": 5,
+              "destination": "package-game-folder",
+              "install_folder": {
+                "frontend_path": "/home/deck/.var/app/net.retrodeck.retrodeck/config/rpcs3/dev_hdd0/game/NPUB30000",
+                "host_path": "/home/deck/.var/app/net.retrodeck.retrodeck/config/rpcs3/dev_hdd0/game/NPUB30000"
+              },
+              "boot_file": {
+                "frontend_path": "/home/deck/.var/app/net.retrodeck.retrodeck/config/rpcs3/dev_hdd0/game/NPUB30000/USRDIR/EBOOT.BIN",
+                "host_path": "/home/deck/.var/app/net.retrodeck.retrodeck/config/rpcs3/dev_hdd0/game/NPUB30000/USRDIR/EBOOT.BIN"
+              }
+            }
+          ],
+          "licence_files": [
+            "/home/deck/retrodeck/roms/ps3/Game/UP0001-NPUB30000_00-GAME000000000001.rap"
+          ],
+          "licence_folder": {
+            "frontend_path": "/home/deck/.var/app/net.retrodeck.retrodeck/config/rpcs3/dev_hdd0/home/00000001/exdata",
+            "host_path": "/home/deck/.var/app/net.retrodeck.retrodeck/config/rpcs3/dev_hdd0/home/00000001/exdata"
+          },
+          "caveats": [
+            {
+              "code": "launch-environment-unpinned",
+              "data": {
+                "path": "/app/retrodeck/components/rpcs3/component_launcher.sh",
+                "blob": "a9bf588e2f88457fdf73ac7361ef1d596fb81453"
+              }
+            },
+            {
+              "code": "package-licence-account",
+              "data": {
+                "account": "00000001",
+                "accounts": [
+                  "00000001",
+                  "00000002"
+                ]
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "package-install-an-unreadable-vfs-configuration-states-no-folder",
+      "rationale": "Where RPCS3's vfs.yml cannot be read, its internal drive is not established: the command stands, and no folder the install writes is stated (package-drive-unresolved).",
+      "input": {
+        "home": "/home/deck",
+        "files": {
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retrodeck/retrodeck.json": "{\"paths\": {\"rd_home_path\": \"/mnt/sd/retrodeck\", \"saves_path\": \"/mnt/sd/retrodeck/saves\"}}",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retroarch/retroarch.cfg": "",
+          "/mnt/sd/retrodeck/roms/systeminfo.txt": "",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/files/retrodeck/components/es-de/share/es-de/resources/systems/linux/es_systems.xml": "<?xml version=\"1.0\"?>\n<systemList>\n  <system>\n    <name>ps3</name>\n    <path>%ROMPATH%/ps3</path>\n    <extension>.desktop .iso .ISO .ps3 .PS3 .ps3dir .PS3DIR</extension>\n    <command label=\"RPCS3 Shortcut (Standalone)\">%ENABLESHORTCUTS% %EMULATOR_OS-SHELL% %ROM%</command>\n    <command label=\"RPCS3 Game Serial (Standalone)\">%EMULATOR_RPCS3% --no-gui %RPCS3_GAMEID%:%INJECT%=%BASENAME%.ps3</command>\n    <command label=\"RPCS3 Directory (Standalone)\">%EMULATOR_RPCS3% --no-gui %ROM%</command>\n    <command label=\"RPCS3 ISO (Standalone)\">%EMULATOR_RPCS3% --no-gui %ROM%</command>\n  </system>\n</systemList>\n",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/files/retrodeck/components/es-de/share/es-de/resources/systems/linux/es_find_rules.xml": "<?xml version=\"1.0\"?>\n<ruleList>\n    <emulator name=\"RPCS3\">\n        <rule type=\"staticpath\">\n            <entry>/app/retrodeck/components/rpcs3/component_launcher.sh</entry>\n        </rule>\n    </emulator>\n</ruleList>\n",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/metadata": "[Application]\nname=net.retrodeck.retrodeck\nruntime=org.kde.Platform/x86_64/6.11\nsdk=org.kde.Sdk/x86_64/6.11\ncommand=retrodeck\n\n[Context]\nfilesystems=host;\n",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/files/retrodeck/components/rpcs3/component_launcher.sh": "#!/bin/bash\n",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/files/retrodeck/components/es-de/component_version": "retrodeck-main-20260926-172324\n",
+          "/var/lib/flatpak/runtime/org.kde.Platform/x86_64/6.11/active/files/bin/bash": "",
+          "/home/deck/retrodeck/roms/ps3/Game/UP0001-NPUB30000_00-GAME000000000001.pkg": "",
+          "/home/deck/retrodeck/roms/ps3/Game/UP0001-NPUB30000_00-GAME000000000001-edat.pkg": "",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/rpcs3/vfs.yml": {
+            "status": "unreadable"
+          }
+        },
+        "dirs": [
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/ROMs",
+          "/home/deck/retrodeck/roms/ps3/Game",
+          "/mnt/sd/retrodeck/bios",
+          "/mnt/sd/retrodeck/saves"
+        ],
+        "ps3_titles": {
+          "/home/deck/retrodeck/roms/ps3/Game/UP0001-NPUB30000_00-GAME000000000001.pkg": {
+            "source": "pkg",
+            "title_id": "NPUB30000",
+            "content_type": 5
+          },
+          "/home/deck/retrodeck/roms/ps3/Game/UP0001-NPUB30000_00-GAME000000000001-edat.pkg": {
+            "source": "pkg",
+            "title_id": "NPUB30000",
+            "content_type": 11
+          }
+        },
+        "package_install_query": {
+          "system": "ps3",
+          "content_path": "/home/deck/retrodeck/roms/ps3/Game/UP0001-NPUB30000_00-GAME000000000001.pkg"
+        }
+      },
+      "expected": {
+        "installations": [
+          {
+            "kind": "retrodeck",
+            "label": "RetroDECK",
+            "kinds": [
+              "retrodeck"
+            ],
+            "root": "/mnt/sd/retrodeck",
+            "health": []
+          }
+        ],
+        "package_install_command": {
+          "entry": {
+            "system": "ps3",
+            "label": "RPCS3 Directory (Standalone)",
+            "kind": "standalone",
+            "core_so": null,
+            "emulator": "RPCS3",
+            "declared_index": 2,
+            "selection": null,
+            "availability": "startable",
+            "launcher": {
+              "path": "/app/retrodeck/components/rpcs3/component_launcher.sh",
+              "replacement_command": null,
+              "app_id": "net.retrodeck.retrodeck",
+              "rule": "staticpath",
+              "entry": "/app/retrodeck/components/rpcs3/component_launcher.sh"
+            },
+            "core_path": null,
+            "caveats": []
+          },
+          "command": {
+            "program": {
+              "variant": "flatpak",
+              "app_id": "net.retrodeck.retrodeck",
+              "command": "/app/retrodeck/components/rpcs3/component_launcher.sh",
+              "path": null
+            },
+            "arguments": [
+              "--headless",
+              "--installpkg",
+              "/home/deck/retrodeck/roms/ps3/Game/UP0001-NPUB30000_00-GAME000000000001.pkg"
+            ],
+            "environment": [],
+            "working_folder": null,
+            "injections": [],
+            "launcher_script": null,
+            "distribution_environment": null
+          },
+          "exit_status_reports_outcome": false,
+          "package_targets": [
+            {
+              "package": "/home/deck/retrodeck/roms/ps3/Game/UP0001-NPUB30000_00-GAME000000000001.pkg",
+              "title_id": "NPUB30000",
+              "content_type": 5,
+              "destination": "package-game-folder",
+              "install_folder": null,
+              "boot_file": null
+            }
+          ],
+          "licence_files": [],
+          "licence_folder": null,
+          "caveats": [
+            {
+              "code": "launch-environment-unpinned",
+              "data": {
+                "path": "/app/retrodeck/components/rpcs3/component_launcher.sh",
+                "blob": "a9bf588e2f88457fdf73ac7361ef1d596fb81453"
+              }
+            },
+            {
+              "code": "package-drive-unresolved",
+              "data": {}
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "package-install-a-file-that-cannot-be-looked-at-leaves-the-packages-unstated",
+      "rationale": "Where a file in the folder cannot be looked at, which packages the install takes is not established (package-install-path-unread); the command still stands.",
+      "input": {
+        "home": "/home/deck",
+        "files": {
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retrodeck/retrodeck.json": "{\"paths\": {\"rd_home_path\": \"/mnt/sd/retrodeck\", \"saves_path\": \"/mnt/sd/retrodeck/saves\"}}",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retroarch/retroarch.cfg": "",
+          "/mnt/sd/retrodeck/roms/systeminfo.txt": "",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/files/retrodeck/components/es-de/share/es-de/resources/systems/linux/es_systems.xml": "<?xml version=\"1.0\"?>\n<systemList>\n  <system>\n    <name>ps3</name>\n    <path>%ROMPATH%/ps3</path>\n    <extension>.desktop .iso .ISO .ps3 .PS3 .ps3dir .PS3DIR</extension>\n    <command label=\"RPCS3 Shortcut (Standalone)\">%ENABLESHORTCUTS% %EMULATOR_OS-SHELL% %ROM%</command>\n    <command label=\"RPCS3 Game Serial (Standalone)\">%EMULATOR_RPCS3% --no-gui %RPCS3_GAMEID%:%INJECT%=%BASENAME%.ps3</command>\n    <command label=\"RPCS3 Directory (Standalone)\">%EMULATOR_RPCS3% --no-gui %ROM%</command>\n    <command label=\"RPCS3 ISO (Standalone)\">%EMULATOR_RPCS3% --no-gui %ROM%</command>\n  </system>\n</systemList>\n",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/files/retrodeck/components/es-de/share/es-de/resources/systems/linux/es_find_rules.xml": "<?xml version=\"1.0\"?>\n<ruleList>\n    <emulator name=\"RPCS3\">\n        <rule type=\"staticpath\">\n            <entry>/app/retrodeck/components/rpcs3/component_launcher.sh</entry>\n        </rule>\n    </emulator>\n</ruleList>\n",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/metadata": "[Application]\nname=net.retrodeck.retrodeck\nruntime=org.kde.Platform/x86_64/6.11\nsdk=org.kde.Sdk/x86_64/6.11\ncommand=retrodeck\n\n[Context]\nfilesystems=host;\n",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/files/retrodeck/components/rpcs3/component_launcher.sh": "#!/bin/bash\n",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/files/retrodeck/components/es-de/component_version": "retrodeck-main-20260926-172324\n",
+          "/var/lib/flatpak/runtime/org.kde.Platform/x86_64/6.11/active/files/bin/bash": "",
+          "/home/deck/retrodeck/roms/ps3/Game/UP0001-NPUB30000_00-GAME000000000001.pkg": "",
+          "/home/deck/retrodeck/roms/ps3/Game/UP0001-NPUB30000_00-GAME000000000001-edat.pkg": "",
+          "/home/deck/retrodeck/roms/ps3/Game/Extra.pkg": ""
+        },
+        "dirs": [
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/ROMs",
+          "/home/deck/retrodeck/roms/ps3/Game",
+          "/mnt/sd/retrodeck/bios",
+          "/mnt/sd/retrodeck/saves"
+        ],
+        "ps3_titles": {
+          "/home/deck/retrodeck/roms/ps3/Game/UP0001-NPUB30000_00-GAME000000000001.pkg": {
+            "source": "pkg",
+            "title_id": "NPUB30000",
+            "content_type": 5
+          },
+          "/home/deck/retrodeck/roms/ps3/Game/UP0001-NPUB30000_00-GAME000000000001-edat.pkg": {
+            "source": "pkg",
+            "title_id": "NPUB30000",
+            "content_type": 11
+          }
+        },
+        "package_install_query": {
+          "system": "ps3",
+          "content_path": "/home/deck/retrodeck/roms/ps3/Game"
+        },
+        "inaccessible": [
+          "/home/deck/retrodeck/roms/ps3/Game/Extra.pkg"
+        ]
+      },
+      "expected": {
+        "installations": [
+          {
+            "kind": "retrodeck",
+            "label": "RetroDECK",
+            "kinds": [
+              "retrodeck"
+            ],
+            "root": "/mnt/sd/retrodeck",
+            "health": []
+          }
+        ],
+        "package_install_command": {
+          "entry": {
+            "system": "ps3",
+            "label": "RPCS3 Directory (Standalone)",
+            "kind": "standalone",
+            "core_so": null,
+            "emulator": "RPCS3",
+            "declared_index": 2,
+            "selection": null,
+            "availability": "startable",
+            "launcher": {
+              "path": "/app/retrodeck/components/rpcs3/component_launcher.sh",
+              "replacement_command": null,
+              "app_id": "net.retrodeck.retrodeck",
+              "rule": "staticpath",
+              "entry": "/app/retrodeck/components/rpcs3/component_launcher.sh"
+            },
+            "core_path": null,
+            "caveats": []
+          },
+          "command": {
+            "program": {
+              "variant": "flatpak",
+              "app_id": "net.retrodeck.retrodeck",
+              "command": "/app/retrodeck/components/rpcs3/component_launcher.sh",
+              "path": null
+            },
+            "arguments": [
+              "--headless",
+              "--installpkg",
+              "/home/deck/retrodeck/roms/ps3/Game"
+            ],
+            "environment": [],
+            "working_folder": null,
+            "injections": [],
+            "launcher_script": null,
+            "distribution_environment": null
+          },
+          "exit_status_reports_outcome": false,
+          "package_targets": [],
+          "licence_files": [],
+          "licence_folder": {
+            "frontend_path": "/home/deck/.var/app/net.retrodeck.retrodeck/config/rpcs3/dev_hdd0/home/00000001/exdata",
+            "host_path": "/home/deck/.var/app/net.retrodeck.retrodeck/config/rpcs3/dev_hdd0/home/00000001/exdata"
+          },
+          "caveats": [
+            {
+              "code": "launch-environment-unpinned",
+              "data": {
+                "path": "/app/retrodeck/components/rpcs3/component_launcher.sh",
+                "blob": "a9bf588e2f88457fdf73ac7361ef1d596fb81453"
+              }
+            },
+            {
+              "code": "package-install-path-unread",
+              "data": {
+                "path": "/home/deck/retrodeck/roms/ps3/Game/Extra.pkg"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

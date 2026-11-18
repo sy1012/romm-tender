@@ -697,8 +697,10 @@ again.
 
 Not every download is something an emulator starts as it is. A few titles are distributed as an **installer** — most
 commonly a PS3 game shipped as a `.pkg` (plus a `.rap` licence file), where the game stays sealed inside the package
-until an emulator installs it. A disc rip can arrive as raw `.bin` tracks with no `.cue` or `.gdi` beside them, which is
-not a file the system starts from. And a file one emulator of a system does not take, another may.
+until an emulator installs it; Tender installs such a PS3 game into RPCS3 by itself
+([below](#psn-packages-are-installed-into-rpcs3)), and the sentences here are for one it could not install. A disc rip
+can arrive as raw `.bin` tracks with no `.cue` or `.gdi` beside them, which is not a file the system starts from. And a
+file one emulator of a system does not take, another may.
 
 Whenever a game's page opens, Tender asks whether its file starts with the emulator the game starts with. Where it does
 and nothing about it is in doubt, nothing is said; otherwise the answer stands under the **Play** button:
@@ -765,6 +767,33 @@ where not, why. Every emulator stays choosable meanwhile.
 **Your download is kept.** The files stay on disk where the ROM would normally live, and **Uninstall** works as usual —
 because installing the package by hand in the emulator is exactly what you would do next. See
 [the troubleshooting entry](troubleshooting.md#the-download-has-no-launchable-file) for how.
+
+### PSN packages are installed into RPCS3
+
+A PS3 game RomM holds as a PlayStation Network package (`.pkg`) is installed into RPCS3 as soon as its download
+finishes. RPCS3 installs every package and licence in the game's download in one run — a licence package (`-edat.pkg`)
+or a `.rap`/`.edat` file kept in the same RomM game is installed with it, and so is every update or DLC file you ticked
+when you started the download. While it runs, the game's button and the download queue read **Installing…**; a large
+package can take a few minutes.
+
+Once the game is installed, **the downloaded package is deleted** — the game now lives in RPCS3's own drive
+(`dev_hdd0/game/<title ID>`), and starts from Steam with RPCS3 Directory (Standalone), the emulator RetroDECK names for
+it. Its saves sync as any PS3 game's do. **Uninstall** removes the installed game from RPCS3's drive, after you confirm;
+its saves in RPCS3 are never touched, and the game can be downloaded and installed again from RomM. The UPDATES & DLC
+tab offers nothing for an installed package game: tick its updates and DLC when you download it.
+
+Where the install does not succeed, the download is kept as it was and a notification says why:
+
+- **"RPCS3 could not install the package of _game_ — the licence may be missing."** — RPCS3 ran, and no installed game
+  appeared. A game package without its licence is the usual cause; check that the RomM game holds the licence file.
+- **"RPCS3 did not finish installing _game_."** / **"RPCS3 could not be started to install _game_."** — the install ran
+  out of time, or RPCS3 could not be started.
+- **"Tender could not tell how RPCS3 installs the package of _game_."** — RetroDECK's command for RPCS3 could not be
+  read completely, or where the game would install could not be established.
+- **"The packages of _game_ install more than one game"** — Tender installs one game per download.
+
+The kept package then stands as the game's download, and **Play** says it has to be installed first; you can install it
+by hand in RPCS3 (**File → Install Packages/Raps/Edats**), or uninstall and download it again.
 
 **A PS3 game downloaded as a folder** is named `<game>.ps3`, the name ES-DE expects for a PS3 game kept as a folder. A
 PS3 folder downloaded before this version is renamed so once, when Tender next starts; a folder whose new name is
@@ -848,7 +877,9 @@ and for replacing a copy already on your device. Where finding RetroDECK, or ask
 error, they say **RetroDECK's folders could not be established, so Tender downloads into and removes from none of
 them.** Where only the question about one system's folder failed, that sentence stops the uninstall of that system's
 games alone; **Uninstall all ROM files** removes every other system's. A file recorded outside its system's folder is
-never deleted.
+never deleted. A PS3 game installed into RPCS3 from a package is the one exception: it lives in RPCS3's own drive, and
+**Uninstall** asks first, then removes only the game's folder there — never anything else in RPCS3's drive, its saves
+included ([PSN packages are installed into RPCS3](#psn-packages-are-installed-into-rpcs3)).
 
 This applies to files you told Tender to [use from your device](#when-the-game-is-already-on-your-device) as well: once
 they are the installed copy, **Uninstall** deletes them exactly as it would a downloaded one. Tender has one kind of

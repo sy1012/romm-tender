@@ -116,8 +116,10 @@ Tender syncs the folders under the game's own ID. Upload and restore have both b
 dump's `PS3_GAME/PARAM.SFO`, a PSN package's header or an `.iso` — and carries the folders in RPCS3's `savedata` whose
 names start with it to RomM as one `<game>.zip`, each folder at the top. Where RPCS3 has more than one user account,
 Tender cannot tell which one plays, and nothing is synced. A game may name its save folders under another game's ID (a
-series sharing saves, say); those are not synced with it. A PSN package has to be installed into RPCS3 before it starts,
-which Tender does not do yet. Upload and restore have both been observed on a Steam Deck.
+series sharing saves, say); those are not synced with it. A PSN package is installed into RPCS3 once it is downloaded
+([Managing games](managing-games.md#psn-packages-are-installed-into-rpcs3)), and the installed game's saves sync the
+same way, its title ID read from the `PARAM.SFO` beside the installed game. Upload and restore have both been observed
+on a Steam Deck.
 
 **Nintendo 3DS syncs on Azahar (Standalone), for a `.3ds`, `.cci` or `.cxi`.** Tender reads the title's ID from the game
 file and carries its save folder and, where the game has one, its extra data (extdata) folder from Azahar's emulated SD

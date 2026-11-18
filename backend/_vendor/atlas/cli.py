@@ -37,6 +37,7 @@ from .contract import (
     installation_answers_contract,
     installation_contract,
     extra_content_contract,
+    package_install_contract,
     launch_command_contract,
     launchable_contract,
     mod_answer_contract,
@@ -132,6 +133,10 @@ _QUESTIONS: dict[str, tuple[_Ask, _Serialize]] = {
     "extra-content-folders": (
         lambda target, args: target.extra_content_folders(args.system, label=args.label, content_path=args.content),
         extra_content_contract,
+    ),
+    "package-install-command": (
+        lambda target, args: target.package_install_command(args.system, args.content, label=args.label),
+        package_install_contract,
     ),
     "firmware-for-core": (
         lambda target, args: target.firmware_for_core(
@@ -370,6 +375,17 @@ def build_parser() -> argparse.ArgumentParser:
     extra.add_argument("--system", required=True, help=_SYSTEM_ID_HELP)
     extra.add_argument("--content", type=_absolute_argument, help="absolute path of the content file")
     extra.add_argument("--label", help="the catalogue entry's label; default: the frontend's own choice")
+
+    install = commands.add_parser(
+        "package-install-command",
+        parents=[common, selecting],
+        help="the command that installs a package, or a folder of them, into the system's emulator",
+    )
+    install.add_argument("--system", required=True, help=_SYSTEM_ID_HELP)
+    install.add_argument(
+        "--content", required=True, type=_absolute_argument, help="absolute path of the package or its folder"
+    )
+    install.add_argument("--label", help="the catalogue entry's label; default: the first with a package installer")
 
     for_core = commands.add_parser(
         "firmware-for-core",

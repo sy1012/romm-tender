@@ -162,7 +162,11 @@ const PlayButtonControls: FC<PlayButtonProps & { ask: AskDialog }> = ({ appId, a
   const transferActive = downloads.some(
     (d) =>
       d.rom_id === romId &&
-      (d.status === "downloading" || d.status === "extracting" || d.status === "queued" || d.status === "paused"),
+      (d.status === "downloading" ||
+        d.status === "extracting" ||
+        d.status === "installing" ||
+        d.status === "queued" ||
+        d.status === "paused"),
   );
 
   const renderButtonGroup = () => {

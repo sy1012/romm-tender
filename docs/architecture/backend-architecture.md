@@ -1941,12 +1941,41 @@ so the façade builds none of them:
   transfer call.
 - `ExtraContentOffer` (`extra_content.py`) answers what a game's extra content is and whether it is offered ("Extra
   content", below).
+- `DownloadPackageInstall` (`package_install.py`) installs a recorded download whose content is a package into its
+  emulator ("Package install", below). The transfer runs it last, once the extra content is in place.
 - `DownloadService` (`service.py`) is the one surface the endpoints and the other services call: admission (the
   occupancy gate, the sibling supersede, the disk-space pre-flight), control (cancel, pause, resume), the installed-ROM
   read, the extra content's admission and offer, and the shutdown.
 
 The progress frame, the queue's answer and the reservation arithmetic are pure functions in `domain/download_frames.py`
 and `domain/disk_space.py`.
+
+### Package install
+
+A PS3 game RomM holds as a PSN package cannot start until RPCS3 installs it
+([ADR-0051](../adr/0051-a-ps3-package-is-installed-into-rpcs3.md); GLOSSARY.md → Package install). Once a download is
+recorded and its extra content is in place, `DownloadPackageInstall` asks `PackageInstallReader`
+(`adapters/atlas_package_install.py`, the resolver's `package_install_command` read through the answering source for the
+system) how the download's folder — or its one file — installs. The answer is the install to run, the one title it
+leaves (`domain/package_install.py`'s `InstalledTitle`: the folder and boot file on the host, the boot file as the
+emulator spells it), a refusal, or `None` for a download that is no package to install, which is left as it is. Every
+download asks; nothing about a file name decides it. The command is read as a start's is (`read_start`), with the
+download's folder granted to the Flatpak, and is refused where it is not complete.
+
+The queue entry turns `installing` (`DownloadQueue.report_installing`), and `PackageInstallControl`
+(`adapters/package_install_run.py`) runs the command as a child process in a session of its own, on the loop, within
+`PACKAGE_INSTALL_TIMEOUT_SECONDS` (`bootstrap/services.py`); a cancel of the download's task — the user's, or the
+shutdown's — kills the process group. The exit status decides nothing: the install succeeded exactly where the boot file
+stands afterwards. On success, the install record moves onto the title (`RomInstall.install_from_package`) only while it
+still names the download that was installed, and the download is then removed, inside its system's ROM folder only. On
+failure the download stays recorded as it was, and `download_complete` carries `package_not_installed`
+(`{reason, installer}`), which the panel words as a toast. A cancel during the install surfaces the download as
+completed, as any cancel after its record committed does.
+
+A title installed so starts with `package_boot_file` as its path (`domain/rom_files.asked_path`), holds no disc
+(`DiscLaunchResolver`), is not held to the system's accept-list (`package_installed_verdict`, applied in `CoreService`),
+takes no separate extra content, and is removed — by an uninstall or by removed-game cleanup — whole, bounded by the
+drive's `game` folder it lies in (`drive_game_folder`) rather than by a ROM folder.
 
 **A download fetches a game's own files, not its extras**
 ([#2223](https://github.com/danielcopper/romm-tender/issues/2223) D27, D30). RomM files each of a ROM's files under a

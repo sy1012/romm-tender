@@ -51,6 +51,7 @@ from .installations import (
     CatalogueAnswer,
     Health,
     ExtraContentAnswer,
+    PackageInstallAnswer,
     Installation,
     LaunchabilityAnswer,
     LaunchCommandAnswer,
@@ -317,6 +318,17 @@ class EveryInstallation:
         return self._ask(
             lambda installation: installation.extra_content_folders(system, label=label, content_path=content_path)
         )
+
+    def package_install_command(
+        self, system: str, content_path: str, *, label: str | None = None
+    ) -> tuple[InstallationAnswer[PackageInstallAnswer], ...]:
+        """The command that installs *content_path* into each installation's emulator, and what it leaves.
+
+        A relative *content_path* raises here, as each installation refuses it.
+        """
+        if not os.path.isabs(content_path):
+            raise ValueError(f"content_path must be an absolute path, got {content_path!r}")
+        return self._ask(lambda installation: installation.package_install_command(system, content_path, label=label))
 
     def firmware_for_core(
         self,

@@ -1426,3 +1426,39 @@ class TestInstalledAppIds:
         _install_rom(game_detail, tmp_path, rom_id=42)
 
         assert game_detail.service.installed_app_ids() == []
+
+
+class TestInstalledFromAPackage:
+    """The page says a game is installed into its emulator from a package, so an uninstall asks first (ADR-0051)."""
+
+    @pytest.mark.asyncio
+    async def test_a_title_installed_from_a_package_says_so(self, game_detail):
+        from domain.package_install import InstalledTitle
+        from domain.rom_install import RomInstall
+
+        _seed_rom(game_detail, 10, app_id=50000, platform_slug="ps3", fs_name="Game")
+        install = RomInstall.mark_installed(
+            rom_id=10,
+            file_path="/roms/ps3/G/G.pkg",
+            rom_dir="/roms/ps3/G",
+            platform_slug="ps3",
+            system="ps3",
+            installed_at="now",
+        )
+        install.install_from_package(
+            InstalledTitle("/drive/game/NPUB30000", "/drive/game/NPUB30000/USRDIR/EBOOT.BIN", "/in")
+        )
+        with game_detail.uow:
+            game_detail.uow.rom_installs.save(install)
+
+        result = await game_detail.service.get_cached_game_detail(50000)
+
+        assert result["installed_from_package"] is True
+
+    @pytest.mark.asyncio
+    async def test_any_other_game_does_not(self, game_detail):
+        _seed_rom(game_detail, 10, app_id=50000, platform_slug="snes", fs_name="game_10.sfc")
+
+        result = await game_detail.service.get_cached_game_detail(50000)
+
+        assert result["installed_from_package"] is False

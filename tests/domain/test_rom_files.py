@@ -663,6 +663,16 @@ class TestThePathAStartIsAskedWith:
     def test_a_single_file_is_its_file(self):
         assert asked_path("/roms/n64/Game.z64", None, "/roms/n64/Game.z64") == "/roms/n64/Game.z64"
 
+    def test_a_title_installed_from_a_package_is_its_boot_file_as_the_emulator_spells_it(self):
+        title = "/drive/game/NPUB30000"
+
+        assert (
+            asked_path(
+                f"{title}/USRDIR/EBOOT.BIN", title, f"{title}/USRDIR/EBOOT.BIN", package_boot_file="/in/EBOOT.BIN"
+            )
+            == "/in/EBOOT.BIN"
+        )
+
 
 class TestTheZipCountsTheFilesFetched:
     """RomM zips only what a download asks for (#2223 D27)."""

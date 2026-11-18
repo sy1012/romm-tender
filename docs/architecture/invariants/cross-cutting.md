@@ -189,7 +189,13 @@ an image set in Steam is the third: Steam's copy of the image the user set is cl
 copy may exist nowhere else, so the picker asks once more — Replace or Cancel — and Cancel changes nothing
 ([#2381](https://github.com/danielcopper/romm-tender/issues/2381) D13;
 `frontend/src/bigpicture/ArtworkPickerModal.test.tsx`, "asks once more before it replaces an image set in Steam, and
-answers to replace it" and "Cancel on the second question replaces nothing"). Removing a file of a game's extra content
+answers to replace it" and "Cancel on the second question replaces nothing"). Uninstalling a game installed into its
+emulator from a package takes the **confirm** leg: the play button's **Uninstall** asks first and says its saves stay
+and that it can be installed again from RomM (`frontend/src/bigpicture/CustomPlayButton.test.tsx`, "asks before it
+uninstalls a game installed from a package"); the removal is bounded by the drive's `game` folder, so the saves beside
+it cannot be reached. A package install deletes the downloaded package only once the installed title's boot file stands
+and the install record names the title — the game then exists in the emulator's drive, and RomM holds the package
+([ADR-0051](../../adr/0051-a-ps3-package-is-installed-into-rpcs3.md)). Removing a file of a game's extra content
 (`remove_extra_content`) takes the **confirm** leg: the UPDATES & DLC tab asks first and says the file stays on RomM,
 from which it can be downloaded again (`frontend/src/bigpicture/ExtraContentTab.test.tsx`, "asks before it removes a
 file"); a download of extra content never writes over anything lying at a file's place (`extra_content_occupied`). The

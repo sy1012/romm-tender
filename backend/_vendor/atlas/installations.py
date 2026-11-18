@@ -126,6 +126,7 @@ from .firmware import (
 from .find_rules import NO_FIND_RULES, FindRules, merge_find_rules, parse_find_rules
 from .find_rules import (
     AVAILABILITY_NOT_INSTALLED,
+    CAVEAT_LAUNCH_COMMAND_ARGUMENT_BROKEN,
     AVAILABILITY_STARTABLE,
     AVAILABILITY_UNESTABLISHED,
     CAVEAT_COMMAND_REWRITTEN_AT_START,
@@ -196,6 +197,12 @@ from .launcher_scripts import (
     step_runs,
 )
 from .frontend_path import frontend_search_path, frontend_working_directory
+from . import package_install
+from .package_install import (
+    CAVEAT_PACKAGE_INSTALL_UNSTATED,
+    PackageInstallPath,
+    PackageInstallTarget,
+)
 from .launch_formats import lookup_install_first, lookup_standalone_launch
 from .firmware import firmware_for_core as _resolve_for_core
 from .firmware import firmware_for_system as _resolve_for_system
@@ -20748,6 +20755,45 @@ class ExtraContentAnswer:
     caveats: tuple[Caveat, ...] = ()
     """Every degradation of this answer, stated structurally so a client branches on the code rather than on prose."""
 
+
+@dataclass(frozen=True, slots=True)
+class PackageInstallAnswer:
+    """The command that installs a package into the entry's emulator, taken apart — and what the install leaves.
+
+    ``command`` is ``None`` exactly where the answer refuses, and a caveat
+    says why. Its program, environment and distribution environment are those
+    of the entry's own launch command; its arguments are the installer's
+    (:mod:`atlas.package_install` reads RPCS3's install).
+    """
+
+    entry: EmulatorEntry | None = None
+    """The catalogue entry whose emulator installs — the one a label names, or the first in the frontend's order whose
+    emulator has a package installer atlas reads; ``null`` where none was chosen."""
+    command: LaunchCommand | None = None
+    """The install command, ``null`` where the answer refuses."""
+    exit_status_reports_outcome: bool | None = None
+    """Whether the command's exit status says whether the install succeeded — ``false`` for RPCS3, which exits ``0``
+    whatever came of it; ``null`` beside no command."""
+    package_targets: tuple[PackageInstallTarget, ...] = ()
+    """Every package the install takes, in its order, with where it goes — empty where it takes none, beside no
+    command, or where what lies at the path is not established."""
+    licence_files: tuple[str, ...] = ()
+    """The ``.rap`` and ``.edat`` files the install copies into the licence folder before any package, in its
+    order."""
+    licence_folder: PackageInstallPath | None = None
+    """The folder the install puts licences in — ``null`` beside no command and where the drive is not
+    established."""
+    sources: tuple[str, ...] = ()
+    caveats: tuple[Caveat, ...] = ()
+    """Every degradation of this answer, its refusal among them, stated structurally so a client branches on the
+    code rather than on prose."""
+
+    def __post_init__(self) -> None:
+        if (self.exit_status_reports_outcome is None) != (self.command is None):
+            raise ValueError("PackageInstallAnswer: the exit status is judged exactly where a command stands")
+        if self.command is None and (self.package_targets or self.licence_files or self.licence_folder is not None):
+            raise ValueError("PackageInstallAnswer: what an install leaves stands only beside a command")
+
 # Flatpak's per-app overrides are GKeyFile INI, and only the environment they
 # assign is read here — the [Environment] group's KEY=VALUE lines and the
 # [Context] group's unset-environment list. Value semantics follow
@@ -22640,6 +22686,38 @@ def _catalogue_with_caveats(answer: CatalogueAnswer, caveats: tuple[Caveat, ...]
     return cast(CatalogueAnswer, _dc_replace(answer, caveats=caveats))
 
 
+def _package_install_with_caveats(
+    answer: PackageInstallAnswer, caveats: tuple[Caveat, ...]
+) -> PackageInstallAnswer:
+    """*answer* with *caveats* as its caveat list — ``dataclasses.replace`` behind a concrete signature."""
+    return cast(PackageInstallAnswer, _dc_replace(answer, caveats=caveats))
+
+
+# The emulators whose package install atlas reads, by the token their entries
+# spell (``%EMULATOR_X%``), each with the one system it installs for.
+_PACKAGE_INSTALLERS: Mapping[str, str] = MappingProxyType({"RPCS3": "ps3"})
+
+
+def _installer_entry(
+    entries: tuple[EmulatorEntry, ...], label: str | None, system: str
+) -> EmulatorEntry | Caveat | None:
+    """The entry a package install is about: the one *label* names, or the first whose emulator has an installer.
+
+    The frontend's first entry may hand the shell a shortcut (RPCS3's is), so
+    without a label the choice is the first in the frontend's order whose
+    emulator atlas reads a package install for, preferring one that hands the
+    emulator the file's path — the program is the same, and a serial entry's
+    command reads an ``%INJECT%`` file a package has none of. ``None`` where
+    there is none.
+    """
+    if label is not None:
+        return _chosen_entry(entries, label, system)
+    installers = [entry for entry in entries if _PACKAGE_INSTALLERS.get(entry.emulator or "") == system]
+    return next((entry for entry in installers if rpcs3_boot.hands_path(entry.command)), None) or next(
+        iter(installers), None
+    )
+
+
 def _extra_content_with_caveats(answer: ExtraContentAnswer, caveats: tuple[Caveat, ...]) -> ExtraContentAnswer:
     """*answer* with *caveats* as its caveat list — ``dataclasses.replace`` behind a concrete signature."""
     return cast(ExtraContentAnswer, _dc_replace(answer, caveats=caveats))
@@ -24100,6 +24178,36 @@ class _CatalogueQueries:
             answer, (*answer.caveats, *arrangement_caveats(self.kind, observed_version=version))
         )
 
+    @one_question
+    def package_install_command(
+        self, system: str, content_path: str, *, label: str | None = None
+    ) -> PackageInstallAnswer:
+        """The command that installs *content_path* — a package, or a directory of them — into *system*'s emulator.
+
+        The entry is the one *label* names or, without one, the first in the
+        frontend's order whose emulator atlas reads a package install for:
+        RPCS3, for ``ps3``, run by RetroDECK — every other entry and
+        arrangement answers no command, with ``package-install-unstated``.
+        The program, its environment and what it reads from the
+        distribution's start are the entry's own launch command's
+        (:meth:`launch_command`, whose refusals this answer shares); the
+        arguments are ``--headless --installpkg <content_path>``.
+
+        Beside the command: every package the install takes, in its order, and
+        where each goes — a game's ``install_folder`` and its ``boot_file``,
+        ``<dev_hdd0>/game/<folder>/USRDIR/EBOOT.BIN`` — and where licences
+        go. ``exit_status_reports_outcome`` is ``false``: RPCS3 exits ``0``
+        whatever came of the install, and the boot file standing afterwards is
+        the one sign a game installed. *content_path* is the emulator's
+        spelling and must be absolute, or this raises ``ValueError``.
+        """
+        if not os.path.isabs(content_path):
+            raise ValueError(f"content_path must be an absolute path, got {content_path!r}")
+        answer, version = self._package_install_answer(system, content_path, label)
+        return _package_install_with_caveats(
+            answer, (*answer.caveats, *arrangement_caveats(self.kind, observed_version=version))
+        )
+
     # The public questions above are the whole catalogue surface, and a
     # handle overrides the ``_…_answer`` methods below instead: what it
     # *answers* is its own, how the answer states its arrangement's evidence
@@ -24189,6 +24297,33 @@ class _CatalogueQueries:
         return (
             ExtraContentAnswer(entry=chosen, sources=answer.sources, caveats=(*answer.caveats, unstated)),
             version,
+        )
+
+    def _package_install_answer(
+        self, system: str, content_path: str, label: str | None
+    ) -> tuple[PackageInstallAnswer, str | None]:
+        # A package install is stated only where a handle reads one; every
+        # other answer says so, about the entry the install would be about.
+        answer, version = self._catalogue_answer(system, content_path=content_path)
+        chosen = _installer_entry(answer.entries, label, system)
+        if isinstance(chosen, Caveat):
+            return PackageInstallAnswer(sources=answer.sources, caveats=(*answer.caveats, chosen)), version
+        return (
+            PackageInstallAnswer(
+                entry=chosen, sources=answer.sources, caveats=(*answer.caveats, self._install_unstated(chosen))
+            ),
+            version,
+        )
+
+    def _install_unstated(self, chosen: EmulatorEntry | None) -> Caveat:
+        data: dict[str, DataValue] = {"installation": self.kind}
+        if chosen is not None:
+            data["entry"] = chosen.label
+        return Caveat(
+            CAVEAT_PACKAGE_INSTALL_UNSTATED,
+            "no package installer is stated for this entry's emulator — atlas reads RPCS3's, run by RetroDECK, "
+            "and no other",
+            data,
         )
 
     def _rom_location_answer(self, system: str) -> tuple[RomPlacement, str | None]:
@@ -25436,7 +25571,14 @@ class RetroDeck(_FirmwareQueries, _CatalogueQueries):
     def _launch_command_answer(
         self, system: str, content_path: str, label: str | None
     ) -> tuple[LaunchCommandAnswer, str | None]:
-        """RetroDECK's launch command — the catalogue snapshot its launchability answer takes, the entry's own lookup.
+        answer, version, _view = self._launch_command_viewed(system, content_path, label)
+        return answer, version
+
+    def _launch_command_viewed(
+        self, system: str, content_path: str, label: str | None
+    ) -> tuple[LaunchCommandAnswer, str | None, _SandboxLaunchView | None]:
+        """RetroDECK's launch command and the sandbox's view it was taken apart in, ``None`` where it was not — the
+        catalogue snapshot its launchability answer takes, the entry's own lookup.
 
         The entry's verdict and the texts its command is built from come out of
         one :class:`~atlas.launch.LaunchLookup` over one read of the find rules
@@ -25447,14 +25589,14 @@ class RetroDeck(_FirmwareQueries, _CatalogueQueries):
         """
         config, marker_issues = self._read_marker()
         if (finding := _not_set_up(marker_issues)) is not None:
-            return LaunchCommandAnswer(caveats=(finding,)), None
+            return LaunchCommandAnswer(caveats=(finding,)), None, None
         findings = self._health_from(config, marker_issues).issues
         root = self._config_path(config, "rd_home_path", "")[0]
         by_system, read, exclusive, catalogue_invalid = self._read_catalogue(root)
         invalid = (catalogue_invalid,) if catalogue_invalid is not None else ()
         version = _marker_version(config)
         if not read:
-            return LaunchCommandAnswer(caveats=(*findings, *_catalogue_unread_caveat(system))), version
+            return LaunchCommandAnswer(caveats=(*findings, *_catalogue_unread_caveat(system))), version, None
         status = self._catalogue_exclusive(root, system) if exclusive else ()
         anchor = self._esde_system_dir(by_system, system)
         lookups: list[tuple[LaunchLookup, _SandboxLaunchView]] = []
@@ -25475,18 +25617,18 @@ class RetroDeck(_FirmwareQueries, _CatalogueQueries):
                 f"the catalogue was read and declares no entry for system {system!r}",
                 {"system": system},
             )
-            return LaunchCommandAnswer(sources=sources, caveats=(*caveats, unknown)), version
+            return LaunchCommandAnswer(sources=sources, caveats=(*caveats, unknown)), version, None
         if isinstance(chosen, Caveat):
-            return LaunchCommandAnswer(sources=sources, caveats=(*caveats, chosen)), version
+            return LaunchCommandAnswer(sources=sources, caveats=(*caveats, chosen)), version, None
         if chosen.availability != AVAILABILITY_STARTABLE or not lookups:
-            return LaunchCommandAnswer(chosen, sources=sources, caveats=caveats), version
+            return LaunchCommandAnswer(chosen, sources=sources, caveats=caveats), version, None
         build = self._deployed_esde_build()
         if build != self.ESDE_FORK_BUILD:
-            return LaunchCommandAnswer(chosen, sources=sources, caveats=(*caveats, _build_unpinned(build))), version
+            return LaunchCommandAnswer(chosen, sources=sources, caveats=(*caveats, _build_unpinned(build))), version, None
         lookup, view = lookups[0]
         parts = lookup.command_parts(chosen.command, loads_core=chosen.kind == KIND_LIBRETRO)
         if parts is None:
-            return LaunchCommandAnswer(chosen, sources=sources, caveats=caveats), version
+            return LaunchCommandAnswer(chosen, sources=sources, caveats=caveats), version, None
         inputs = CommandInputs(
             content_path=content_path,
             parts=parts,
@@ -25496,7 +25638,67 @@ class RetroDeck(_FirmwareQueries, _CatalogueQueries):
         )
         taken = take_apart(chosen.command, inputs, view)
         command, read, notes = self._with_distribution_environment(taken.command, view, config)
-        return LaunchCommandAnswer(chosen, command, (*sources, *read), (*caveats, *taken.caveats, *notes)), version
+        return LaunchCommandAnswer(chosen, command, (*sources, *read), (*caveats, *taken.caveats, *notes)), version, view
+
+    def _package_install_answer(
+        self, system: str, content_path: str, label: str | None
+    ) -> tuple[PackageInstallAnswer, str | None]:
+        """RPCS3's package install: the entry's own launch command with the installer's arguments, and what the
+        install takes from the path (:mod:`atlas.package_install`).
+
+        RPCS3 runs inside this same sandbox, so the frontend's view is the
+        emulator's: the path is spelled and probed the way RPCS3 opens it. A
+        caveat the launch states about its own ``%ROM%`` argument does not
+        carry over — the install's argument is the path as it is, handed over
+        without a shell.
+        """
+        catalogue, _version = self._catalogue_answer(system, content_path=content_path)
+        chosen = _installer_entry(catalogue.entries, label, system)
+        if not isinstance(chosen, EmulatorEntry) or _PACKAGE_INSTALLERS.get(chosen.emulator or "") != system:
+            return super()._package_install_answer(system, content_path, label)
+        launch, version, view = self._launch_command_viewed(system, content_path, chosen.label)
+        if launch.command is None or view is None:
+            return PackageInstallAnswer(entry=launch.entry, sources=launch.sources, caveats=launch.caveats), version
+        command = cast(
+            LaunchCommand,
+            _dc_replace(launch.command, arguments=package_install.install_arguments(content_path), injections=()),
+        )
+        drive = _rpcs3_boot_dirs(self._machine, self._xdg_homes()).drive
+        reading = package_install.read_packages(content_path, view, self._machine.read_ps3_title, drive)
+        caveats = [caveat for caveat in launch.caveats if caveat.code != CAVEAT_LAUNCH_COMMAND_ARGUMENT_BROKEN]
+        caveats.extend(reading.caveats)
+        writes_licences = reading.licence_files or any(
+            target.destination == package_install.DESTINATION_LICENCE_FOLDER for target in reading.targets
+        )
+        if writes_licences and drive is not None:
+            account = package_install.licence_account_caveat(self._rpcs3_accounts(view, drive))
+            if account is not None:
+                caveats.append(account)
+        return (
+            PackageInstallAnswer(
+                entry=launch.entry,
+                command=command,
+                exit_status_reports_outcome=False,
+                package_targets=reading.targets,
+                licence_files=reading.licence_files,
+                licence_folder=reading.licence_folder,
+                sources=(*launch.sources, *reading.sources),
+                caveats=tuple(caveats),
+            ),
+            version,
+        )
+
+    def _rpcs3_accounts(self, view: _SandboxLaunchView, drive: str) -> tuple[str, ...] | None:
+        """The user accounts RPCS3 would list on *drive*, read as the save answer reads them — ``None`` where that
+        is not established."""
+        home = view.host_path(os.path.join(drive.rstrip("/"), "home"))
+        if home is None:
+            return None
+        found = _per_user_listing(self._machine, home)
+        survey = _rpcs3_users(self._machine, home, found.users, found.unstatable)
+        if found.listing.status != GLOB_COMPLETE or survey.unestablished:
+            return None
+        return survey.listed
 
     def _with_distribution_environment(
         self, command: LaunchCommand | None, view: _SandboxLaunchView, config: Mapping[str, Any]
@@ -30856,6 +31058,10 @@ class Installation(Protocol):
     def extra_content_folders(
         self, system: str, *, label: str | None = None, content_path: str | None = None
     ) -> ExtraContentAnswer: ...
+
+    def package_install_command(
+        self, system: str, content_path: str, *, label: str | None = None
+    ) -> PackageInstallAnswer: ...
 
     def rom_location(self, system: str) -> RomPlacement: ...
 

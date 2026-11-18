@@ -5,6 +5,7 @@
  * "Switch updates and DLC" says the same.
  */
 
+import { packageNotInstalledToast } from "./packageInstallWording";
 import type { DownloadCompleteEvent, ExtraContentFile } from "../types";
 import { formatBytes } from "./formatters";
 
@@ -61,9 +62,13 @@ export function extraContentDownloadedToast(romName: string): string {
   return `Downloaded updates & DLC for ${romName || "the game"}`;
 }
 
-/** The toasts a finished download raises: what it brought, and what of the extra content asked for did not arrive. */
+/**
+ * The toasts a finished download raises: what it brought, what of the extra content asked for did not arrive, and
+ * why its package was not installed into its emulator.
+ */
 export function downloadCompleteToasts(evt: DownloadCompleteEvent): string[] {
   const toasts = [evt.extra_content_only ? extraContentDownloadedToast(evt.rom_name) : `Downloaded ${evt.rom_name}`];
   if (evt.extra_content_missing) toasts.push(extraContentMissingToast(evt.rom_name, evt.extra_content_missing));
+  if (evt.package_not_installed) toasts.push(packageNotInstalledToast(evt.rom_name, evt.package_not_installed));
   return toasts;
 }

@@ -31,7 +31,14 @@ from domain.emulator_choice import DEFAULT, EmulatorChoice, ResolvedEmulator, Va
 from domain.emulator_commands import options_to_payload
 from domain.emulator_pick import StoredPick
 from domain.emulator_sources import ArrangedSource
-from domain.launchability import NEEDS_INSTALLING, NOT_THIS_EMULATOR, TAKES_NO_FOLDER, Launchability
+from domain.launchability import (
+    NEEDS_INSTALLING,
+    NOT_A_LAUNCH_FILE,
+    NOT_THIS_EMULATOR,
+    STARTS,
+    TAKES_NO_FOLDER,
+    Launchability,
+)
 from domain.platform_system import (
     NO_SYSTEM,
     SWITCHED_OFF,
@@ -1230,6 +1237,65 @@ class TestTheChosenEntrysLaunch:
         ]
         assert result["launch"]["state"] == NEEDS_INSTALLING
         assert result["launch"]["install_in"] == ["RPCS3 Game Serial (Standalone)"]
+
+    def _seed_installed_title(self, uow, *, rom_id: int = 42) -> None:
+        _seed_rom(uow, rom_id=rom_id, platform_slug="ps3")
+        install = RomInstall(
+            rom_id=rom_id,
+            file_path="/drive/game/NPUB30000/USRDIR/EBOOT.BIN",
+            rom_dir="/drive/game/NPUB30000",
+            platform_slug="ps3",
+            system="ps3",
+            installed_at="2026-01-01T00:00:00+00:00",
+            package_boot_file="/in/game/NPUB30000/USRDIR/EBOOT.BIN",
+        )
+        uow.rom_installs.save(install)
+
+    def _not_listed(self, label: str) -> Launchability:
+        return Launchability(
+            state=NOT_A_LAUNCH_FILE,
+            entry=label,
+            system="ps3",
+            file="EBOOT.BIN",
+            extension=".bin",
+            starts_from=(".iso", ".ps3"),
+        )
+
+    def test_a_title_installed_from_a_package_is_not_held_to_the_accept_list(
+        self, event_loop, service, core_info, active_core, uow
+    ):
+        self._seed_installed_title(uow)
+        active_core.resolved[42] = _resolved(self._SHORTCUT, self._DIRECTORY, chosen=self._DIRECTORY)
+        core_info.launch_verdicts["RPCS3 Directory (Standalone)"] = self._not_listed("RPCS3 Directory (Standalone)")
+
+        result = event_loop.run_until_complete(service.get_platform_core_info(42))
+
+        assert core_info.launchability_calls == [
+            ("ps3", "/in/game/NPUB30000/USRDIR/EBOOT.BIN", "RPCS3 Directory (Standalone)")
+        ]
+        assert result["launch"]["state"] == STARTS
+
+    def test_a_download_of_a_package_is_still_held_to_it(self, event_loop, service, core_info, active_core, uow):
+        _seed_rom(uow, rom_id=42, platform_slug="ps3")
+        _seed_install(uow, rom_id=42, file_path="/roms/ps3/G.bin", platform_slug="ps3")
+        active_core.resolved[42] = _resolved(self._SHORTCUT, self._DIRECTORY, chosen=self._DIRECTORY)
+        core_info.launch_verdicts["RPCS3 Directory (Standalone)"] = self._not_listed("RPCS3 Directory (Standalone)")
+
+        result = event_loop.run_until_complete(service.get_platform_core_info(42))
+
+        assert result["launch"]["state"] == NOT_A_LAUNCH_FILE
+
+    def test_each_entrys_verdict_for_an_installed_title_is_not_held_to_the_accept_list(
+        self, event_loop, service, core_info, active_core, uow
+    ):
+        self._seed_installed_title(uow)
+        active_core.resolved[42] = _resolved(self._SHORTCUT, self._DIRECTORY, chosen=self._DIRECTORY)
+        core_info.launch_verdicts["RPCS3 Directory (Standalone)"] = self._not_listed("RPCS3 Directory (Standalone)")
+
+        launches = event_loop.run_until_complete(service.get_emulator_launches(42))
+
+        assert STARTS in [launch["state"] for launch in launches]
+        assert NOT_A_LAUNCH_FILE not in [launch["state"] for launch in launches]
 
     def test_a_folder_game_whose_entry_takes_no_folder_is_refused_by_the_verdict_not_by_its_start(
         self, event_loop, service, core_info, active_core, uow

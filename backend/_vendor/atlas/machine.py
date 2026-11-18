@@ -3404,6 +3404,8 @@ def _validate_fixture_n3ds_roms(
 
 
 _FIXTURE_PS3_TITLE_FIELDS = ("source", "title_id")
+# A package's metadata, where a fixture models it: absent, it was not read.
+_FIXTURE_PS3_TITLE_OPTIONAL = ("content_type", "install_dir")
 _FIXTURE_PS3_TITLE_STATES = (PS3_TITLE_FORMAT_NOT_READ, PS3_TITLE_EXECUTABLE, PS3_TITLE_NO_TITLE_ID)
 
 
@@ -3415,7 +3417,8 @@ def _validate_fixture_ps3_titles(
 
     The facts describe a file's bytes, so the path must be a declared file
     whose bytes can be read, as for ``psp_discs``. ``title_id`` is the string
-    the file states, as it spells it.
+    the file states, as it spells it; a package may add ``content_type`` and
+    ``install_dir``, what its metadata states (:class:`atlas.ps3_title.Ps3TitleFacts`).
     """
     validated: dict[str, ps3_title.Ps3TitleFacts | Ps3TitleStatus] = {}
     for path, spec in (declared or {}).items():
@@ -3423,16 +3426,24 @@ def _validate_fixture_ps3_titles(
         if spec in _FIXTURE_PS3_TITLE_STATES:
             validated[path] = cast(Ps3TitleStatus, spec)
             continue
-        if not isinstance(spec, Mapping) or set(cast("Mapping[str, object]", spec)) != set(_FIXTURE_PS3_TITLE_FIELDS):
+        keys = set(cast("Mapping[str, object]", spec)) if isinstance(spec, Mapping) else set()
+        required = set(_FIXTURE_PS3_TITLE_FIELDS)
+        if not isinstance(spec, Mapping) or not required <= keys <= required | set(_FIXTURE_PS3_TITLE_OPTIONAL):
             raise ValueError(
-                f"ps3 title {path!r}: expected one of {list(_FIXTURE_PS3_TITLE_STATES)} or an object with exactly "
-                f"{', '.join(_FIXTURE_PS3_TITLE_FIELDS)}, got {spec!r}"
+                f"ps3 title {path!r}: expected one of {list(_FIXTURE_PS3_TITLE_STATES)} or an object with "
+                f"{', '.join(_FIXTURE_PS3_TITLE_FIELDS)} and optionally {', '.join(_FIXTURE_PS3_TITLE_OPTIONAL)}, "
+                f"got {spec!r}"
             )
         fields = cast("Mapping[str, object]", spec)
+        content_type = fields.get("content_type")
+        if content_type is not None and (isinstance(content_type, bool) or not isinstance(content_type, int)):
+            raise ValueError(f"ps3 title {path!r}: content_type is an integer")
         try:
             validated[path] = ps3_title.Ps3TitleFacts(
                 source=cast("ps3_title.Ps3TitleSource", fields["source"]),
                 title_id=cast(str, fields["title_id"]),
+                content_type=cast("int | None", content_type),
+                install_dir=cast("str | None", fields.get("install_dir")),
             )
         except (TypeError, ValueError) as error:
             raise ValueError(f"ps3 title {path!r}: {error}") from error

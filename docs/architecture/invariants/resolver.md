@@ -7,13 +7,13 @@ taken from it. How an entry reads and binds, and the other areas: [the register'
   resolver, and only names in `atlas.__all__`** — check + test + prompt-only
 
   The reading modules are `adapters/atlas_catalogue.py`, `atlas_extra_content.py`, `atlas_firmware.py`,
-  `atlas_launch.py`, `atlas_platforms.py`, `atlas_saves.py`, `emulator_sources.py` and `retrodeck_folders.py`. Outside
-  them no backend module and no panel code names one of the resolver's codes, a distinctive value of any other closed
-  vocabulary it exports or one of its distinctive answer field names; and every caveat, health-issue, unresolved and
-  reason code the vendored resolver states is classified by one of them or stands on the list of codes nothing
-  classifies today. Only infrastructure and homonyms are excepted: by name, each with its reason,
-  `adapters/atlas_zstd.py` imports the resolver to hand it the zstd codec and `adapters/emulator_sources.py` holds
-  `RealMachine` (`IMPORT_GRANTS`, `INTERNALS_GRANTED`); `tests/` is excepted as a whole, because tests build the
+  `atlas_launch.py`, `atlas_package_install.py`, `atlas_platforms.py`, `atlas_saves.py`, `emulator_sources.py` and
+  `retrodeck_folders.py`. Outside them no backend module and no panel code names one of the resolver's codes, a
+  distinctive value of any other closed vocabulary it exports or one of its distinctive answer field names; and every
+  caveat, health-issue, unresolved and reason code the vendored resolver states is classified by one of them or stands
+  on the list of codes nothing classifies today. Only infrastructure and homonyms are excepted: by name, each with its
+  reason, `adapters/atlas_zstd.py` imports the resolver to hand it the zstd codec and `adapters/emulator_sources.py`
+  holds `RealMachine` (`IMPORT_GRANTS`, `INTERNALS_GRANTED`); `tests/` is excepted as a whole, because tests build the
   resolver's machines and answers rather than read an answer for display; and a name that means something else in a
   module stands on `NOT_THE_RESOLVERS`, in the backend's check and in the panel's rule. The modules that read the answer
   today (`READERS_TODAY`, `RESOLVER_READERS_TODAY`), `atlas_firmware.py`'s three private imports
@@ -88,7 +88,10 @@ taken from it. How an entry reads and binds, and the other areas: [the register'
   also under a `marker-*` finding, and a system's folder going with its ROM root; where detecting the sources or the
   roots question raised, none of those folders is used — except that a download while RetroDECK is switched off says so,
   and a raise on a system's own ROM folder refuses only the presses that need that folder; a removal of a game's files
-  is bounded by its system's own ROM folder, never by the ROM root
+  is bounded by its system's own ROM folder, never by the ROM root — except a title installed into its emulator from a
+  package, which lies in no ROM folder and is bounded by the emulator drive's `game` folder it lies directly in, the
+  parent of the install folder the resolver stated when it was installed (`domain/package_install.drive_game_folder`;
+  `tests/services/test_rom_removal.py::TestATitleInstalledFromAPackage`)
 
   `tests/domain/test_source_roots.py` (the rule) and `tests/adapters/test_retrodeck_folders.py` (the real resolver over
   tmp homes: every folder its answer, `TestEachRootIsJudgedByItsProvenance` over a settings file without `paths`, one

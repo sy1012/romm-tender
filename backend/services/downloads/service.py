@@ -480,6 +480,10 @@ class DownloadService:
         rom_dir = install.rom_dir
         if rom_dir is None:
             raise Refused("unknown_extra_content", "A game kept as one file keeps no updates or DLC")
+        if install.package_boot_file is not None:
+            raise Refused(
+                "unknown_extra_content", "A game installed from a package takes its updates and DLC with its download"
+            )
         rom_detail = await self._loop.run_in_executor(None, self._romm_api.get_rom, rom_id)
         recorded = {entry.file_id for entry in install.extra_content}
         wanted = tuple(entry for entry in chosen_extra_content(rom_detail, file_ids) if entry.file_id not in recorded)

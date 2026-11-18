@@ -1334,6 +1334,308 @@
           }
         }
       }
+    },
+    {
+      "name": "rpcs3-an-installed-games-boot-file-names-its-title",
+      "rationale": "A game a package installed into dev_hdd0/game/<id> boots from its USRDIR/EBOOT.BIN, and the PARAM.SFO beside that folder names the title id its saves begin with — the id the package's header named (System.cpp:1713-1745).",
+      "input": {
+        "home": "/home/deck",
+        "files": {
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retrodeck/retrodeck.json": "{\"paths\": {\"rd_home_path\": \"/mnt/sd/retrodeck\", \"saves_path\": \"/mnt/sd/retrodeck/saves\"}}",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retroarch/retroarch.cfg": "",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/files/retrodeck/components/es-de/share/es-de/resources/systems/linux/es_systems.xml": "<?xml version=\"1.0\"?>\n<systemList>\n  <system>\n    <name>ps3</name>\n    <path>%ROMPATH%/ps3</path>\n    <command label=\"RPCS3 (Standalone)\">%EMULATOR_RPCS3% --no-gui %ROM%</command>\n    <platform>ps3</platform>\n  </system>\n</systemList>\n",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/rpcs3/vfs.yml": "/dev_hdd0/: /mnt/sd/hdd0/\n",
+          "/mnt/sd/hdd0/home/00000001/localusername": "User",
+          "/mnt/sd/hdd0/game/NPUB30000/PARAM.SFO": "sfo",
+          "/mnt/sd/hdd0/game/NPUB30000/USRDIR/EBOOT.BIN": "self",
+          "/mnt/sd/hdd0/home/00000001/savedata/NPUB30000SAVE/PARAM.SFO": "sfo",
+          "/mnt/sd/hdd0/home/00000001/savedata/NPUB30000SAVE/SYS.DAT": "save"
+        },
+        "dirs": [
+          "/mnt/sd/retrodeck/saves",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/ROMs",
+          "/mnt/sd/retrodeck/bios",
+          "/mnt/sd/hdd0/home/00000001/savedata"
+        ],
+        "entry_savefile_query": {
+          "system": "ps3",
+          "content_path": "/mnt/sd/hdd0/game/NPUB30000/USRDIR/EBOOT.BIN"
+        },
+        "ps3_titles": {
+          "/mnt/sd/hdd0/game/NPUB30000/PARAM.SFO": {
+            "source": "param-sfo",
+            "title_id": "NPUB30000"
+          },
+          "/mnt/sd/hdd0/game/NPUB30000/USRDIR/EBOOT.BIN": "executable"
+        }
+      },
+      "expected": {
+        "installations": [
+          {
+            "kind": "retrodeck",
+            "label": "RetroDECK",
+            "kinds": [
+              "retrodeck"
+            ],
+            "root": "/mnt/sd/retrodeck",
+            "health": []
+          }
+        ],
+        "entry_savefile_location": {
+          "dir": "/mnt/sd/hdd0/home/00000001/savedata",
+          "root_kind": "emulator_directory",
+          "needs": [],
+          "fallback_dir": null,
+          "physical_dir": null,
+          "file_set": {
+            "state": "declared",
+            "files": [],
+            "complete": false,
+            "groups": [
+              {
+                "dir": "/mnt/sd/hdd0/home/00000001/savedata",
+                "files": null,
+                "granularity": "per-game-directory",
+                "role": "battery",
+                "size_fixed": false,
+                "unit": {
+                  "kind": "own-folders-by-prefix",
+                  "members": [
+                    "NPUB30000SAVE"
+                  ],
+                  "archive_folder": null,
+                  "prefix": "NPUB30000",
+                  "archive_roots": null
+                }
+              },
+              {
+                "dir": "/mnt/sd/hdd0/savedata/vmc",
+                "files": null,
+                "granularity": "per-game-file",
+                "role": "memory-card",
+                "size_fixed": null,
+                "unit": null
+              }
+            ]
+          },
+          "caveats": [
+            {
+              "code": "file-names-unestablished",
+              "data": {
+                "token": "RPCS3",
+                "dir": "/mnt/sd/hdd0/home/00000001/savedata",
+                "role": "battery",
+                "citation": "'/dev_hdd0/home/%08u/savedata/' as a whole string in the shipped binary (build d5213de6); a game names the folders it saves under in savedata, and RPCS3 lists a game's folders by the prefix it asks for, its own by the title id it runs (cellSaveData.cpp:228-249, :312-314, :502, :812-840 at build d5213de6)"
+              }
+            },
+            {
+              "code": "core-mode-unestablished",
+              "data": {
+                "token": "RPCS3",
+                "reason": "active-user-unrecorded",
+                "users": [
+                  "00000001"
+                ]
+              }
+            },
+            {
+              "code": "file-set-spans-roots",
+              "data": {
+                "token": "RPCS3",
+                "mode": "hdd0",
+                "dir": "/mnt/sd/hdd0/savedata/vmc",
+                "files": []
+              }
+            },
+            {
+              "code": "ps3-save-prefix-may-differ",
+              "data": {
+                "token": "RPCS3",
+                "dir": "/mnt/sd/hdd0/home/00000001/savedata",
+                "prefix": "NPUB30000",
+                "citation": "a game names the folders it saves under in savedata, and RPCS3 lists a game's folders by the prefix it asks for, its own by the title id it runs (cellSaveData.cpp:228-249, :312-314, :502, :812-840 at build d5213de6)"
+              }
+            }
+          ],
+          "redirects": [
+            {
+              "via": "variable",
+              "name": "XDG_CONFIG_HOME",
+              "argument": "<dir>",
+              "moves": [
+                "saves",
+                "savestates",
+                "configuration",
+                "firmware",
+                "installed-content"
+              ]
+            }
+          ],
+          "granularity": {
+            "value": "per-game-directory",
+            "mode": "hdd0",
+            "readings": [
+              {
+                "key": "/dev_hdd0/",
+                "value": "/mnt/sd/hdd0/",
+                "options_file": "/home/deck/.var/app/net.retrodeck.retrodeck/config/rpcs3/vfs.yml"
+              }
+            ],
+            "alternatives": []
+          }
+        }
+      }
+    },
+    {
+      "name": "rpcs3-an-installed-games-folder-names-its-title",
+      "rationale": "Handed the installed game's folder, RPCS3 boots USRDIR/EBOOT.BIN in it (GetElfPathFromDir), and the same PARAM.SFO names the title.",
+      "input": {
+        "home": "/home/deck",
+        "files": {
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retrodeck/retrodeck.json": "{\"paths\": {\"rd_home_path\": \"/mnt/sd/retrodeck\", \"saves_path\": \"/mnt/sd/retrodeck/saves\"}}",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retroarch/retroarch.cfg": "",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/files/retrodeck/components/es-de/share/es-de/resources/systems/linux/es_systems.xml": "<?xml version=\"1.0\"?>\n<systemList>\n  <system>\n    <name>ps3</name>\n    <path>%ROMPATH%/ps3</path>\n    <command label=\"RPCS3 (Standalone)\">%EMULATOR_RPCS3% --no-gui %ROM%</command>\n    <platform>ps3</platform>\n  </system>\n</systemList>\n",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/rpcs3/vfs.yml": "/dev_hdd0/: /mnt/sd/hdd0/\n",
+          "/mnt/sd/hdd0/home/00000001/localusername": "User",
+          "/mnt/sd/hdd0/game/NPUB30000/PARAM.SFO": "sfo",
+          "/mnt/sd/hdd0/game/NPUB30000/USRDIR/EBOOT.BIN": "self",
+          "/mnt/sd/hdd0/home/00000001/savedata/NPUB30000SAVE/PARAM.SFO": "sfo",
+          "/mnt/sd/hdd0/home/00000001/savedata/NPUB30000SAVE/SYS.DAT": "save"
+        },
+        "dirs": [
+          "/mnt/sd/retrodeck/saves",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/ROMs",
+          "/mnt/sd/retrodeck/bios",
+          "/mnt/sd/hdd0/home/00000001/savedata"
+        ],
+        "entry_savefile_query": {
+          "system": "ps3",
+          "content_path": "/mnt/sd/hdd0/game/NPUB30000"
+        },
+        "ps3_titles": {
+          "/mnt/sd/hdd0/game/NPUB30000/PARAM.SFO": {
+            "source": "param-sfo",
+            "title_id": "NPUB30000"
+          },
+          "/mnt/sd/hdd0/game/NPUB30000/USRDIR/EBOOT.BIN": "executable"
+        }
+      },
+      "expected": {
+        "installations": [
+          {
+            "kind": "retrodeck",
+            "label": "RetroDECK",
+            "kinds": [
+              "retrodeck"
+            ],
+            "root": "/mnt/sd/retrodeck",
+            "health": []
+          }
+        ],
+        "entry_savefile_location": {
+          "dir": "/mnt/sd/hdd0/home/00000001/savedata",
+          "root_kind": "emulator_directory",
+          "needs": [],
+          "fallback_dir": null,
+          "physical_dir": null,
+          "file_set": {
+            "state": "declared",
+            "files": [],
+            "complete": false,
+            "groups": [
+              {
+                "dir": "/mnt/sd/hdd0/home/00000001/savedata",
+                "files": null,
+                "granularity": "per-game-directory",
+                "role": "battery",
+                "size_fixed": false,
+                "unit": {
+                  "kind": "own-folders-by-prefix",
+                  "members": [
+                    "NPUB30000SAVE"
+                  ],
+                  "archive_folder": null,
+                  "prefix": "NPUB30000",
+                  "archive_roots": null
+                }
+              },
+              {
+                "dir": "/mnt/sd/hdd0/savedata/vmc",
+                "files": null,
+                "granularity": "per-game-file",
+                "role": "memory-card",
+                "size_fixed": null,
+                "unit": null
+              }
+            ]
+          },
+          "caveats": [
+            {
+              "code": "file-names-unestablished",
+              "data": {
+                "token": "RPCS3",
+                "dir": "/mnt/sd/hdd0/home/00000001/savedata",
+                "role": "battery",
+                "citation": "'/dev_hdd0/home/%08u/savedata/' as a whole string in the shipped binary (build d5213de6); a game names the folders it saves under in savedata, and RPCS3 lists a game's folders by the prefix it asks for, its own by the title id it runs (cellSaveData.cpp:228-249, :312-314, :502, :812-840 at build d5213de6)"
+              }
+            },
+            {
+              "code": "core-mode-unestablished",
+              "data": {
+                "token": "RPCS3",
+                "reason": "active-user-unrecorded",
+                "users": [
+                  "00000001"
+                ]
+              }
+            },
+            {
+              "code": "file-set-spans-roots",
+              "data": {
+                "token": "RPCS3",
+                "mode": "hdd0",
+                "dir": "/mnt/sd/hdd0/savedata/vmc",
+                "files": []
+              }
+            },
+            {
+              "code": "ps3-save-prefix-may-differ",
+              "data": {
+                "token": "RPCS3",
+                "dir": "/mnt/sd/hdd0/home/00000001/savedata",
+                "prefix": "NPUB30000",
+                "citation": "a game names the folders it saves under in savedata, and RPCS3 lists a game's folders by the prefix it asks for, its own by the title id it runs (cellSaveData.cpp:228-249, :312-314, :502, :812-840 at build d5213de6)"
+              }
+            }
+          ],
+          "redirects": [
+            {
+              "via": "variable",
+              "name": "XDG_CONFIG_HOME",
+              "argument": "<dir>",
+              "moves": [
+                "saves",
+                "savestates",
+                "configuration",
+                "firmware",
+                "installed-content"
+              ]
+            }
+          ],
+          "granularity": {
+            "value": "per-game-directory",
+            "mode": "hdd0",
+            "readings": [
+              {
+                "key": "/dev_hdd0/",
+                "value": "/mnt/sd/hdd0/",
+                "options_file": "/home/deck/.var/app/net.retrodeck.retrodeck/config/rpcs3/vfs.yml"
+              }
+            ],
+            "alternatives": []
+          }
+        }
+      }
     }
   ]
 }

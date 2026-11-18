@@ -196,8 +196,11 @@ short). The same rules as `switch_packages` for a declared file with no entry, a
 in a `PARAM.SFO` (`param-sfo`) or in an ISO image's `PS3_GAME/PARAM.SFO` (`iso`), or the nine bytes at offset 55 of a
 PSN package's header, the title part of its content id (`pkg`). Or one of three states: `"format-not-read"` (none of the
 three forms, or a PSP or PS Vita package), `"executable"` (a SELF or ELF, whose id is the `PARAM.SFO` RPCS3 loads beside
-its folder, declared on its own) and `"no-title-id"` (a file of one of the forms that names no id). The same rules as
-`switch_packages` for a declared file with no entry, an `unreadable` one and a missing one.
+its folder, declared on its own) and `"no-title-id"` (a file of one of the forms that names no id). A `pkg` may add what
+its metadata states, which decides where RPCS3 installs it: `"content_type"` (an unsigned 32-bit integer, `0` where the
+package has no content-type packet) and, beside it, `"install_dir"` (the folder an install-directory packet names);
+without them the metadata was not read. The same rules as `switch_packages` for a declared file with no entry, an
+`unreadable` one and a missing one.
 
 **`disc_identities`** — the path of a PlayStation disc image `files` declares (a `.cue`, `.bin`, `.img`, `.iso`, `.chd`
 or `.pbp`) → what reading its first data track yields:
@@ -308,6 +311,7 @@ Each expectation is paired with the input key that asks it. Several may appear i
 | `rom_locations_query`    | `rom_locations`               | where do the ROMs of every listed system live                    |
 | `launch_command_query`   | `launch_command`              | the command the frontend would run for this file                 |
 | `extra_content_query`    | `extra_content_folders`       | does this entry's emulator load updates and add-ons from folders |
+| `package_install_query`  | `package_install_command`     | the command that installs this package, and what it leaves       |
 | `roots_query`            | `roots`                       | where each root folder is, and what decided it                   |
 | `firmware_query`         | `firmware`                    | `kind` is `core`, `system` or `inventory`                        |
 | `identify_query`         | `identification`              | what is this content, by `md5` / `sha1` / `size`                 |
@@ -322,6 +326,10 @@ catalogue entry by its `label`; without one the frontend's own choice answers.
 `extra_content_query` carries `system` and may name the catalogue entry by its `label`, as `launch_command_query` does,
 and an absolute `content_path`: given one, the answer also says whether the content's own folder — the content itself,
 where it is a folder — is one the emulator scans, and `content_folder_scanned` stays `null` without one.
+
+`package_install_query` carries `system` and an absolute `content_path` — a package or a folder of them — and may name
+the catalogue entry by its `label`; without one, the first entry whose emulator has a package installer atlas reads
+answers.
 
 `rom_location_query` carries `system` and no path: content plays no part in where a system's ROMs live.
 

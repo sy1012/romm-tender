@@ -536,6 +536,19 @@ _Avoid_: **extras** — the download notes use the word loosely for every catego
 soundtracks and the rest), which extra content is not. **add-ons** for Tender's side — the resolver's word, kept for the
 resolver's answer.
 
+### Package install
+
+A **package install** installs a downloaded package — a PSN `.pkg`, with the licences beside it — into its emulator's
+own drive, the way RPCS3's **Install Packages** does, because the emulator cannot start a package itself. Tender runs it
+after the download, from the resolver's `package_install_command`, and it **succeeded** exactly where the installed
+game's boot file stands afterwards. The game is then **installed from a package**: its install record names the
+**installed title** (`<dev_hdd0>/game/<title id>`, its `USRDIR/EBOOT.BIN`) rather than the download, which is deleted,
+and `package_boot_file` is set on it ([ADR-0051](docs/adr/0051-a-ps3-package-is-installed-into-rpcs3.md)). Code says
+`package_install`; the panel says **Installing…**.
+
+_Avoid_: **extract** or **unpack** for it — an unpack is Tender's, of a zip, into a ROM folder; a package install is the
+emulator's, into its drive.
+
 ### No file on RomM
 
 A ROM RomM still lists but holds **no file** for: RomM's `has_file_on_disk` is false, either because the file left its

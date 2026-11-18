@@ -767,6 +767,8 @@ class TestWireServices:
                 tender_logo=deps["tender_logo"],
                 start_commands=MagicMock(),
                 extra_content=MagicMock(),
+                package_installs=MagicMock(),
+                package_install_control=MagicMock(),
                 start_handover=None,
             ),
             stores=StateBundle(

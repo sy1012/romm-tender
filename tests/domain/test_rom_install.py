@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import pytest
 
+from domain.package_install import InstalledTitle
 from domain.rom_install import RomInstall
 
 
@@ -165,3 +166,44 @@ class TestExtraContent:
     def test_extra_content_needs_a_place(self):
         with pytest.raises(ValueError, match="place"):
             self._folder_install().add_extra_content(12, "", 300)
+
+
+class TestInstallFromPackage:
+    _TITLE = InstalledTitle(
+        "/drive/game/NPUB30000",
+        "/drive/game/NPUB30000/USRDIR/EBOOT.BIN",
+        "/in-emulator/game/NPUB30000/USRDIR/EBOOT.BIN",
+    )
+
+    @staticmethod
+    def _download() -> RomInstall:
+        install = RomInstall.mark_installed(
+            rom_id=1,
+            file_path="/roms/ps3/Game/Game.pkg",
+            rom_dir="/roms/ps3/Game",
+            platform_slug="ps3",
+            system="ps3",
+            installed_at="2026-11-18T00:00:00",
+        )
+        install.add_extra_content(12, "Update.pkg", 300)
+        return install
+
+    def test_the_record_names_the_installed_title_and_says_it_was_installed_so(self):
+        install = self._download()
+
+        install.install_from_package(self._TITLE)
+
+        assert install.rom_dir == "/drive/game/NPUB30000"
+        assert install.file_path == "/drive/game/NPUB30000/USRDIR/EBOOT.BIN"
+        assert install.package_boot_file == "/in-emulator/game/NPUB30000/USRDIR/EBOOT.BIN"
+        assert install.extra_content == ()
+
+    def test_a_download_is_not_installed_from_a_package(self):
+        assert self._download().package_boot_file is None
+
+    def test_an_installed_title_keeps_no_extra_content_of_its_own(self):
+        install = self._download()
+        install.install_from_package(self._TITLE)
+
+        with pytest.raises(ValueError, match="package"):
+            install.add_extra_content(13, "DLC.pkg", 1)

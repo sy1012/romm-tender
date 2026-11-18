@@ -5,8 +5,9 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass
 from typing import TYPE_CHECKING, Any
 
+from domain.package_install import drive_game_folder
 from domain.prune import recovery_bundle_id
-from domain.retrodeck_folders import EveryFolderRefused, FolderRefused, folder_of
+from domain.retrodeck_folders import EveryFolderRefused, folder_of
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -222,10 +223,16 @@ class RecoveryCoordinator:
         artifacts: list[RecoveryArtifact] = []
         for install in wanted:
             source = install.get("rom_dir") or install.get("file_path")
-            folder = folder_of(folders, str(install.get("system", "")))
-            # Without its system's folder to bound it, the removal of this
-            # content is refused too, so the bundle has nothing of it to hold.
-            if isinstance(source, str) and source and not isinstance(folder, FolderRefused):
+            # A title installed from a package is bounded by its emulator
+            # drive's game folder, as its removal is.
+            folder = (
+                drive_game_folder(source)
+                if install.get("package_boot_file") is not None and isinstance(source, str)
+                else folder_of(folders, str(install.get("system", "")))
+            )
+            # Without its folder to bound it, the removal of this content is
+            # refused too, so the bundle has nothing of it to hold.
+            if isinstance(source, str) and source and isinstance(folder, str):
                 artifacts.append(
                     {"source_path": source, "safe_root": folder, "kind": "installed_rom", "rom_id": install["rom_id"]}
                 )

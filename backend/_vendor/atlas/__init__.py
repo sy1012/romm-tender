@@ -65,7 +65,7 @@ from __future__ import annotations
 # tests/test_version.py holds it equal to pyproject — CI's package job holds
 # dist-info to pyproject in a clean venv — so drift is a red test, not a
 # silent fork.
-__version__ = "0.34.0+tender.6"  # x-release-please-version
+__version__ = "0.34.0+tender.7"  # x-release-please-version
 
 # --- The two entry points, and the aggregate over them -----------------------
 from .detect import detect
@@ -156,6 +156,21 @@ from .opens_codes import (
 )
 
 # --- The handles every question is asked of ----------------------------------
+from .package_install import (
+    CAVEAT_PACKAGE_DRIVE_UNRESOLVED,
+    CAVEAT_PACKAGE_HEADER_UNREAD,
+    CAVEAT_PACKAGE_INSTALL_PATH_UNREAD,
+    CAVEAT_PACKAGE_INSTALL_TAKES_NOTHING,
+    CAVEAT_PACKAGE_INSTALL_UNSTATED,
+    CAVEAT_PACKAGE_LICENCE_ACCOUNT,
+    DESTINATION_ELSEWHERE as PACKAGE_DESTINATION_ELSEWHERE,
+    DESTINATION_GAME_FOLDER as PACKAGE_DESTINATION_GAME_FOLDER,
+    DESTINATION_LICENCE_FOLDER as PACKAGE_DESTINATION_LICENCE_FOLDER,
+    DESTINATION_UNREAD as PACKAGE_DESTINATION_UNREAD,
+    PACKAGE_DESTINATIONS,
+    PackageInstallPath,
+    PackageInstallTarget,
+)
 from .installations import (
     EdenAppImage,
     EmuDeck,
@@ -188,6 +203,7 @@ from .contract import (
     installation_contract,
     launch_command_contract,
     extra_content_contract,
+    package_install_contract,
     launchable_contract,
     platform_systems_contract,
     savefile_answer_contract,
@@ -249,6 +265,7 @@ from .installations import (
     LaunchCommandAnswer,
     ExtraContentAnswer,
     ExtraContentFolder,
+    PackageInstallAnswer,
     PlatformSystemMatch,
     PlatformSystemsAnswer,
     RomLocationsAnswer,
@@ -960,6 +977,9 @@ __all__ = [
     "LaunchCommand",
     "ExtraContentAnswer",
     "ExtraContentFolder",
+    "PackageInstallAnswer",
+    "PackageInstallTarget",
+    "PackageInstallPath",
     "LaunchProgram",
     "LauncherScript",
     "LauncherStep",
@@ -1079,6 +1099,7 @@ __all__ = [
     "launchable_contract",
     "launch_command_contract",
     "extra_content_contract",
+    "package_install_contract",
     "firmware_contract",
     "identification_contract",
     # Vocabulary types
@@ -1439,6 +1460,17 @@ __all__ = [
     "CAVEAT_EXTRA_CONTENT_FOLDERS_UNSTATED",
     "CAVEAT_EXTRA_CONTENT_SCANNED_BESIDE_LAUNCH",
     "CAVEAT_CONTENT_OUTSIDE_EXTRA_CONTENT_FOLDERS",
+    "CAVEAT_PACKAGE_INSTALL_UNSTATED",
+    "CAVEAT_PACKAGE_INSTALL_TAKES_NOTHING",
+    "CAVEAT_PACKAGE_INSTALL_PATH_UNREAD",
+    "CAVEAT_PACKAGE_HEADER_UNREAD",
+    "CAVEAT_PACKAGE_DRIVE_UNRESOLVED",
+    "CAVEAT_PACKAGE_LICENCE_ACCOUNT",
+    "PACKAGE_DESTINATIONS",
+    "PACKAGE_DESTINATION_GAME_FOLDER",
+    "PACKAGE_DESTINATION_LICENCE_FOLDER",
+    "PACKAGE_DESTINATION_ELSEWHERE",
+    "PACKAGE_DESTINATION_UNREAD",
     "HEALTH_ISSUE_MARKER_UNREADABLE",
     "HEALTH_ISSUE_MARKER_INVALID",
     "HEALTH_ISSUE_ROOT_MISSING",

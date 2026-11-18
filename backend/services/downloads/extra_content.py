@@ -80,7 +80,9 @@ class ExtraContentOffer:
 
         Answers ``{success, offered, installed, files, game_folder_scanned,
         rom_folder}``; where nothing is offered, ``files``
-        is empty and RomM is not asked. Each file is ``{file_id, file_name,
+        is empty and RomM is not asked — so for a game installed into its
+        emulator from a package, whose extra content was installed with it
+        (ADR-0051). Each file is ``{file_id, file_name,
         rel_path, category, size_bytes, on_device, ticked, read_from_folders}``.
         Refuses ``not_found`` for a game Tender does not know; a RomM error is
         raised, as a ROM read's is.
@@ -94,7 +96,7 @@ class ExtraContentOffer:
         if rom is None:
             raise Refused("not_found", f"ROM {rom_id} is not in the library")
         system = install.system if install is not None else self._platform_system(rom.platform_slug)
-        if system is None:
+        if system is None or (install is not None and install.package_boot_file is not None):
             return _not_offered(installed=install is not None)
         label = self._label(rom_id)
         folders = self._extra_content.extra_content_folders(

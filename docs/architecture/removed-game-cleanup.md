@@ -327,6 +327,13 @@ that system's downloads land, and the ROM root would put them outside the bound.
 bundle seals and the removal consumes a claim against that same folder
 ([#2285](https://github.com/danielcopper/romm-tender/issues/2285) D1).
 
+A game installed into its emulator from a package (GLOSSARY.md → Package install) is the exception: its installed
+content is the title's folder in the emulator's drive, which lies in no ROM folder, and its safe root is the drive's
+`game` folder the title lies directly in (`domain/package_install.drive_game_folder`). The preview measures, the bundle
+seals and the removal consumes its claim against that folder, so nothing outside it — the drive's user folders, where
+the saves lie — is reachable; a title folder not shaped so is refused rather than bounded by anything wider
+([ADR-0051](../adr/0051-a-ps3-package-is-installed-into-rpcs3.md)).
+
 What RetroDECK's state does to a run:
 
 - **A root it needs only assumed, or a question about its roots failed** — the ROM root or the saves root is one the

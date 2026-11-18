@@ -25,6 +25,7 @@ from fakes.running_loop import running_loop
 from domain.disc_selection import Disc
 from domain.emulator_choice import EmulatorChoice, ResolvedEmulator
 from domain.emulator_commands import NOT_INSTALLED, PROGRAM, EmulatorOption
+from domain.package_install import InstalledTitle
 from domain.rom import Rom
 from domain.rom_install import RomInstall
 from domain.start_command import ENVIRONMENT_UNREAD, SOURCE_STARTS_NO_GAMES, StartCommand, StartRefused
@@ -195,6 +196,24 @@ class TestAStartThatComesAbout:
         await _service(uow, commands=commands).prepare_game_start(1)
 
         assert commands.asked[0]["content_path"] == folder
+
+    async def test_a_title_installed_from_a_package_is_asked_about_by_its_boot_file_with_its_folder_granted(self):
+        uow = FakeUnitOfWork()
+        _seed(uow, file_path=f"{_ROMS}/ps3/Game/Game.pkg", rom_dir=f"{_ROMS}/ps3/Game")
+        title = "/drive/game/NPUB30000"
+        with uow:
+            install = uow.rom_installs.get(1)
+            assert install is not None
+            install.install_from_package(
+                InstalledTitle(title, f"{title}/USRDIR/EBOOT.BIN", "/in-emulator/game/NPUB30000/USRDIR/EBOOT.BIN")
+            )
+            uow.rom_installs.save(install)
+        commands = _Commands()
+
+        await _service(uow, commands=commands).prepare_game_start(1)
+
+        assert commands.asked[0]["content_path"] == "/in-emulator/game/NPUB30000/USRDIR/EBOOT.BIN"
+        assert commands.asked[0]["writable"] == (title,)
 
     async def test_the_games_folder_is_granted_writable_and_tenders_firmware_store_read_only(self):
         uow = FakeUnitOfWork()

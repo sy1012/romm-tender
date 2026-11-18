@@ -214,6 +214,17 @@ class SteamInterfaceReader(Protocol):
     async def reload_frees_at(self) -> float | None: ...
 
 
+class PackageInstallControl(Protocol):
+    """Runs one package install command to its end and answers its exit status.
+
+    ``run`` raises ``OSError`` where the command cannot be started; a cancel of
+    the caller, a timeout the caller set among them, ends the command before
+    it is re-raised.
+    """
+
+    async def run(self, argv: Sequence[str]) -> int: ...
+
+
 class TransientUnitControl(Protocol):
     """Starts a command as a transient systemd user unit, and asks whether it still runs.
 

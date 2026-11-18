@@ -35,6 +35,7 @@ from domain.emulator_commands import (
     shipped_default,
 )
 from domain.emulator_pick import game_platform_pick, pick_for, platform_pick_value, source_kind
+from domain.package_install import package_installed_verdict
 from domain.platform_names import PLATFORM_NAMES_KEY, platform_display_name
 from domain.rom_files import asked_path
 from domain.start_command import source_refusal, start_verdict
@@ -46,6 +47,7 @@ if TYPE_CHECKING:
     from collections.abc import Mapping
 
     from domain.emulator_choice import ResolvedEmulator
+    from domain.launchability import Launchability
     from domain.platform_system import PlatformSystem
     from domain.rom import Rom
     from domain.rom_install import RomInstall
@@ -224,7 +226,7 @@ class CoreService:
             return None
         path = _asked_path(install, rom, self._disc_resolver)
         verdict = self._core_info.launchability(install.system, path, label=resolved.choice.option.label)
-        return verdict.payload(platform_name=self._platform_name(rom))
+        return _installed_verdict(install, verdict).payload(platform_name=self._platform_name(rom))
 
     def _chosen_command(
         self, rom: Rom, install: RomInstall | None, resolved: ResolvedEmulator | None
@@ -268,14 +270,15 @@ class CoreService:
         question = self._launch_question(rom_id)
         if question is None:
             return []
-        system, path, resolved, platform_name = question
+        install, path, resolved, platform_name = question
+        system = install.system
         reading = self._core_info.sources_reading()
         refusal = source_refusal(resolved.source)
         return [
             {
-                **self._core_info.launchability(system, path, label=option.label, reading=reading).payload(
-                    platform_name=platform_name
-                ),
+                **_installed_verdict(
+                    install, self._core_info.launchability(system, path, label=option.label, reading=reading)
+                ).payload(platform_name=platform_name),
                 "start_verdict": None
                 if option.not_installed
                 else start_verdict(
@@ -287,10 +290,10 @@ class CoreService:
             for option in resolved.options
         ]
 
-    def _launch_question(self, rom_id: int) -> tuple[str, str, ResolvedEmulator, str] | None:
+    def _launch_question(self, rom_id: int) -> tuple[RomInstall, str, ResolvedEmulator, str] | None:
         """What ``rom_id``'s question is asked with, and the platform name its answers carry.
 
-        The system, the path (:func:`domain.rom_files.asked_path`), the emulator resolution and
+        The install (whose system is asked), the path (:func:`domain.rom_files.asked_path`), the emulator resolution and
         the platform's name.
 
         ``None`` for a ROM that is not installed or has no system to ask.
@@ -302,7 +305,7 @@ class CoreService:
         if resolved is None:
             return None
         return (
-            install.system,
+            install,
             _asked_path(install, rom, self._disc_resolver),
             resolved,
             self._platform_name(rom),
@@ -594,7 +597,17 @@ def _require_platform(platform_slug: object, platform_folder: object) -> None:
 
 def _asked_path(install: RomInstall, rom: Rom, disc_resolver: DiscResolver) -> str:
     """The path a question about the installed game's start is asked with (:func:`domain.rom_files.asked_path`)."""
-    return asked_path(install.file_path, install.rom_dir, disc_resolver.resolve_for_install(install, rom.selected_disc))
+    return asked_path(
+        install.file_path,
+        install.rom_dir,
+        disc_resolver.resolve_for_install(install, rom.selected_disc),
+        package_boot_file=install.package_boot_file,
+    )
+
+
+def _installed_verdict(install: RomInstall, verdict: Launchability) -> Launchability:
+    """*verdict* for *install*: a game installed from a package is not held to the system's accept-list."""
+    return package_installed_verdict(verdict) if install.package_boot_file is not None else verdict
 
 
 # A ROM with no system to ask has no choice to make.

@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING, Any, cast
 
 from fakes.fake_unit_of_work import FakeUnitOfWork, FakeUnitOfWorkFactory
 
+from domain.package_install import InstalledTitle
 from domain.platform_sync_state import PlatformSyncState
 from domain.rom import Rom
 from domain.rom_install import RomInstall
@@ -335,3 +336,54 @@ def test_a_row_the_user_hid_in_romm_is_not_offered_as_gone() -> None:
     assert {item["rom_id"] for item in page["items"] if item["candidate"]} == {4376}
     assert [item["gone_from_romm"] for item in page["items"] if item["rom_id"] == 4375] == []
     assert preview.hidden_rom_ids == frozenset({4375})
+
+
+def test_a_title_installed_from_a_package_is_measured_inside_its_drives_game_folder() -> None:
+    uow = FakeUnitOfWork()
+    with uow:
+        row = Rom.synced(
+            rom_id=1,
+            platform_slug="ps3",
+            platform_fs_slug="ps3",
+            name="Game",
+            fs_name="Game",
+            shortcut_app_id=None,
+            synced_at="now",
+            version=VersionMetadata(),
+        )
+        row.record_fetch_generation("old")
+        uow.roms.save(row)
+        install = RomInstall.mark_installed(
+            rom_id=1,
+            file_path="/roms/ps3/G/G.pkg",
+            rom_dir="/roms/ps3/G",
+            platform_slug="ps3",
+            system="ps3",
+            installed_at="now",
+        )
+        install.install_from_package(
+            InstalledTitle("/drive/game/NPUB30000", "/drive/game/NPUB30000/USRDIR/EBOOT.BIN", "/in/EBOOT.BIN")
+        )
+        uow.rom_installs.save(install)
+        uow.platform_sync_state.save(
+            PlatformSyncState.stamp(platform_folder="ps3", at="now", rom_count=1, fetch_id="current")
+        )
+    measured: list[tuple[str, str]] = []
+
+    class _Measuring(_Recovery):
+        def measure_path(self, path: str, safe_root: str) -> int:
+            measured.append((path, safe_root))
+            return 42
+
+    builder = PreviewBuilder(
+        config=PreviewBuilderConfig(
+            uow_factory=FakeUnitOfWorkFactory(uow),
+            recovery_store=cast("Any", _Measuring()),
+            retrodeck_folders=cast("Any", _Paths()),
+            settings={},
+        )
+    )
+
+    builder.build("preview", "bulk", None)
+
+    assert measured == [("/drive/game/NPUB30000", "/drive/game")]

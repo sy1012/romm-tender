@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Literal
 
 from domain.fetch_generation import gone_from_romm_ids, rows_with_their_stamp
+from domain.package_install import drive_game_folder
 from domain.retrodeck_folders import FolderRefused, folder_of
 from domain.sibling_resolution import fs_name_stem, group_rows
 from lib.url_host import romm_namespace
@@ -99,16 +100,21 @@ class PreviewBuilder:
     ) -> tuple[int | None, str | None]:
         """Measured bytes of a row's installed content, or why they could not be read.
 
-        Measured inside the install's system's own ROM folder; nothing is
-        measured where that folder is refused. A refusal that stands for every
+        Measured inside the install's system's own ROM folder — a title
+        installed from a package inside its emulator drive's game folder — and
+        nothing is measured where that folder is refused. A refusal that stands for every
         folder — a ROM root only assumed, a RetroDECK not set up, folders that
         could not be established — also refuses a start; RetroDECK naming no
         ROM folder does not.
         """
         if install is None:
             return None, None
-        folder = folder_of(folders, install.system)
-        if isinstance(folder, FolderRefused):
+        folder = (
+            drive_game_folder(install.rom_dir or "")
+            if install.package_boot_file is not None
+            else folder_of(folders, install.system)
+        )
+        if folder is None or isinstance(folder, FolderRefused):
             return None, None
         try:
             return self._recovery_store.measure_path(install.rom_dir or install.file_path, folder), None

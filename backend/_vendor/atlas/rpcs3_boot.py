@@ -48,10 +48,20 @@ module judges that path the way RPCS3 boots it:
    which RPCS3 reads as no category at all (``psf::load``,
    ``rpcs3/Loader/PSF.cpp:186-196``, :273-280) — boots without a disc
    (:2272-2286).
-6. An executable inside RPCS3's own ``dev_hdd0/game`` takes other routes
-   (``from_hdd0_game``, :2100-2137 and :2287-2321): a disc game found there is
-   moved, and one without a root boots through the registry. That is stated
-   as not established rather than read.
+6. An executable inside RPCS3's own ``dev_hdd0/game`` — where a package
+   install puts a game, ``<dev_hdd0>/game/<title id>/USRDIR/EBOOT.BIN``
+   (``package_reader::set_install_path``, ``rpcs3/Crypto/unpkg.cpp:860-919``)
+   — is ``from_hdd0_game`` (:2100-2102, compared on resolved paths,
+   :4828-4834). The configured disc directory is taken as everywhere else
+   (:1893-1919). A disc root above it is a disc game in the wrong place, which
+   RPCS3 moves out of the drive before it boots (:2115-2137), and that is not
+   followed. Without one, the category of the ``PARAM.SFO`` beside the
+   executable's folder decides, read as in step 5: ``DG`` is mounted from the
+   drive as the disc and recorded in the game registry (:2287-2321), ``GD``
+   boots through the registry (:2151-2187), and ``1P`` and ``PE`` start
+   RPCS3's own PS1 and PSP emulators from its flash (:2231-2271) — none of
+   them followed. Every other category, ``HG`` among them, boots the file with
+   no disc, as ``/dev_hdd0/game/<folder>/…`` (:2272-2286, :2669-2676).
 
 Two things a boot can still fail on are outside this reading, and stated in
 the guide: an executable is taken by its first four bytes, so a SELF that
@@ -483,7 +493,7 @@ class _Reading:
     def _executable(self, path: str) -> BootReading:
         """A SELF or ELF: its disc root, else the category its PARAM.SFO states."""
         inside = self._inside_drive(path)
-        if inside is not None:
+        if isinstance(inside, BootReading):
             return inside
         configured = self._configured_disc()
         if configured is not None:
@@ -491,6 +501,16 @@ class _Reading:
         root = self._disc_root(posixpath.dirname(path))
         if isinstance(root, BootReading):
             return root
+        if inside:
+            if root is not None:
+                return self._unestablished(
+                    CAVEAT_BOOT_INSIDE_INTERNAL_DRIVE,
+                    f"{path} lies inside RPCS3's own {self._games()} below a disc root, {root} — a disc game in "
+                    "the wrong place, which RPCS3 moves out of its drive before it boots it (System.cpp:2115-2137); "
+                    "that move is not followed here",
+                    path,
+                )
+            return self._without_root(path, from_drive=True)
         if root is not None:
             return BootReading(
                 BOOTS,
@@ -504,8 +524,12 @@ class _Reading:
             )
         return self._without_root(path)
 
-    def _inside_drive(self, path: str) -> BootReading | None:
-        """The reading's answer where *path* lies inside RPCS3's ``dev_hdd0/game`` or that cannot be told."""
+    def _games(self) -> str:
+        """RPCS3's ``dev_hdd0/game``, asked only once the drive is known."""
+        return posixpath.join(self._dirs().drive or "", "game")
+
+    def _inside_drive(self, path: str) -> bool | BootReading:
+        """Whether *path* lies inside RPCS3's ``dev_hdd0/game`` — a reading where that cannot be told."""
         drive = self._dirs()
         if drive.drive is None:
             where = "where its configuration tree is not established"
@@ -523,14 +547,7 @@ class _Reading:
                 ),
             )
         games = posixpath.join(drive.drive, "game")
-        if not (_beneath(path, games) or _beneath(self._view.host_path(path), self._view.host_path(games))):
-            return None
-        return self._unestablished(
-            CAVEAT_BOOT_INSIDE_INTERNAL_DRIVE,
-            f"{path} lies inside RPCS3's own {games}, where it boots a game another way (from_hdd0_game, "
-            "System.cpp:2100-2137, :2287-2321) — that route is not followed here",
-            path,
-        )
+        return _beneath(path, games) or _beneath(self._view.host_path(path), self._view.host_path(games))
 
     def _configured_disc(self) -> BootReading | None:
         """The disc directory RPCS3 is configured with, where it holds a ``PS3_DISC.SFB`` — ``None`` where it does not.
@@ -598,8 +615,9 @@ class _Reading:
             return facts
         return facts is not None and facts.magic == MAGIC_SFB
 
-    def _without_root(self, path: str) -> BootReading:
-        """No disc root: the category of the PARAM.SFO ``Load`` reads decides."""
+    def _without_root(self, path: str, *, from_drive: bool = False) -> BootReading:
+        """No disc root: the category of the PARAM.SFO ``Load`` reads decides — *from_drive* for a file inside
+        RPCS3's own ``dev_hdd0/game``, where a disc game takes the drive's route rather than failing to mount."""
         game = posixpath.dirname(posixpath.dirname(path))
         has_sfb = self._view.regular_file(posixpath.join(game, _SFB))
         if has_sfb == PROBE_UNKNOWN:
@@ -609,6 +627,14 @@ class _Reading:
         if isinstance(facts, BootReading):
             return facts
         category = facts.category if facts is not None else ""
+        if from_drive and category == _DISC_GAME:
+            return self._unestablished(
+                CAVEAT_BOOT_INSIDE_INTERNAL_DRIVE,
+                f"{sfo} names a disc game lying inside RPCS3's own {self._games()}, which RPCS3 mounts from there as "
+                "the disc and records in its game registry where its disc directory is empty (System.cpp:2287-2321) "
+                "— that route is not followed here",
+                path,
+            )
         if category == _DISC_GAME:
             return self._refuses(
                 CAVEAT_BOOT_DISC_ROOT_MISSING,
@@ -640,10 +666,16 @@ class _Reading:
                 ),
             )
         stated = f"states category {category}" if category else "yields no category, as RPCS3's loader reads it"
+        where = (
+            f", from inside its own {self._games()} as /dev_hdd0/game/… (from_hdd0_game, System.cpp:2100-2102, "
+            ":2669-2676)"
+            if from_drive
+            else ""
+        )
         return BootReading(
             BOOTS,
             (
-                f"entry {self._label!r}: RPCS3 boots {path} with no disc mounted — {sfo} {stated}, and every "
+                f"entry {self._label!r}: RPCS3 boots {path} with no disc mounted{where} — {sfo} {stated}, and every "
                 f"category but DG, GD, 1P and PE boots that way (System.cpp:2272-2286; PSF.cpp:186-196, :273-280; "
                 f"{_SOURCE})",
             ),
