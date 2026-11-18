@@ -208,7 +208,7 @@ from .firmware import firmware_for_core as _resolve_for_core
 from .firmware import firmware_for_system as _resolve_for_system
 from .firmware import firmware_inventory as _resolve_inventory
 from .firmware import identify_firmware as _resolve_identification
-from . import dolphin_disc, eden, n3ds_rom, ps3_title, psp_disc, switch_title
+from . import dolphin_disc, eden, n3ds_rom, ps3_title, psp_disc, switch_title, wua
 from .machine import (
     APPIMAGE_CAPABILITY_MISSING,
     DOLPHIN_DISC_OK,
@@ -9979,37 +9979,6 @@ def _unnamed_tree_placement(
     )
 
 
-def _per_title_placement(
-    card: StandaloneSaveCard,
-    *,
-    directory: str,
-    physical: str | None,
-    caveats: Sequence[Caveat],
-    mode: str,
-    readings: tuple[OptionReading, ...],
-    provenance: str,
-    extra_groups: tuple[FileGroup, ...] = (),
-) -> SavefilePlacement:
-    """One title's save directory as a whole answer — the shape Cemu, Azahar and Dolphin's Wii share.
-
-    The directory is keyed by the title id, which stays the ``save_id`` hole;
-    the files below it are the game's own writes, so its group is unnamed and
-    the unit is ``per-game-directory``. *extra_groups* are directories stated
-    beside it (Azahar's extdata).
-    """
-    return _labelled_per_title_placement(
-        f"standalone save card '{card.token}'",
-        card.provenance,
-        directory=directory,
-        physical=physical,
-        caveats=caveats,
-        mode=mode,
-        readings=readings,
-        provenance=provenance,
-        extra_groups=extra_groups,
-    )
-
-
 def _labelled_per_title_placement(
     label: str,
     source: str,
@@ -10026,14 +9995,18 @@ def _labelled_per_title_placement(
     unit: SaveUnitStatement | None = None,
     extra_sources: tuple[str, ...] = (),
 ) -> SavefilePlacement:
-    """:func:`_per_title_placement` declared by *label*, with *source* as its evidence.
+    """One title's save directory as a whole answer, declared by *label* with *source* as its evidence.
 
-    The Wii answer is the libretro Dolphin core's too, which is declared by
-    its rule card and hangs off the frontend's save directory rather than an
-    emulator directory of its own. Where the Wii answer names the title from
-    the disc, *directory* is that title's own folder, *needs* is empty and
-    *unit* says the folder is the game's save; *extra_sources* says how the
-    title was named.
+    The shape Cemu, Azahar and Dolphin's Wii share: the directory is keyed by
+    the title id, the ``save_id`` hole by default; the files below it are the
+    game's own writes, so its group is unnamed and the unit is
+    ``per-game-directory``. *extra_groups* are directories stated beside it
+    (Azahar's extdata). The Wii answer is the libretro Dolphin core's too,
+    which is declared by its rule card and hangs off the frontend's save
+    directory rather than an emulator directory of its own. Where an answer
+    names the title from the content, *directory* is that title's own folder,
+    *needs* is empty and *unit* says the folder is the game's save;
+    *extra_sources* says how the title was named, or why it was not.
     """
     return SavefilePlacement(
         dir=directory,
@@ -11524,7 +11497,13 @@ def _cemu_savefile_placement(
     content_path: str | None = None,
     cwd: str | None = None,
 ) -> SavefilePlacement | Unresolved:
-    """Cemu's save answer, read from settings.xml the way the emulator reads it."""
+    """Cemu's save answer, read from settings.xml the way the emulator reads it.
+
+    Where the content path is a Wii U archive or a folder dump whose title
+    atlas reads (:func:`_cemu_title`), the answer is that title's save folder
+    ``usr/save/<high>/<low>``, stated whole as the unit
+    (:func:`_cemu_title_answer`); otherwise ``usr/save/<save_id>``, the hole.
+    """
     xml_path = _standalone_settings_path(card, homes)
     result = machine.read_text(xml_path)
     if result.status not in (READ_OK, READ_MISSING):
@@ -11569,11 +11548,28 @@ def _cemu_savefile_placement(
     tree = os.path.join(mlc_root, "usr", "save")
     physical_tree, link_caveats = _link_view(machine, tree)
     caveats.extend(link_caveats)
+    stated_xml = xml_path if result.status == READ_OK else None
+    readings = (_reading_with_file(reading, stated_xml),)
+    provenance = (
+        f"standalone save card '{card.token}': the MLC from settings.xml "
+        "(ActiveSettings.cpp:242-268 at 2.6)"
+    )
+    title, unread = _cemu_title(machine, content_path)
+    if title is not None:
+        return _cemu_title_answer(
+            card,
+            title,
+            tree=tree,
+            physical_tree=physical_tree,
+            caveats=caveats,
+            readings=readings,
+            provenance=provenance,
+        )
     # The per-title unit: one directory per game below usr/save, keyed by the
     # title id — Cemu composes usr/save/<high>/<low>/user/<account>/ (and
     # user/common/) at its runtime write sites, lowercase hex
-    # (nn_save.cpp:133-145 at 2.6). The id is the game's own, read from
-    # nothing atlas touches, so it stays a hole the caller fills — as two
+    # (nn_save.cpp:133-145 at 2.6). Where the content path names no title
+    # atlas reads (_cemu_title), the id stays a hole the caller fills — as two
     # 8-hex path segments, which is one fact (the title id), one hole.
     directory = os.path.join(tree, TEMPLATE_SAVE_ID)
     physical = (
@@ -11597,18 +11593,194 @@ def _cemu_savefile_placement(
             },
         )
     )
-    stated_xml = xml_path if result.status == READ_OK else None
-    return _per_title_placement(
-        card,
+    return _labelled_per_title_placement(
+        f"standalone save card '{card.token}'",
+        card.provenance,
         directory=directory,
         physical=physical,
         caveats=caveats,
         mode="mlc",
-        readings=(_reading_with_file(reading, stated_xml),),
-        provenance=(
-            f"standalone save card '{card.token}': the MLC from settings.xml "
-            "(ActiveSettings.cpp:242-268 at 2.6)"
-        ),
+        readings=readings,
+        provenance=provenance,
+        extra_sources=unread,
+    )
+
+
+_CEMU_BUILD = "Cemu 2.6"
+_CEMU_SAVE_CITATION = (
+    f"nn_acp.cpp:57-69 and iosu_acp.cpp:720-748 at {_CEMU_BUILD} — the title's save folder "
+    "'usr/save/%08x/%08x/' holding meta/ and user/ ('user/%08x/' per account, 'user/common/'), "
+    "the high word masked with ~0xC, which leaves a base, demo or system title's unchanged"
+)
+# The suffixes Cemu reads as a disc image rather than an archive or a folder
+# dump (TitleInfo::DetectFormat, TitleInfo.cpp:203-210 at 2.6).
+_CEMU_DISC_SUFFIXES = (".wud", ".wux", ".iso")
+
+
+@dataclass(frozen=True, slots=True)
+class _WiiUTitle:
+    """The content path's Wii U title as the save path spells it, and the sentence saying how it was read."""
+
+    high: str
+    low: str
+    basis: str
+
+
+def _cemu_title(machine: Machine, content_path: str | None) -> tuple[_WiiUTitle | None, tuple[str, ...]]:
+    """The title the content path launches in Cemu — or ``None`` and the sentence saying why it was not read.
+
+    A ``.wua`` is read for its top-level title folders (:mod:`atlas.wua`); a
+    folder dump's ``code/<name>.rpx`` for ``code/app.xml``'s ``title_id``
+    (:func:`_cemu_folder_title`). A disc image, and anything else, is not read.
+    """
+    if content_path is None:
+        return None, ()
+    lowered = content_path.casefold()
+    if lowered.endswith(".rpx"):
+        return _cemu_folder_title(machine, content_path)
+    if lowered.endswith(_CEMU_DISC_SUFFIXES):
+        return None, (
+            f"the content path {content_path} is one Cemu reads as a disc image (.wud, .wux, .iso — "
+            f"TitleInfo.cpp:203-210 at {_CEMU_BUILD}), which atlas does not read: the title id is not established",
+        )
+    if not lowered.endswith(".wua"):
+        return None, (
+            f"the content path {content_path} is no Wii U archive (.wua) or folder dump (code/<name>.rpx), "
+            "the content atlas reads a title id from",
+        )
+    result = machine.read_wua_titles(content_path)
+    if result.facts is None:
+        return None, (
+            f"the content path {content_path} was not read as a Wii U archive ({result.status}): atlas reads a "
+            "ZArchive whose footer, file tree and name table Cemu's reader opens (zarchivereader.cpp:29-91 at "
+            "ZArchive v0.1.2); a disc image renamed .wua, a truncated archive or other bytes are not read",
+        )
+    return _cemu_archive_title(content_path, result.facts)
+
+
+def _cemu_archive_title(content_path: str, facts: wua.WuaFacts) -> tuple[_WiiUTitle | None, tuple[str, ...]]:
+    """The one title of the archive a launch runs — ``None`` where it holds none or several.
+
+    Cemu launches the first top-level title folder of a bootable type — a base
+    title, a demo, a system title — and never an update or downloadable
+    content (TitleInfo.cpp:217-251). An archive holding one such title names
+    it whole; one holding several is a bundle, and which of them the caller
+    means is not this read's to say.
+    """
+    bootable = [title for title in facts.titles if title.bootable]
+    spelled = ", ".join(f"{t.title_id:016x}" for t in facts.titles) or "none"
+    if len(bootable) != 1:
+        found = "no title" if not bootable else f"{len(bootable)} titles"
+        return None, (
+            f"the Wii U archive {content_path} holds {found} Cemu launches — a base title, a demo or a system "
+            f"title (TitleId.h:36-60, TitleInfo.cpp:217-251 at {_CEMU_BUILD}) — among its title folders "
+            f"({spelled}), so no one title is the game's save: the title id is not established",
+        )
+    (title,) = bootable
+    high, low = wua.title_words(title.title_id)
+    return _WiiUTitle(
+        high,
+        low,
+        f"the title id {high}/{low} is the one title folder of the Wii U archive a launch runs "
+        f"('{high}{low}_v{title.version}', among {spelled}): Cemu's packer names each folder by its title's own "
+        f"id (wxTitleManagerList.cpp:493) and a launch runs the bootable one (TitleInfo.cpp:143-178, "
+        f":217-251 at {_CEMU_BUILD}; ZArchive's footer and tree read as zarchivereader.cpp:29-91, :185-205 "
+        "at v0.1.2)",
+    ), ()
+
+
+def _cemu_folder_title(machine: Machine, content_path: str) -> tuple[_WiiUTitle | None, tuple[str, ...]]:
+    """The title of a folder dump launched through its ``code/<name>.rpx`` — read from ``code/app.xml``.
+
+    Cemu runs an ``.rpx`` as a folder dump where it lies in a folder named
+    ``code`` (any case) beside ``content`` and ``meta`` (TitleInfo.cpp:186-202),
+    and the title it runs is ``app.xml``'s ``title_id`` (ParseAppXml,
+    TitleInfo.cpp:621-648; GetAppTitleId :650-659), hex. An ``.rpx`` elsewhere
+    runs as a bare executable under a placeholder id (CafeSystem.cpp:825-831).
+    """
+    code = os.path.dirname(content_path)
+    dump = os.path.dirname(code)
+    if os.path.basename(code).casefold() != "code" or any(
+        machine.path_kind(os.path.join(dump, part)) == KIND_MISSING for part in ("content", "meta")
+    ):
+        return None, (
+            f"the content path {content_path} is an .rpx outside a folder dump (code/ beside content/ and meta/, "
+            f"TitleInfo.cpp:186-202 at {_CEMU_BUILD}), which Cemu runs under a placeholder title id: no save "
+            "folder of the game's own title is established",
+        )
+    app_xml = os.path.join(code, "app.xml")
+    result = machine.read_text(app_xml)
+    title_id = _app_xml_title_id(result.text) if result.status == READ_OK and result.text else None
+    if title_id is None or not wua.WuaTitle(title_id, 0).bootable:
+        return None, (
+            f"the folder dump's {app_xml} was not read for a title Cemu launches ({result.status}): atlas reads "
+            f"<app><title_id> as hex, a base, demo or system title (TitleInfo.cpp:621-648 at {_CEMU_BUILD})",
+        )
+    high, low = wua.title_words(title_id)
+    return _WiiUTitle(
+        high,
+        low,
+        f"the title id {high}/{low} is the title_id of the folder dump's code/app.xml, the id Cemu runs a "
+        f"folder dump under (TitleInfo.cpp:186-202, :621-659 at {_CEMU_BUILD})",
+    ), ()
+
+
+def _app_xml_title_id(text: str) -> int | None:
+    """``<app><title_id>`` as hex, the last such child where several are — ``None`` where it is not one u64."""
+    try:
+        doc = _ET.fromstring(text)
+    except _ET.ParseError:
+        return None
+    if doc.tag != "app":
+        return None
+    values = [child.text for child in doc if child.tag == "title_id"]
+    value = (values[-1] or "").strip() if values else ""
+    if not 1 <= len(value) <= 16 or any(c not in "0123456789abcdefABCDEF" for c in value):
+        return None
+    return int(value, 16)
+
+
+def _cemu_title_answer(
+    card: StandaloneSaveCard,
+    title: _WiiUTitle,
+    *,
+    tree: str,
+    physical_tree: str | None,
+    caveats: list[Caveat],
+    readings: tuple[OptionReading, ...],
+    provenance: str,
+) -> SavefilePlacement:
+    """The answer for a title the content path names: its save folder ``usr/save/<high>/<low>``, whole.
+
+    The folder holds ``meta/`` and ``user/`` — a folder per account and
+    ``common/`` — all the title's; it packs under its low word, ``<low>/meta/…``,
+    ``<low>/user/…``, the shape Argosy's ``WiiUFolderHandler`` uploads a Wii U
+    save in. It need not exist yet: Cemu creates it when the game first
+    initialises its save (nn_save.cpp:326-336 at 2.6), and the unit is stated
+    all the same so a restore has somewhere to place it.
+    """
+    directory = os.path.join(tree, title.high, title.low)
+    physical = os.path.join(physical_tree, title.high, title.low) if physical_tree is not None else None
+    caveats.append(
+        Caveat(
+            CAVEAT_FILE_NAMES_UNESTABLISHED,
+            "the files below this title's save folder are the game's own writes — meta/ and user/<account>/, "
+            "user/common/ — so the folder moves whole",
+            {"token": card.token, "dir": directory, "role": ROLE_BATTERY, "citation": _CEMU_SAVE_CITATION},
+        )
+    )
+    return _labelled_per_title_placement(
+        f"standalone save card '{card.token}'",
+        card.provenance,
+        directory=directory,
+        physical=physical,
+        caveats=caveats,
+        mode="mlc",
+        readings=readings,
+        provenance=provenance,
+        needs=(),
+        unit=SaveUnitStatement(SAVE_UNIT_FOLDER, None, title.low),
+        extra_sources=(title.basis,),
     )
 
 

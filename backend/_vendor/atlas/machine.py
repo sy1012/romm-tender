@@ -95,7 +95,7 @@ from dataclasses import dataclass, field
 from types import MappingProxyType
 from typing import BinaryIO, Callable, Iterable, Literal, Mapping, NamedTuple, Protocol, cast, runtime_checkable
 
-from . import dolphin_disc, eden, lha, n3ds_rom, ps2_bios, ps3_file, ps3_iso, ps3_title, psp_disc, psx_chd, psx_disc, psx_pbp, squashfs, switch_title, whdload
+from . import dolphin_disc, eden, lha, n3ds_rom, ps2_bios, ps3_file, ps3_iso, ps3_title, psp_disc, psx_chd, psx_disc, psx_pbp, squashfs, switch_title, whdload, wua
 from .content_path import archive_delimiter
 
 try:
@@ -320,6 +320,26 @@ N3DS_ROM_UNREADABLE: N3dsRomStatus = "unreadable"
 N3DS_ROM_FORMAT_NOT_READ: N3dsRomStatus = "format-not-read"
 N3DS_ROM_ENCRYPTED: N3dsRomStatus = "encrypted"
 N3DS_ROM_NOT_A_ROM: N3dsRomStatus = "not-a-rom"
+# Reading the titles a Wii U archive holds (atlas.wua) fails the way a plain
+# read fails, and in two ways that are findings about the bytes:
+# "format-not-read" is a file with no ZArchive footer at its end — a disc image
+# (.wud/.wux), a truncated archive, or no archive at all; "not-an-archive" a
+# footer whose structure Cemu's reader would not open, or a top level past
+# atlas's bound. "missing" is no regular file there once links are followed.
+WuaTitlesStatus = Literal["ok", "missing", "unreadable", "format-not-read", "not-an-archive"]
+WUA_TITLES_OK: WuaTitlesStatus = "ok"
+WUA_TITLES_MISSING: WuaTitlesStatus = "missing"
+WUA_TITLES_UNREADABLE: WuaTitlesStatus = "unreadable"
+WUA_TITLES_FORMAT_NOT_READ: WuaTitlesStatus = "format-not-read"
+WUA_TITLES_NOT_AN_ARCHIVE: WuaTitlesStatus = "not-an-archive"
+WUA_TITLES_STATUSES: tuple[WuaTitlesStatus, ...] = (
+    WUA_TITLES_OK,
+    WUA_TITLES_MISSING,
+    WUA_TITLES_UNREADABLE,
+    WUA_TITLES_FORMAT_NOT_READ,
+    WUA_TITLES_NOT_AN_ARCHIVE,
+)
+
 N3DS_ROM_STATUSES: tuple[N3dsRomStatus, ...] = (
     N3DS_ROM_OK,
     N3DS_ROM_MISSING,
@@ -625,6 +645,22 @@ class PspDiscResult:
     def __post_init__(self) -> None:
         if (self.facts is None) == (self.status == PSP_DISC_OK):
             raise ValueError(f"PspDiscResult: facts must be set exactly when status is 'ok' (got {self.status!r})")
+
+
+@dataclass(frozen=True, slots=True)
+class WuaTitlesResult:
+    """One read of the titles a Wii U archive holds — ``facts`` is set exactly when ``status`` is ok.
+
+    ``missing`` / ``unreadable`` mean what they mean on :class:`ReadResult`;
+    the facts are :class:`atlas.wua.WuaFacts`.
+    """
+
+    status: WuaTitlesStatus
+    facts: wua.WuaFacts | None = None
+
+    def __post_init__(self) -> None:
+        if (self.facts is None) == (self.status == WUA_TITLES_OK):
+            raise ValueError(f"WuaTitlesResult: facts must be set exactly when status is 'ok' (got {self.status!r})")
 
 
 @dataclass(frozen=True, slots=True)
@@ -1485,6 +1521,8 @@ class Machine(Protocol):
 
     def read_n3ds_rom(self, path: str) -> N3dsRomResult: ...
 
+    def read_wua_titles(self, path: str) -> WuaTitlesResult: ...
+
     def read_ps3_title(self, path: str) -> Ps3TitleResult: ...
 
     def read_disc_identity(self, path: str, *, extracted: ExtractedEntry | None = None) -> DiscIdentityResult: ...
@@ -2067,6 +2105,35 @@ class RealMachine:
             return PspParamSfoResult(PSP_PARAM_SFO_OK, psp_disc.parse_sfo_keys(data))
         except psp_disc.SfoUnread:
             return PspParamSfoResult(PSP_PARAM_SFO_NOT_AN_SFO)
+
+    def read_wua_titles(self, path: str) -> WuaTitlesResult:
+        """The titles the Wii U archive at *path* holds, as Cemu lists them — a status, and the facts where read.
+
+        A regular file once links are followed, checked before opening, as for
+        :meth:`read_psp_disc`. The reader is :mod:`atlas.wua`, whose reads are
+        bounded: the 144-byte footer, the root entry, at most
+        ``wua.MAX_TOP_LEVEL_ENTRIES`` entries below it and their names.
+        """
+        try:
+            st = os.stat(path)
+        except (FileNotFoundError, NotADirectoryError):
+            return WuaTitlesResult(WUA_TITLES_MISSING)
+        except OSError:
+            return WuaTitlesResult(WUA_TITLES_UNREADABLE)
+        if not _stat.S_ISREG(st.st_mode):
+            return WuaTitlesResult(WUA_TITLES_MISSING)
+        try:
+            with open(path, "rb") as f:
+                facts = wua.read_facts(f, st.st_size)
+        except (FileNotFoundError, NotADirectoryError):
+            return WuaTitlesResult(WUA_TITLES_MISSING)
+        except wua.WuaFormatNotRead:
+            return WuaTitlesResult(WUA_TITLES_FORMAT_NOT_READ)
+        except wua.WuaUnread:
+            return WuaTitlesResult(WUA_TITLES_NOT_AN_ARCHIVE)
+        except OSError:
+            return WuaTitlesResult(WUA_TITLES_UNREADABLE)
+        return WuaTitlesResult(WUA_TITLES_OK, facts)
 
     def read_n3ds_rom(self, path: str) -> N3dsRomResult:
         """What Azahar reads of the 3DS image at *path* — a status, and the facts where it was read.
@@ -3355,6 +3422,49 @@ def _validate_fixture_psp_param_sfos(
     return validated
 
 
+_FIXTURE_WUA_STATES = (WUA_TITLES_FORMAT_NOT_READ, WUA_TITLES_NOT_AN_ARCHIVE)
+
+
+def _validate_fixture_wua_archives(
+    declared: Mapping[str, object] | None,
+    files: Mapping[str, tuple[ReadStatus, str | None]],
+) -> dict[str, wua.WuaFacts | WuaTitlesStatus]:
+    """The declared top-level title folders of each Wii U archive — or ``format-not-read`` / ``not-an-archive``.
+
+    The facts describe a file's bytes, so the path must be a declared file
+    whose bytes can be read, as for ``psp_discs``. ``title_folders`` lists the
+    folder names, in the archive's order, each one Cemu reads as a title
+    (``<16 hex>_v<version>``); a folder Cemu does not read as one is no fact
+    and is left out.
+    """
+    validated: dict[str, wua.WuaFacts | WuaTitlesStatus] = {}
+    for path, spec in (declared or {}).items():
+        _declared_bytes("wua archive", path, files)
+        if spec in _FIXTURE_WUA_STATES:
+            validated[path] = cast(WuaTitlesStatus, spec)
+        else:
+            validated[path] = _fixture_wua_facts(path, spec)
+    return validated
+
+
+def _fixture_wua_facts(path: str, spec: object) -> wua.WuaFacts:
+    """``{"title_folders": [...]}`` as the facts — each name one Cemu reads as a title."""
+    fields = cast("Mapping[str, object]", spec) if isinstance(spec, Mapping) else None
+    folders = fields.get("title_folders") if fields is not None else None
+    if fields is None or set(fields) != {"title_folders"} or not isinstance(folders, list):
+        raise ValueError(
+            f"wua archive {path!r}: expected one of {list(_FIXTURE_WUA_STATES)} or an object with exactly "
+            f"title_folders (a list of folder names), got {spec!r}"
+        )
+    titles: list[wua.WuaTitle] = []
+    for name in cast("list[object]", folders):
+        title = wua.parse_title_folder(name.encode("utf-8")) if isinstance(name, str) else None
+        if title is None:
+            raise ValueError(f"wua archive {path!r}: {name!r} is no folder name Cemu reads as a title")
+        titles.append(title)
+    return wua.WuaFacts(tuple(titles))
+
+
 _FIXTURE_N3DS_ROM_FIELDS = ("container", "program_id", "extdata_id", "extdata_basis")
 _FIXTURE_N3DS_ROM_STATES = (N3DS_ROM_FORMAT_NOT_READ, N3DS_ROM_ENCRYPTED, N3DS_ROM_NOT_A_ROM)
 
@@ -3976,6 +4086,7 @@ class FixtureMachine:
         psp_discs: Mapping[str, object] | None = None,
         psp_param_sfos: Mapping[str, object] | None = None,
         n3ds_roms: Mapping[str, object] | None = None,
+        wua_archives: Mapping[str, object] | None = None,
         ps3_titles: Mapping[str, object] | None = None,
         disc_identities: Mapping[str, Mapping[str, object] | str] | None = None,
         archives: Mapping[str, object] | None = None,
@@ -3995,6 +4106,7 @@ class FixtureMachine:
         self._psp_discs = _validate_fixture_psp_discs(psp_discs, self._files)
         self._psp_param_sfos = _validate_fixture_psp_param_sfos(psp_param_sfos, self._files)
         self._n3ds_roms = _validate_fixture_n3ds_roms(n3ds_roms, self._files)
+        self._wua_archives = _validate_fixture_wua_archives(wua_archives, self._files)
         self._ps3_titles = _validate_fixture_ps3_titles(ps3_titles, self._files)
         self._inaccessible = set(inaccessible or ())
         self._unlistable = set(unlistable or ())
@@ -4314,6 +4426,29 @@ class FixtureMachine:
         if resolved in self._files:
             return PspParamSfoResult(PSP_PARAM_SFO_UNREADABLE)
         return PspParamSfoResult(PSP_PARAM_SFO_MISSING)
+
+    def read_wua_titles(self, path: str) -> WuaTitlesResult:
+        """The modeled read of a Wii U archive's titles — the folders declared, RealMachine's outcomes.
+
+        A path declared in ``wua_archives`` answers its title folders,
+        ``format-not-read`` or ``not-an-archive``; a declared file with no
+        entry there answers ``unreadable``, so a vector that forgot the key
+        cannot prove an archive nobody modeled. A directory, a dead link and
+        nothing at all answer ``missing``.
+        """
+        if self._is_inaccessible(path):
+            return WuaTitlesResult(WUA_TITLES_UNREADABLE)
+        resolved = self._resolve(path).path
+        if resolved is None or resolved in self._dirs:
+            return WuaTitlesResult(WUA_TITLES_MISSING)
+        declared = self._wua_archives.get(resolved)
+        if isinstance(declared, wua.WuaFacts):
+            return WuaTitlesResult(WUA_TITLES_OK, declared)
+        if declared is not None:
+            return WuaTitlesResult(declared)
+        if resolved in self._files:
+            return WuaTitlesResult(WUA_TITLES_UNREADABLE)
+        return WuaTitlesResult(WUA_TITLES_MISSING)
 
     def read_n3ds_rom(self, path: str) -> N3dsRomResult:
         """The modeled read of what Azahar reads of a 3DS image — the facts declared, RealMachine's outcomes.

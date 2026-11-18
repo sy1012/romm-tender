@@ -202,6 +202,14 @@ package has no content-type packet) and, beside it, `"install_dir"` (the folder 
 without them the metadata was not read. The same rules as `switch_packages` for a declared file with no entry, an
 `unreadable` one and a missing one.
 
+**`wua_archives`** — the path of a Wii U archive (`.wua`) `files` declares → the title folders at its top level, as Cemu
+lists them to pick the title a launch runs: `{"title_folders": [...]}`, each a folder name Cemu reads as a title —
+sixteen hex digits, `_v`, and a decimal version below 65536 with no leading zero (`0005000010101c00_v32`) — in the
+archive's order; a folder Cemu does not read as a title is no fact and is left out. Or one of two states:
+`"format-not-read"` (no ZArchive footer at the end — a disc image, a truncated archive, or no archive) and
+`"not-an-archive"` (a footer whose structure Cemu's reader refuses). The same rules as `switch_packages` for a declared
+file with no entry, an `unreadable` one and a missing one.
+
 **`disc_identities`** — the path of a PlayStation disc image `files` declares (a `.cue`, `.bin`, `.img`, `.iso`, `.chd`
 or `.pbp`) → what reading its first data track yields:
 `{"license": …, "system_cnf": …, "boot_found": …, "edc_valid": …}`, where `license` is the start of sector 4's user
