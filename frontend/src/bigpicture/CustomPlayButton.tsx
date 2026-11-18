@@ -22,7 +22,16 @@ import { useState, useEffect, useRef, useCallback, FC, ReactElement } from "reac
 import { addEventListener, removeEventListener, strandedAnswer } from "../api/host";
 import { showToast } from "../utils/toast";
 import { useStrandedAnswer } from "../utils/strandedPanelStore";
-import { Focusable, DialogButton, Menu, MenuItem, MenuSeparator, showContextMenu } from "@decky/ui";
+import {
+  ConfirmModal,
+  Focusable,
+  DialogButton,
+  Menu,
+  MenuItem,
+  MenuSeparator,
+  showContextMenu,
+  showModal,
+} from "@decky/ui";
 import { appActionButtonClasses, basicAppDetailsSectionStylerClasses } from "../utils/deckyUiInternals";
 import { hideNativePlaySection, showNativePlaySection } from "../utils/styleInjector";
 import { hasAnySaveConflict } from "../utils/saveStatus";
@@ -39,6 +48,7 @@ import {
   logError,
 } from "../api/backend";
 import { executeRomUninstall } from "../utils/romUninstall";
+import { PACKAGE_UNINSTALL_TITLE, packageUninstallDescription } from "../utils/packageInstallWording";
 import { activateRunningApp, executeStopRunningGame } from "../utils/runningGame";
 import {
   formatProgress,
@@ -124,6 +134,12 @@ interface DownloadProgress {
    * Pause-Resume chevron.
    */
   extracting: boolean;
+  /**
+   * True once an `installing` frame arrives — a downloaded package is being
+   * installed into its emulator, which states no progress. Shown as extraction
+   * is, with its own label.
+   */
+  installing: boolean;
 }
 
 interface CustomPlayButtonProps {
@@ -172,6 +188,8 @@ export const CustomPlayButton: FC<CustomPlayButtonProps> = ({ appId, emulatorRef
   const [candidatePresent, setCandidatePresent] = useState(false);
   const [missingPath, setMissingPath] = useState<string | null>(null);
   const [noFileOnRomm, setNoFileOnRomm] = useState(false);
+  // Installed into its emulator from a package: an uninstall removes the installed game, so it asks first.
+  const [installedFromPackage, setInstalledFromPackage] = useState(false);
   const [forgetPending, setForgetPending] = useState(false);
   // Set synchronously before the forget's first await, for the same reason as
   // `uninstallPendingRef`.
@@ -229,6 +247,7 @@ export const CustomPlayButton: FC<CustomPlayButtonProps> = ({ appId, emulatorRef
       romIdRef.current = rid;
       if (cached.rom_name) setRomName(cached.rom_name);
       setNoFileOnRomm(cached.has_file_on_disk === false);
+      setInstalledFromPackage(cached.installed_from_package === true);
       setMissingPath(cached.installed && cached.file_missing_at ? cached.file_missing_at : null);
       if (cached.installed && cached.file_missing_at) {
         setDlProgress(null);
@@ -284,15 +303,18 @@ export const CustomPlayButton: FC<CustomPlayButtonProps> = ({ appId, emulatorRef
         (entry.status === "downloading" ||
           entry.status === "queued" ||
           entry.status === "paused" ||
-          entry.status === "extracting")
+          entry.status === "extracting" ||
+          entry.status === "installing")
       ) {
+        const unpacking = entry.status === "extracting" || entry.status === "installing";
         setActionPending(true);
         setDlProgress({
           bytesDownloaded: entry.bytes_downloaded,
           totalBytes: entry.total_bytes,
-          resumable: entry.status === "extracting" ? false : entry.resumable,
+          resumable: unpacking ? false : entry.resumable,
           paused: entry.status === "paused",
-          extracting: entry.status === "extracting",
+          extracting: unpacking,
+          installing: entry.status === "installing",
         });
       }
     } catch (e) {
@@ -320,6 +342,7 @@ export const CustomPlayButton: FC<CustomPlayButtonProps> = ({ appId, emulatorRef
         romIdRef.current = rid;
         if (cached.rom_name) setRomName(cached.rom_name);
         setNoFileOnRomm(cached.has_file_on_disk === false);
+        setInstalledFromPackage(cached.installed_from_package === true);
 
         // Seed the running overlay from the live session/running-app state so a
         // button mounted mid-session (or after a reload-adoption) shows Resume
@@ -396,13 +419,16 @@ export const CustomPlayButton: FC<CustomPlayButtonProps> = ({ appId, emulatorRef
           // the headers land) keeps the prior verdict instead of resetting it.
           // The post-transfer `extracting` phase carries resumable:false and is
           // never paused — its bytes climb 0→100 again over the uncompressed total.
-          const extracting = evt.status === "extracting";
+          // A package install after it is shown the same way, with its own label.
+          const installing = evt.status === "installing";
+          const extracting = evt.status === "extracting" || installing;
           setDlProgress((prev) => ({
             bytesDownloaded: evt.bytes_downloaded,
             totalBytes: evt.total_bytes,
             resumable: extracting ? false : (evt.resumable ?? prev?.resumable ?? false),
             paused: extracting ? false : evt.status === "paused",
             extracting,
+            installing,
           }));
         }
       },
@@ -915,7 +941,11 @@ export const CustomPlayButton: FC<CustomPlayButtonProps> = ({ appId, emulatorRef
           key="uninstall"
           tone="destructive"
           onClick={() => {
-            detach(handleUninstall());
+            if (installedFromPackage) {
+              confirmPackageUninstall(romName, () => detach(handleUninstall()));
+            } else {
+              detach(handleUninstall());
+            }
           }}
         >
           Uninstall
@@ -1173,6 +1203,7 @@ export const CustomPlayButton: FC<CustomPlayButtonProps> = ({ appId, emulatorRef
     // over the uncompressed total. Not cancellable: the right-side action is a
     // disabled throbber rather than the cancel X / Pause-Resume chevron.
     const extracting = downloading ? dlProgress.extracting : false;
+    const installing = downloading ? dlProgress.installing : false;
 
     // Fill color shifts from blue to green as download progresses. Extraction
     // begins right after the transfer hit 100% green, so it keeps the solid
@@ -1185,7 +1216,9 @@ export const CustomPlayButton: FC<CustomPlayButtonProps> = ({ appId, emulatorRef
     const pulseColor = getDownloadPulseColor(t, { paused, extracting, downloading: Boolean(downloading) });
 
     let dlLabel: string;
-    if (extracting) {
+    if (installing) {
+      dlLabel = "Installing…";
+    } else if (extracting) {
       dlLabel = `Extracting… ${Math.round(t * 100)}%`;
     } else if (paused) {
       dlLabel = "Paused";
@@ -1607,3 +1640,16 @@ export const CustomPlayButton: FC<CustomPlayButtonProps> = ({ appId, emulatorRef
     </Focusable>
   );
 };
+
+/** Ask before an uninstall removes a game installed into its emulator from a package; *onConfirm* runs on OK. */
+function confirmPackageUninstall(romName: string, onConfirm: () => void): void {
+  showModal(
+    <ConfirmModal
+      strTitle={PACKAGE_UNINSTALL_TITLE}
+      strDescription={packageUninstallDescription(romName)}
+      strOKButtonText="Uninstall"
+      strCancelButtonText="Cancel"
+      onOK={onConfirm}
+    />,
+  );
+}

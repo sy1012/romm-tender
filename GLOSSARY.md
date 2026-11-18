@@ -536,6 +536,19 @@ _Avoid_: **extras** — the download notes use the word loosely for every catego
 soundtracks and the rest), which extra content is not. **add-ons** for Tender's side — the resolver's word, kept for the
 resolver's answer.
 
+### Package install
+
+A **package install** installs a downloaded package — a PSN `.pkg`, with the licences beside it — into its emulator's
+own drive, the way RPCS3's **Install Packages** does, because the emulator cannot start a package itself. Tender runs it
+after the download, from the resolver's `package_install_command`, and it **succeeded** exactly where the installed
+game's boot file stands afterwards. The game is then **installed from a package**: its install record names the
+**installed title** (`<dev_hdd0>/game/<title id>`, its `USRDIR/EBOOT.BIN`) rather than the download, which is deleted,
+and `package_boot_file` is set on it ([ADR-0051](docs/adr/0051-a-ps3-package-is-installed-into-rpcs3.md)). Code says
+`package_install`; the panel says **Installing…**.
+
+_Avoid_: **extract** or **unpack** for it — an unpack is Tender's, of a zip, into a ROM folder; a package install is the
+emulator's, into its drive.
+
 ### No file on RomM
 
 A ROM RomM still lists but holds **no file** for: RomM's `has_file_on_disk` is false, either because the file left its
@@ -1091,12 +1104,12 @@ A save of several files the emulator's answer says are one game's own, moved tog
 file below it (a folder per game, such as a Wii title's `data/`), a named set of files directly in it (a game's `.gci`
 files in a GameCube card folder other games share), or a named set of folders directly in it whose names start with the
 game's id (a PSP game's save folders in PPSSPP's `SAVEDATA`, where a folder of its installed data under the same id is
-not a member); or several folders that are each the game's own, every one zipped under a root name of its own (a 3DS
-title's save folder as `data/` and its extdata folder as `extdata/` in Azahar). It syncs as one zip Tender stages for
-it, `<rom stem>.zip` in `save-units/<rom id>/` under the data root, packed from the unit before anything reads the
-game's saves and unpacked into the unit after anything writes the zip. A `per-game-directory` granularity alone does not
-make one: only an explicit statement that the folder is the game's own does. Detail:
-[Save units](docs/architecture/save-file-sync-architecture.md#save-units).
+not a member, and a PS3 game's in RPCS3's `savedata`); or several folders that are each the game's own, every one zipped
+under a root name of its own (a 3DS title's save folder as `data/` and its extdata folder as `extdata/` in Azahar). It
+syncs as one zip Tender stages for it, `<rom stem>.zip` in `save-units/<rom id>/` under the data root, packed from the
+unit before anything reads the game's saves and unpacked into the unit after anything writes the zip. A
+`per-game-directory` granularity alone does not make one: only an explicit statement that the folder is the game's own
+does. Detail: [Save units](docs/architecture/save-file-sync-architecture.md#save-units).
 
 _Avoid_: calling the staged zip the save — it is the unit's stand-in, rebuilt on every read.
 

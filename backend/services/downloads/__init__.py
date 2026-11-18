@@ -7,18 +7,22 @@ share the downloads' claims, tasks, reservations and control tokens in one state
 box (``_state.py``). What a finished transfer becomes, a file kept as it is or a
 folder unpacked from a zip, is the unpacker's (``unpack.py``), which holds no
 state. What a game's extra content is and which of it is offered is the
-offer's (``extra_content.py``). Only the composition root builds the parts, from the re-exports below,
-and hands them to the façade.
+offer's (``extra_content.py``). A download whose content is a package is
+installed into its emulator by ``package_install.py``. Only the composition
+root builds the parts, from the re-exports below, and hands them to the façade.
 """
 
 from services.downloads._state import DownloadsStateBox
 from services.downloads.extra_content import ExtraContentOffer, ExtraContentOfferConfig
+from services.downloads.package_install import DownloadPackageInstall, DownloadPackageInstallConfig
 from services.downloads.queue import DownloadQueue, DownloadQueueConfig
 from services.downloads.service import DownloadService, DownloadServiceConfig
 from services.downloads.transfer import DownloadTransfer, DownloadTransferConfig
 from services.downloads.unpack import DownloadUnpacker, DownloadUnpackerConfig
 
 __all__ = [
+    "DownloadPackageInstall",
+    "DownloadPackageInstallConfig",
     "DownloadQueue",
     "DownloadQueueConfig",
     "DownloadService",

@@ -48,6 +48,7 @@ from fakes.fake_journal import FakeJournal
 from fakes.fake_listing_refiler import FakeListingRefiler
 from fakes.fake_listing_replacer import FakeListingReplacer
 from fakes.fake_migration_file_store import FakeMigrationFileStore
+from fakes.fake_package_install import FakePackageInstallControl, FakePackageInstallReader
 from fakes.fake_platform_core_reader import FakePlatformCoreReader
 from fakes.fake_platform_systems import FakePlatformSystems
 from fakes.fake_release_download import FakeReleaseDownload
@@ -108,6 +109,8 @@ from services.artwork import ArtworkService, ArtworkServiceConfig
 from services.connection import ConnectionService, ConnectionServiceConfig
 from services.cores import CoreService, CoreServiceConfig
 from services.downloads import (
+    DownloadPackageInstall,
+    DownloadPackageInstallConfig,
     DownloadQueue,
     DownloadQueueConfig,
     DownloadService,
@@ -2085,11 +2088,25 @@ def _dispatcher_over_adoption(world: _AdoptionWorld) -> CallDispatcher:
             logger=LOGGER,
         )
     )
+    package_install = DownloadPackageInstall(
+        config=DownloadPackageInstallConfig(
+            package_installs=FakePackageInstallReader(),
+            install_control=FakePackageInstallControl(),
+            download_file_store=world.store,
+            retrodeck_folders=folders,
+            uow_factory=uow_factory,
+            queue=queue,
+            loop=loop,
+            logger=LOGGER,
+            timeout_seconds=60,
+        )
+    )
     transfer = DownloadTransfer(
         config=DownloadTransferConfig(
             state=state,
             queue=queue,
             unpacker=unpacker,
+            package_install=package_install,
             romm_api=world.romm_api,
             install_recorder=recorder,
             download_file_store=world.store,

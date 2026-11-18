@@ -135,4 +135,13 @@ describe("downloadCompleteToasts", () => {
       "2 update or DLC files of Zelda could not be downloaded; try again from the UPDATES & DLC tab.",
     ]);
   });
+
+  it("says why a downloaded package was not installed into its emulator", () => {
+    expect(
+      downloadCompleteToasts({ ...COMPLETE, package_not_installed: { reason: "no_boot_file", installer: "RPCS3" } }),
+    ).toEqual([
+      "Downloaded Zelda",
+      "RPCS3 could not install the package of Zelda — the licence may be missing. The downloaded package is kept.",
+    ]);
+  });
 });

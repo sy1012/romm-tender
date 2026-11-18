@@ -47,6 +47,7 @@ from .firmware import (
     FirmwareRequirement,
     SuppliedBy,
 )
+from .package_install import PackageInstallPath
 from .installations import (
     CatalogueAnswer,
     EmulatorEntry,
@@ -56,6 +57,7 @@ from .installations import (
     Installer,
     ExtraContentAnswer,
     ExtraContentFolder,
+    PackageInstallAnswer,
     LaunchabilityAnswer,
     LaunchCommandAnswer,
     PlatformSystemsAnswer,
@@ -857,6 +859,41 @@ def extra_content_contract(answer: ExtraContentAnswer) -> dict[str, Any]:
         "content_folder_scanned": answer.content_folder_scanned,
         "caveats": _caveats_contract(answer.caveats),
     }
+
+
+def package_install_contract(answer: PackageInstallAnswer) -> dict[str, Any]:
+    """The stable form of a package-install answer — the install command taken apart, and what the install leaves.
+
+    ``command`` has the launch command's form and is ``null`` exactly where
+    the answer refuses; ``exit_status_reports_outcome`` is ``null`` beside no
+    command. ``package_targets`` keeps the order the install takes the
+    packages in, each with its ``destination`` and, for a game's folder, the
+    ``boot_file`` whose presence afterwards is the sign the game installed.
+    """
+    return {
+        "entry": emulator_contract(answer.entry) if answer.entry is not None else None,
+        "command": _launch_command_body(answer.command) if answer.command is not None else None,
+        "exit_status_reports_outcome": answer.exit_status_reports_outcome,
+        "package_targets": [
+            {
+                "package": target.package,
+                "title_id": target.title_id,
+                "content_type": target.content_type,
+                "destination": target.destination,
+                "install_folder": _install_path_body(target.install_folder),
+                "boot_file": _install_path_body(target.boot_file),
+            }
+            for target in answer.package_targets
+        ],
+        "licence_files": list(answer.licence_files),
+        "licence_folder": _install_path_body(answer.licence_folder),
+        "caveats": _caveats_contract(answer.caveats),
+    }
+
+
+def _install_path_body(path: PackageInstallPath | None) -> dict[str, Any] | None:
+    """A path an install writes, in the emulator's spelling and the host's."""
+    return None if path is None else {"frontend_path": path.frontend_path, "host_path": path.host_path}
 
 
 def _extra_folder_body(folder: ExtraContentFolder) -> dict[str, Any]:

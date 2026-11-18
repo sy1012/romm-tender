@@ -17,6 +17,7 @@ from domain.rom_files import (
     needs_m3u,
     ps3_folder_lift,
     ps3_folder_rename,
+    ps3_lift_companions,
     resolve_extract_dir_name,
     resolve_local_file_name,
     synthetic_rom_name,
@@ -662,6 +663,16 @@ class TestThePathAStartIsAskedWith:
     def test_a_single_file_is_its_file(self):
         assert asked_path("/roms/n64/Game.z64", None, "/roms/n64/Game.z64") == "/roms/n64/Game.z64"
 
+    def test_a_title_installed_from_a_package_is_its_boot_file_as_the_emulator_spells_it(self):
+        title = "/drive/game/NPUB30000"
+
+        assert (
+            asked_path(
+                f"{title}/USRDIR/EBOOT.BIN", title, f"{title}/USRDIR/EBOOT.BIN", package_boot_file="/in/EBOOT.BIN"
+            )
+            == "/in/EBOOT.BIN"
+        )
+
 
 class TestTheZipCountsTheFilesFetched:
     """RomM zips only what a download asks for (#2223 D27)."""
@@ -780,3 +791,24 @@ class TestTheNameOfANestedSingleFile:
         }
 
         assert resolve_local_file_name(rom_detail) == ("PS3_DISC.SFB", False)
+
+
+class TestPs3LiftCompanions:
+    def test_a_game_folder_alone_carries_nothing(self):
+        assert ps3_lift_companions([("Inner", "dir")], "Inner") == ()
+
+    def test_playlists_beside_it_are_carried_in_any_case(self):
+        entries = [("Inner", "dir"), ("b.M3U", "file"), ("a.m3u", "file")]
+
+        assert ps3_lift_companions(entries, "Inner") == ("a.m3u", "b.M3U")
+
+    @pytest.mark.parametrize(
+        "other",
+        [("readme.txt", "file"), ("Other", "dir"), ("list.m3u", "dir"), ("list.m3u", "link")],
+    )
+    def test_anything_else_beside_it_keeps_it_where_it_is(self, other):
+        assert ps3_lift_companions([("Inner", "dir"), other], "Inner") is None
+
+    def test_a_game_folder_that_is_not_listed_as_a_folder_is_not_lifted(self):
+        assert ps3_lift_companions([("Inner", "link")], "Inner") is None
+        assert ps3_lift_companions([("a.m3u", "file")], "Inner") is None

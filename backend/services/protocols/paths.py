@@ -22,6 +22,7 @@ if TYPE_CHECKING:
     from domain.extra_content import ExtraContentFolders
     from domain.firmware_wants import FirmwareCatalogue, SourceCatalogues
     from domain.launchability import Launchability
+    from domain.package_install import PackageInstallPlan, PackageInstallRefused
     from domain.platform_system import PlatformIds, PlatformSystem
     from domain.retrodeck_folders import FolderRefused, MoveRoots
     from domain.rom_install import RomInstall
@@ -394,6 +395,21 @@ class StartCommandReader(Protocol):
         read_only: tuple[str, ...] = (),
         reading: SourcesReading | None = None,
     ) -> StartAnswer: ...
+
+
+class PackageInstallReader(Protocol):
+    """How a game's downloaded content installs into its emulator, as the resolver states it (ADR-0051).
+
+    The composition root satisfies this with ``AtlasPackageInstallAdapter``.
+    ``package_install`` asks the answering source with the system and the
+    download's path, and answers the install to run — the folders in
+    *writable* granted to a Flatpak install — why a download whose content is
+    a package is not installed, or ``None`` where it is no package to install.
+    """
+
+    def package_install(
+        self, system: str, content_path: str, *, writable: tuple[str, ...] = ()
+    ) -> PackageInstallPlan | PackageInstallRefused | None: ...
 
 
 class ExtraContentReader(Protocol):

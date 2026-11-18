@@ -26,6 +26,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 
 from adapters.recovery_bundle import RecoveryBundleAdapter
 from adapters.rom_files import RomFileAdapter
+from domain.package_install import InstalledTitle
 from domain.prune import BundleReadmeContext
 from domain.rom import Rom
 from domain.rom_install import RomInstall
@@ -1838,3 +1839,74 @@ class TestForgetDownload:
         release.set()
         await _until(lambda: not service._removals_in_flight)
         assert uow.rom_installs.get(42) is None
+
+
+class TestATitleInstalledFromAPackage:
+    """A game installed into RPCS3 from a package is uninstalled by its title's folder in the drive (ADR-0051)."""
+
+    @staticmethod
+    def _world(tmp_path, logger, *, title_folder=None):
+        roms = tmp_path / "roms"
+        (roms / "ps3").mkdir(parents=True)
+        drive = tmp_path / "rpcs3" / "dev_hdd0"
+        title = title_folder if title_folder is not None else drive / "game" / "NPUB30000"
+        (title / "USRDIR").mkdir(parents=True)
+        (title / "USRDIR" / "EBOOT.BIN").write_bytes(b"SCE")
+        (title / "PARAM.SFO").write_bytes(b"PSF")
+        savedata = drive / "home" / "00000001" / "savedata" / "NPUB30000-SAVE"
+        savedata.mkdir(parents=True)
+        (savedata / "SAVE.DAT").write_bytes(b"save")
+        uow = FakeUnitOfWork()
+        install = _make_install(
+            1, file_path=str(roms / "ps3" / "Game" / "Game.pkg"), rom_dir=str(roms / "ps3" / "Game"), system="ps3"
+        )
+        install.install_from_package(
+            InstalledTitle(str(title), str(title / "USRDIR" / "EBOOT.BIN"), "/in/USRDIR/EBOOT.BIN")
+        )
+        _seed_install(uow, install)
+        service = RomRemovalService(
+            config=RomRemovalServiceConfig(
+                logger=logger,
+                loop=asyncio.get_running_loop(),
+                clock=FakeClock(),
+                emit=RecordingEmitter(),
+                rom_file_store=RomFileAdapter(),
+                retrodeck_folders=FakeRetroDeckFolders(roms=str(roms)),
+                download_queue_cleanup=None,
+                uow_factory=FakeUnitOfWorkFactory(uow),
+                conflict_rules=_make_conflict_rules(),
+            )
+        )
+        return service, uow, title, savedata
+
+    async def test_an_uninstall_removes_the_title_and_never_the_saves(self, tmp_path, logger):
+        service, uow, title, savedata = self._world(tmp_path, logger)
+
+        await service.remove_rom(1)
+
+        assert not title.exists()
+        assert title.parent.is_dir()
+        assert (savedata / "SAVE.DAT").read_bytes() == b"save"
+        assert uow.rom_installs.get(1) is None
+
+    async def test_the_cleanups_removal_removes_the_title_too(self, tmp_path, logger):
+        service, _uow, title, savedata = self._world(tmp_path, logger)
+
+        result = service.delete_rom_files(1)
+
+        assert result.changed
+        assert result.failure is None
+        assert not title.exists()
+        assert savedata.is_dir()
+
+    async def test_a_title_outside_a_drives_game_folder_is_refused_and_kept(self, tmp_path, logger):
+        service, uow, title, savedata = self._world(
+            tmp_path, logger, title_folder=tmp_path / "rpcs3" / "dev_hdd0" / "home" / "00000001"
+        )
+
+        with pytest.raises(Refused):
+            await service.remove_rom(1)
+
+        assert title.is_dir()
+        assert savedata.is_dir()
+        assert uow.rom_installs.get(1) is not None

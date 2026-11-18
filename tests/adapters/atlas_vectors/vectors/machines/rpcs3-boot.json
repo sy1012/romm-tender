@@ -1577,8 +1577,8 @@
       }
     },
     {
-      "name": "rpcs3-a-game-inside-the-internal-drive-is-not-established",
-      "rationale": "RPCS3 boots a game inside its own dev_hdd0/game another way: a path there is unestablished.",
+      "name": "rpcs3-an-installed-game-inside-the-internal-drive-boots",
+      "rationale": "A game a package install put in RPCS3's own dev_hdd0/game/<id> is booted from there: from_hdd0_game, no disc root above it, and its PARAM.SFO's HG category boots without a disc (System.cpp:2100-2102, :2272-2286, :2669-2676 at d5213de6).",
       "input": {
         "home": "/home/deck",
         "files": {
@@ -1657,6 +1657,96 @@
           },
           "alternatives": [],
           "installers": null,
+          "boots": {
+            "file": "/home/deck/.var/app/net.retrodeck.retrodeck/config/rpcs3/dev_hdd0/game/Game.ps3/USRDIR/EBOOT.BIN",
+            "disc_root": null
+          },
+          "opens": null,
+          "caveats": []
+        }
+      }
+    },
+    {
+      "name": "rpcs3-a-disc-game-inside-the-internal-drive-is-not-established",
+      "rationale": "A DG title inside dev_hdd0/game is mounted from there as the disc and recorded in RPCS3's game registry (System.cpp:2287-2321), a route not followed: unestablished, with boot-inside-internal-drive.",
+      "input": {
+        "home": "/home/deck",
+        "files": {
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retrodeck/retrodeck.json": "{\"paths\": {\"rd_home_path\": \"/mnt/sd/retrodeck\", \"saves_path\": \"/mnt/sd/retrodeck/saves\"}}",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retroarch/retroarch.cfg": "",
+          "/mnt/sd/retrodeck/roms/systeminfo.txt": "",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/files/retrodeck/components/es-de/share/es-de/resources/systems/linux/es_systems.xml": "<?xml version=\"1.0\"?>\n<systemList>\n  <system>\n    <name>ps3</name>\n    <path>%ROMPATH%/ps3</path>\n    <extension>.desktop .iso .ISO .ps3 .PS3 .ps3dir .PS3DIR</extension>\n    <command label=\"RPCS3 Shortcut (Standalone)\">%ENABLESHORTCUTS% %EMULATOR_OS-SHELL% %ROM%</command>\n    <command label=\"RPCS3 Game Serial (Standalone)\">%EMULATOR_RPCS3% --no-gui %RPCS3_GAMEID%:%INJECT%=%BASENAME%.ps3</command>\n    <command label=\"RPCS3 Directory (Standalone)\">%EMULATOR_RPCS3% --no-gui %ROM%</command>\n    <command label=\"RPCS3 ISO (Standalone)\">%EMULATOR_RPCS3% --no-gui %ROM%</command>\n  </system>\n</systemList>\n",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/files/retrodeck/components/es-de/share/es-de/resources/systems/linux/es_find_rules.xml": "<?xml version=\"1.0\"?>\n<ruleList>\n    <emulator name=\"RPCS3\">\n        <rule type=\"staticpath\">\n            <entry>/app/retrodeck/components/rpcs3/component_launcher.sh</entry>\n        </rule>\n    </emulator>\n</ruleList>\n",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/metadata": "[Application]\nname=net.retrodeck.retrodeck\nruntime=org.kde.Platform/x86_64/6.11\nsdk=org.kde.Sdk/x86_64/6.11\ncommand=retrodeck\n\n[Context]\nfilesystems=host;\n",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/files/retrodeck/components/rpcs3/component_launcher.sh": "#!/bin/bash\n",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/rpcs3/dev_hdd0/game/Game.ps3/USRDIR/EBOOT.BIN": "",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/rpcs3/dev_hdd0/game/Game.ps3/PARAM.SFO": ""
+        },
+        "dirs": [
+          "/mnt/sd/retrodeck/saves",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/ROMs",
+          "/mnt/sd/retrodeck/bios"
+        ],
+        "ps3_files": {
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/rpcs3/dev_hdd0/game/Game.ps3/USRDIR/EBOOT.BIN": {
+            "magic": "SCE\u0000"
+          },
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/rpcs3/dev_hdd0/game/Game.ps3/PARAM.SFO": {
+            "magic": "\u0000PSF",
+            "category": "DG"
+          }
+        },
+        "launchable_query": {
+          "system": "ps3",
+          "content_path": "/home/deck/.var/app/net.retrodeck.retrodeck/config/rpcs3/dev_hdd0/game/Game.ps3",
+          "label": "RPCS3 Directory (Standalone)"
+        }
+      },
+      "expected": {
+        "installations": [
+          {
+            "kind": "retrodeck",
+            "label": "RetroDECK",
+            "kinds": [
+              "retrodeck"
+            ],
+            "root": "/mnt/sd/retrodeck",
+            "health": []
+          }
+        ],
+        "launchable": {
+          "verdict": "launchable",
+          "extension": ".ps3",
+          "accepted": [
+            ".desktop",
+            ".iso",
+            ".ISO",
+            ".ps3",
+            ".PS3",
+            ".ps3dir",
+            ".PS3DIR"
+          ],
+          "entry": {
+            "system": "ps3",
+            "label": "RPCS3 Directory (Standalone)",
+            "kind": "standalone",
+            "core_so": null,
+            "emulator": "RPCS3",
+            "declared_index": 2,
+            "selection": null,
+            "availability": "startable",
+            "launcher": {
+              "path": "/app/retrodeck/components/rpcs3/component_launcher.sh",
+              "replacement_command": null,
+              "app_id": "net.retrodeck.retrodeck",
+              "rule": "staticpath",
+              "entry": "/app/retrodeck/components/rpcs3/component_launcher.sh"
+            },
+            "core_path": null,
+            "caveats": []
+          },
+          "alternatives": [],
+          "installers": null,
           "boots": null,
           "opens": null,
           "caveats": [
@@ -1665,6 +1755,200 @@
               "data": {
                 "entry": "RPCS3 Directory (Standalone)",
                 "path": "/home/deck/.var/app/net.retrodeck.retrodeck/config/rpcs3/dev_hdd0/game/Game.ps3/USRDIR/EBOOT.BIN"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "rpcs3-game-data-inside-the-internal-drive-boots-through-the-registry",
+      "rationale": "A GD title inside dev_hdd0/game boots the disc RPCS3's game registry records for it (System.cpp:2151-2187), which is not read: unestablished, boot-registry-unread.",
+      "input": {
+        "home": "/home/deck",
+        "files": {
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retrodeck/retrodeck.json": "{\"paths\": {\"rd_home_path\": \"/mnt/sd/retrodeck\", \"saves_path\": \"/mnt/sd/retrodeck/saves\"}}",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retroarch/retroarch.cfg": "",
+          "/mnt/sd/retrodeck/roms/systeminfo.txt": "",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/files/retrodeck/components/es-de/share/es-de/resources/systems/linux/es_systems.xml": "<?xml version=\"1.0\"?>\n<systemList>\n  <system>\n    <name>ps3</name>\n    <path>%ROMPATH%/ps3</path>\n    <extension>.desktop .iso .ISO .ps3 .PS3 .ps3dir .PS3DIR</extension>\n    <command label=\"RPCS3 Shortcut (Standalone)\">%ENABLESHORTCUTS% %EMULATOR_OS-SHELL% %ROM%</command>\n    <command label=\"RPCS3 Game Serial (Standalone)\">%EMULATOR_RPCS3% --no-gui %RPCS3_GAMEID%:%INJECT%=%BASENAME%.ps3</command>\n    <command label=\"RPCS3 Directory (Standalone)\">%EMULATOR_RPCS3% --no-gui %ROM%</command>\n    <command label=\"RPCS3 ISO (Standalone)\">%EMULATOR_RPCS3% --no-gui %ROM%</command>\n  </system>\n</systemList>\n",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/files/retrodeck/components/es-de/share/es-de/resources/systems/linux/es_find_rules.xml": "<?xml version=\"1.0\"?>\n<ruleList>\n    <emulator name=\"RPCS3\">\n        <rule type=\"staticpath\">\n            <entry>/app/retrodeck/components/rpcs3/component_launcher.sh</entry>\n        </rule>\n    </emulator>\n</ruleList>\n",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/metadata": "[Application]\nname=net.retrodeck.retrodeck\nruntime=org.kde.Platform/x86_64/6.11\nsdk=org.kde.Sdk/x86_64/6.11\ncommand=retrodeck\n\n[Context]\nfilesystems=host;\n",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/files/retrodeck/components/rpcs3/component_launcher.sh": "#!/bin/bash\n",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/rpcs3/dev_hdd0/game/Game.ps3/USRDIR/EBOOT.BIN": "",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/rpcs3/dev_hdd0/game/Game.ps3/PARAM.SFO": ""
+        },
+        "dirs": [
+          "/mnt/sd/retrodeck/saves",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/ROMs",
+          "/mnt/sd/retrodeck/bios"
+        ],
+        "ps3_files": {
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/rpcs3/dev_hdd0/game/Game.ps3/USRDIR/EBOOT.BIN": {
+            "magic": "SCE\u0000"
+          },
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/rpcs3/dev_hdd0/game/Game.ps3/PARAM.SFO": {
+            "magic": "\u0000PSF",
+            "category": "GD"
+          }
+        },
+        "launchable_query": {
+          "system": "ps3",
+          "content_path": "/home/deck/.var/app/net.retrodeck.retrodeck/config/rpcs3/dev_hdd0/game/Game.ps3",
+          "label": "RPCS3 Directory (Standalone)"
+        }
+      },
+      "expected": {
+        "installations": [
+          {
+            "kind": "retrodeck",
+            "label": "RetroDECK",
+            "kinds": [
+              "retrodeck"
+            ],
+            "root": "/mnt/sd/retrodeck",
+            "health": []
+          }
+        ],
+        "launchable": {
+          "verdict": "launchable",
+          "extension": ".ps3",
+          "accepted": [
+            ".desktop",
+            ".iso",
+            ".ISO",
+            ".ps3",
+            ".PS3",
+            ".ps3dir",
+            ".PS3DIR"
+          ],
+          "entry": {
+            "system": "ps3",
+            "label": "RPCS3 Directory (Standalone)",
+            "kind": "standalone",
+            "core_so": null,
+            "emulator": "RPCS3",
+            "declared_index": 2,
+            "selection": null,
+            "availability": "startable",
+            "launcher": {
+              "path": "/app/retrodeck/components/rpcs3/component_launcher.sh",
+              "replacement_command": null,
+              "app_id": "net.retrodeck.retrodeck",
+              "rule": "staticpath",
+              "entry": "/app/retrodeck/components/rpcs3/component_launcher.sh"
+            },
+            "core_path": null,
+            "caveats": []
+          },
+          "alternatives": [],
+          "installers": null,
+          "boots": null,
+          "opens": null,
+          "caveats": [
+            {
+              "code": "boot-registry-unread",
+              "data": {
+                "entry": "RPCS3 Directory (Standalone)",
+                "registry": "games.yml"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "rpcs3-a-disc-dump-inside-the-internal-drive-is-not-established",
+      "rationale": "A disc dump lying inside dev_hdd0/game — a PS3_GAME beside a valid PS3_DISC.SFB above the boot file — is moved out of the drive by RPCS3 before it boots (System.cpp:2115-2137), which is not followed.",
+      "input": {
+        "home": "/home/deck",
+        "files": {
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retrodeck/retrodeck.json": "{\"paths\": {\"rd_home_path\": \"/mnt/sd/retrodeck\", \"saves_path\": \"/mnt/sd/retrodeck/saves\"}}",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retroarch/retroarch.cfg": "",
+          "/mnt/sd/retrodeck/roms/systeminfo.txt": "",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/files/retrodeck/components/es-de/share/es-de/resources/systems/linux/es_systems.xml": "<?xml version=\"1.0\"?>\n<systemList>\n  <system>\n    <name>ps3</name>\n    <path>%ROMPATH%/ps3</path>\n    <extension>.desktop .iso .ISO .ps3 .PS3 .ps3dir .PS3DIR</extension>\n    <command label=\"RPCS3 Shortcut (Standalone)\">%ENABLESHORTCUTS% %EMULATOR_OS-SHELL% %ROM%</command>\n    <command label=\"RPCS3 Game Serial (Standalone)\">%EMULATOR_RPCS3% --no-gui %RPCS3_GAMEID%:%INJECT%=%BASENAME%.ps3</command>\n    <command label=\"RPCS3 Directory (Standalone)\">%EMULATOR_RPCS3% --no-gui %ROM%</command>\n    <command label=\"RPCS3 ISO (Standalone)\">%EMULATOR_RPCS3% --no-gui %ROM%</command>\n  </system>\n</systemList>\n",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/files/retrodeck/components/es-de/share/es-de/resources/systems/linux/es_find_rules.xml": "<?xml version=\"1.0\"?>\n<ruleList>\n    <emulator name=\"RPCS3\">\n        <rule type=\"staticpath\">\n            <entry>/app/retrodeck/components/rpcs3/component_launcher.sh</entry>\n        </rule>\n    </emulator>\n</ruleList>\n",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/metadata": "[Application]\nname=net.retrodeck.retrodeck\nruntime=org.kde.Platform/x86_64/6.11\nsdk=org.kde.Sdk/x86_64/6.11\ncommand=retrodeck\n\n[Context]\nfilesystems=host;\n",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/files/retrodeck/components/rpcs3/component_launcher.sh": "#!/bin/bash\n",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/rpcs3/dev_hdd0/game/Disc.ps3/PS3_DISC.SFB": "",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/rpcs3/dev_hdd0/game/Disc.ps3/PS3_GAME/USRDIR/EBOOT.BIN": "",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/rpcs3/dev_hdd0/game/Disc.ps3/PS3_GAME/PARAM.SFO": ""
+        },
+        "dirs": [
+          "/mnt/sd/retrodeck/saves",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/ROMs",
+          "/mnt/sd/retrodeck/bios"
+        ],
+        "ps3_files": {
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/rpcs3/dev_hdd0/game/Disc.ps3/PS3_DISC.SFB": {
+            "magic": ".SFB"
+          },
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/rpcs3/dev_hdd0/game/Disc.ps3/PS3_GAME/USRDIR/EBOOT.BIN": {
+            "magic": "SCE\u0000"
+          },
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/rpcs3/dev_hdd0/game/Disc.ps3/PS3_GAME/PARAM.SFO": {
+            "magic": "\u0000PSF",
+            "category": "DG"
+          }
+        },
+        "launchable_query": {
+          "system": "ps3",
+          "content_path": "/home/deck/.var/app/net.retrodeck.retrodeck/config/rpcs3/dev_hdd0/game/Disc.ps3",
+          "label": "RPCS3 Directory (Standalone)"
+        }
+      },
+      "expected": {
+        "installations": [
+          {
+            "kind": "retrodeck",
+            "label": "RetroDECK",
+            "kinds": [
+              "retrodeck"
+            ],
+            "root": "/mnt/sd/retrodeck",
+            "health": []
+          }
+        ],
+        "launchable": {
+          "verdict": "launchable",
+          "extension": ".ps3",
+          "accepted": [
+            ".desktop",
+            ".iso",
+            ".ISO",
+            ".ps3",
+            ".PS3",
+            ".ps3dir",
+            ".PS3DIR"
+          ],
+          "entry": {
+            "system": "ps3",
+            "label": "RPCS3 Directory (Standalone)",
+            "kind": "standalone",
+            "core_so": null,
+            "emulator": "RPCS3",
+            "declared_index": 2,
+            "selection": null,
+            "availability": "startable",
+            "launcher": {
+              "path": "/app/retrodeck/components/rpcs3/component_launcher.sh",
+              "replacement_command": null,
+              "app_id": "net.retrodeck.retrodeck",
+              "rule": "staticpath",
+              "entry": "/app/retrodeck/components/rpcs3/component_launcher.sh"
+            },
+            "core_path": null,
+            "caveats": []
+          },
+          "alternatives": [],
+          "installers": null,
+          "boots": null,
+          "opens": null,
+          "caveats": [
+            {
+              "code": "boot-inside-internal-drive",
+              "data": {
+                "entry": "RPCS3 Directory (Standalone)",
+                "path": "/home/deck/.var/app/net.retrodeck.retrodeck/config/rpcs3/dev_hdd0/game/Disc.ps3/PS3_GAME/USRDIR/EBOOT.BIN"
               }
             }
           ]

@@ -87,11 +87,17 @@ export const DownloadQueue: FC<DownloadQueueProps> = ({ onBack }) => {
     removeTerminalDownloads();
   };
 
-  // Paused and extracting downloads stay in the active section — they're not
-  // finished. Paused holds the partial transfer for resume; extracting is the
-  // post-transfer ZIP unpack (not cancellable, no pause/resume offered).
+  // Paused, extracting and installing downloads stay in the active section —
+  // they're not finished. Paused holds the partial transfer for resume;
+  // extracting is the post-transfer ZIP unpack, and installing the emulator's
+  // install of a downloaded package (neither offers an action).
   const active = downloads.filter(
-    (d) => d.status === "queued" || d.status === "downloading" || d.status === "paused" || d.status === "extracting",
+    (d) =>
+      d.status === "queued" ||
+      d.status === "downloading" ||
+      d.status === "paused" ||
+      d.status === "extracting" ||
+      d.status === "installing",
   );
   const finished = downloads.filter(
     (d) => d.status === "completed" || d.status === "failed" || d.status === "cancelled",
@@ -127,6 +133,7 @@ export const DownloadQueue: FC<DownloadQueueProps> = ({ onBack }) => {
                   <>
                     {item.rom_name} ({item.platform_name}){item.status === "paused" ? " — Paused" : ""}
                     {item.status === "extracting" ? " — Extracting…" : ""}
+                    {item.status === "installing" ? " — Installing…" : ""}
                   </>
                 }
                 bytesDownloaded={item.bytes_downloaded}
@@ -134,10 +141,10 @@ export const DownloadQueue: FC<DownloadQueueProps> = ({ onBack }) => {
               />
             ))}
             {active.map((item) =>
-              // Extraction is not cancellable and can't pause/resume — the
-              // post-transfer unpack runs to completion. Offer no action row,
-              // matching the game-detail button's disabled throbber.
-              item.status === "extracting" ? null : (
+              // Extraction and a package install are not paused or resumed —
+              // each runs to completion. Offer no action row, matching the
+              // game-detail button's disabled throbber.
+              item.status === "extracting" || item.status === "installing" ? null : (
                 <Fragment key={`actions-${item.rom_id}`}>
                   {item.status === "downloading" && item.resumable && (
                     <PanelSectionRow>

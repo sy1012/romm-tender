@@ -30,6 +30,8 @@ from services.data_inventory import DataInventoryService, DataInventoryServiceCo
 from services.disc import DiscService, DiscServiceConfig
 from services.disc_launch_resolver import DiscLaunchResolver, DiscLaunchResolverConfig
 from services.downloads import (
+    DownloadPackageInstall,
+    DownloadPackageInstallConfig,
     DownloadQueue,
     DownloadQueueConfig,
     DownloadService,
@@ -98,6 +100,10 @@ if TYPE_CHECKING:
     )
 
     from .adapters import AdapterBundle, CallbackBundle, RuntimeBundle, StateBundle
+
+# The bound on one package install, which only an install that never ends
+# reaches: RPCS3 installs a multi-gigabyte package in minutes.
+PACKAGE_INSTALL_TIMEOUT_SECONDS = 2 * 60 * 60
 
 
 @dataclass(frozen=True)
@@ -598,11 +604,25 @@ def wire_services(cfg: WiringConfig) -> ServicesBundle:
             logger=cfg.runtime.logger,
         ),
     )
+    download_package_install = DownloadPackageInstall(
+        config=DownloadPackageInstallConfig(
+            package_installs=cfg.adapters.package_installs,
+            install_control=cfg.adapters.package_install_control,
+            download_file_store=cfg.adapters.download_file_store,
+            retrodeck_folders=cfg.callbacks.retrodeck_folders,
+            uow_factory=cfg.callbacks.uow_factory,
+            queue=download_queue,
+            loop=cfg.runtime.loop,
+            logger=cfg.runtime.logger,
+            timeout_seconds=PACKAGE_INSTALL_TIMEOUT_SECONDS,
+        ),
+    )
     download_transfer = DownloadTransfer(
         config=DownloadTransferConfig(
             state=downloads_state,
             queue=download_queue,
             unpacker=download_unpacker,
+            package_install=download_package_install,
             romm_api=cfg.adapters.romm_api,
             install_recorder=rom_install_recorder,
             download_file_store=cfg.adapters.download_file_store,

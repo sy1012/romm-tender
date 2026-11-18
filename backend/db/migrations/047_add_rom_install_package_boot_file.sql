@@ -1,0 +1,18 @@
+-- =============================================================================
+-- 047_add_rom_install_package_boot_file.sql — an install records that it was
+-- installed into its emulator from a package
+-- =============================================================================
+--
+--   * rom_installs.package_boot_file — added, nullable: the installed title's
+--     boot file as the emulator spells it, set for a game whose downloaded
+--     package was installed into the emulator's own drive (ADR-0051), whose
+--     rom_dir and file_path then name the installed title rather than the
+--     download. A start asks with it; its being set is what says the install
+--     was made so, never the shape of a path.
+--
+-- NULL for every install from before this migration: none was made so.
+--
+-- Transaction-safe DDL only — the runner (adapters/sqlite_migrations.py) wraps
+-- BEGIN/COMMIT and stamps PRAGMA user_version = 47.
+-- -----------------------------------------------------------------------------
+ALTER TABLE rom_installs ADD COLUMN package_boot_file TEXT;

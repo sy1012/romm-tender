@@ -24,6 +24,7 @@ from adapters.atlas_catalogue import AtlasCatalogueAdapter
 from adapters.atlas_extra_content import AtlasExtraContentAdapter
 from adapters.atlas_firmware import AtlasFirmwareAdapter, AtlasFirmwareIdentifier, AtlasPlatformFirmwareAdapter
 from adapters.atlas_launch import AtlasLaunchAdapter
+from adapters.atlas_package_install import AtlasPackageInstallAdapter
 from adapters.atlas_platforms import AtlasPlatformSystemsAdapter
 from adapters.atlas_saves import AtlasSaveLocationAdapter, describe_core_probe_interpreter
 from adapters.atlas_zstd import register_zstd_codec
@@ -41,6 +42,7 @@ from adapters.journal import JournalctlAdapter
 from adapters.launcher_install import LauncherInstallAdapter
 from adapters.machine_id import MachineIdAdapter
 from adapters.migration_file import MigrationFileAdapter
+from adapters.package_install_run import PackageInstallRunAdapter
 from adapters.path_probe import PathProbeAdapter, ResolvedPathAdapter
 from adapters.persistence import (
     PersistenceAdapter,
@@ -111,6 +113,8 @@ if TYPE_CHECKING:
         LatestReleaseFn,
         MachineIdReader,
         MigrationFileStore,
+        PackageInstallControl,
+        PackageInstallReader,
         PanelConnectedFn,
         PathExistsReader,
         PlatformCoreReader,
@@ -218,6 +222,8 @@ class AdapterBundle:
     tender_logo: TenderLogoFn
     start_commands: StartCommandReader
     extra_content: ExtraContentReader
+    package_installs: PackageInstallReader
+    package_install_control: PackageInstallControl
     # ``None`` where the session has no runtime directory to hand a start over in (#2708 D4).
     start_handover: StartHandover | None
 
@@ -514,6 +520,7 @@ def bootstrap(
     emulator_catalogue = AtlasCatalogueAdapter(sources=emulator_sources, log_debug=debug_logger)
     start_commands = AtlasLaunchAdapter(sources=emulator_sources, log_debug=debug_logger)
     extra_content = AtlasExtraContentAdapter(sources=emulator_sources, log_debug=debug_logger)
+    package_installs = AtlasPackageInstallAdapter(sources=emulator_sources, log_debug=debug_logger)
     save_locations = AtlasSaveLocationAdapter(sources=emulator_sources, log_debug=debug_logger)
     source_platform_systems = AtlasPlatformSystemsAdapter(sources=emulator_sources, log_debug=debug_logger)
 
@@ -561,6 +568,8 @@ def bootstrap(
         tender_logo=icon_images.tender_logo,
         start_commands=start_commands,
         extra_content=extra_content,
+        package_installs=package_installs,
+        package_install_control=PackageInstallRunAdapter(),
         start_handover=(
             StartHandoverAdapter(folder=directories.handover_dir) if directories.handover_dir is not None else None
         ),

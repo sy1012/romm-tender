@@ -126,6 +126,7 @@ from .firmware import (
 from .find_rules import NO_FIND_RULES, FindRules, merge_find_rules, parse_find_rules
 from .find_rules import (
     AVAILABILITY_NOT_INSTALLED,
+    CAVEAT_LAUNCH_COMMAND_ARGUMENT_BROKEN,
     AVAILABILITY_STARTABLE,
     AVAILABILITY_UNESTABLISHED,
     CAVEAT_COMMAND_REWRITTEN_AT_START,
@@ -196,16 +197,23 @@ from .launcher_scripts import (
     step_runs,
 )
 from .frontend_path import frontend_search_path, frontend_working_directory
+from . import package_install
+from .package_install import (
+    CAVEAT_PACKAGE_INSTALL_UNSTATED,
+    PackageInstallPath,
+    PackageInstallTarget,
+)
 from .launch_formats import lookup_install_first, lookup_standalone_launch
 from .firmware import firmware_for_core as _resolve_for_core
 from .firmware import firmware_for_system as _resolve_for_system
 from .firmware import firmware_inventory as _resolve_inventory
 from .firmware import identify_firmware as _resolve_identification
-from . import dolphin_disc, eden, n3ds_rom, psp_disc, switch_title
+from . import dolphin_disc, eden, n3ds_rom, ps3_title, psp_disc, switch_title
 from .machine import (
     APPIMAGE_CAPABILITY_MISSING,
     DOLPHIN_DISC_OK,
     PSP_PARAM_SFO_MISSING,
+    PS3_TITLE_EXECUTABLE,
     EDEN_PROFILES_OK,
     EDEN_PROFILES_UNREADABLE,
     SWITCH_PACKAGE_OK,
@@ -331,6 +339,7 @@ from .placement import (
     CAVEAT_SAVE_ID_CANDIDATES,
     CAVEAT_ACTIVE_PROFILE_UNESTABLISHED,
     CAVEAT_PSN_SAVE_PREFIX_MAY_DIFFER,
+    CAVEAT_PS3_SAVE_PREFIX_MAY_DIFFER,
     HOLE_PROFILE_ID,
     TEMPLATE_PROFILE_ID,
     CAVEAT_SOFT_PATCHING_APPLIES,
@@ -382,6 +391,7 @@ from .placement import (
     TEMPLATE_SAVE_ID,
     SAVE_ID_SPELLING_GAME_CODE,
     SAVE_ID_SPELLING_PSP_GAME_ID,
+    SAVE_ID_SPELLING_PS3_TITLE_ID,
     SAVE_UNIT_FOLDER,
     SAVE_UNIT_MEMBERS,
     SAVE_UNIT_PREFIXED_FOLDERS,
@@ -13605,6 +13615,14 @@ class _PerUserSaves:
     could not be listed, for an emulator that does not go on from such a root
     at all: the shared one says the tree named is the one the emulator starts
     with, and Vita3K build 4103 does not start there.
+
+    ``names_sentence`` and ``names_data`` are the ``file-names-unestablished``
+    caveat's message and the data it carries beside the token, directory,
+    role and citation — RPCS3's states the folder-name prefix and, where no
+    unit is stated, the ``save_id`` fill. ``unit`` is the save unit the first
+    user group carries, set only where the caller established one user
+    account and the game's folders in it; ``needs`` and ``extra_sources`` are
+    the answer's holes and the sources beside the card's.
     """
 
     user_root: str
@@ -13631,6 +13649,14 @@ class _PerUserSaves:
     build: str | None = None
     source: str | None = None
     short_listing_sentence: str | None = None
+    names_sentence: str = (
+        "each directory below savedata is one title's own, named by its title id and "
+        "written by the game — move a directory whole rather than its files"
+    )
+    names_data: tuple[tuple[str, DataValue], ...] = ()
+    unit: SaveUnitStatement | None = None
+    needs: tuple[str, ...] = ()
+    extra_sources: tuple[str, ...] = ()
 
 
 def _per_user_state(
@@ -13795,11 +13821,12 @@ def _per_user_savedata_placement(
             granularity=GRANULARITY_PER_GAME_DIRECTORY,
             role=ROLE_BATTERY,
             size_fixed=False,
+            unit=shape.unit if index == 0 else None,
         )
         # Where nothing was found the compiled default stands in — as the tree
         # the emulator starts with, never as a user seen on this machine, which
         # is what the caveat below has to say in so many words.
-        for user in (users or (shape.first_user,))
+        for index, user in enumerate(users or (shape.first_user,))
     ) + extra_groups
     if listing.status != GLOB_COMPLETE:
         # A listing that came back short establishes no user, so no user it
@@ -13828,12 +13855,12 @@ def _per_user_savedata_placement(
         *extra_caveats,
         Caveat(
             CAVEAT_FILE_NAMES_UNESTABLISHED,
-            "each directory below savedata is one title's own, named by its title id and "
-            "written by the game — move a directory whole rather than its files",
+            shape.names_sentence,
             {
                 "token": card.token,
                 "dir": directory,
                 "role": ROLE_BATTERY,
+                **dict(shape.names_data),
                 "citation": shape.names_citation,
             },
         ),
@@ -13860,7 +13887,7 @@ def _per_user_savedata_placement(
     return SavefilePlacement(
         dir=directory,
         root_kind=ROOT_EMULATOR_DIRECTORY,
-        needs=(),
+        needs=shape.needs,
         fallback_dir=None,
         file_set=FileSet(
             FILE_SET_DECLARED,
@@ -13872,6 +13899,7 @@ def _per_user_savedata_placement(
         sources=(
             f"standalone save card '{card.token}': "
             f"{card.provenance if shape.source is None else shape.source}",
+            *shape.extra_sources,
         ),
         caveats=tuple(caveats),
         physical_dir=physical,
@@ -14498,6 +14526,266 @@ def _rpcs3_disc_dir(read: YamlScalars, config_dir: str) -> str | None:
     return _RPCS3_BDVD_DEFAULT.replace(_RPCS3_EMULATOR_DIR_KEY, emulator_dir)
 
 
+# How a PS3 game's saves are named and found, read at build d5213de6. A game
+# hands cellSaveData the folder name it saves under — any name of up to 31
+# characters sysutil_check_name_string accepts (cellSaveData.cpp:502,
+# CELL_SAVEDATA_DIRNAME_SIZE at cellSaveData.h:60) — and a listing takes the
+# folders directly in savedata whose names begin with a prefix the game asks
+# for, several joined by '|' (:812, :831-840). The emulator's own listing for a
+# game, the one the game cannot steer, takes the title id it runs the game
+# under (get_save_entries over Emu.GetTitleID(), :228-249, :312-314; the '*'
+# prefix narrowed to it, :822-826). Every folder there is a save: the utility
+# writes CATEGORY SD into each one it saves (:1716-1724), and installed games
+# live under dev_hdd0/game, not here.
+_RPCS3_SAVEDATA_CITATION = (
+    "a game names the folders it saves under in savedata, and RPCS3 lists a game's folders by the prefix it "
+    "asks for, its own by the title id it runs (cellSaveData.cpp:228-249, :312-314, :502, :812-840 at build "
+    "d5213de6)"
+)
+# Which PARAM.SFO states that title id: TITLE_ID in the one Emulator::Load
+# reads — PS3_GAME/ beside a PS3_DISC.SFB, the executable's folder's parent
+# otherwise (System.cpp:1713-1745; get_sfo_dir_from_game_path,
+# system_utils.cpp:516-566).
+_RPCS3_TITLE_CITATION = (
+    "the TITLE_ID Emulator::Load reads (System.cpp:1713-1745, get_sfo_dir_from_game_path at "
+    "system_utils.cpp:516-566, psf::load at PSF.cpp:182-284; build d5213de6)"
+)
+_RPCS3_PKG_CITATION = (
+    "the nine bytes at offset 55 of the package header RPCS3 installs it under, the title part of its content "
+    "id (package_reader::read_header and read_metadata, Crypto/unpkg.cpp:108-253, PKGHeader at unpkg.h:103-119; "
+    "build d5213de6)"
+)
+_RPCS3_SFB = "PS3_DISC.SFB"
+_RPCS3_GAME_DIR = "PS3_GAME"
+_RPCS3_PARAM_SFO = "PARAM.SFO"
+_PS3_TITLE_SOURCE_WORDS: Mapping[str, str] = MappingProxyType(
+    {
+        ps3_title.SOURCE_PARAM_SFO: "PARAM.SFO",
+        ps3_title.SOURCE_PKG: "PSN package",
+        ps3_title.SOURCE_ISO: "ISO image's PS3_GAME/PARAM.SFO",
+    }
+)
+
+
+@dataclass(frozen=True, slots=True)
+class _Ps3Title:
+    """The content path's PS3 title id, and the sentence saying how it was read."""
+
+    title_id: str
+    basis: str
+
+
+def _rpcs3_title(machine: Machine, content_path: str | None) -> tuple[_Ps3Title | None, tuple[str, ...]]:
+    """The title id the content path names — or ``None`` and the sentence saying why it was not read.
+
+    A directory is searched for its boot file the way ``GetElfPathFromDir``
+    searches it (System.cpp:1036-1063), and the ``PARAM.SFO`` that boot loads
+    is read (:func:`_rpcs3_title_beside`). A file is read for what it is
+    (:mod:`atlas.ps3_title`): a ``PARAM.SFO``, a PSN package or an ISO image
+    names its id itself, and an executable's id is the ``PARAM.SFO`` beside
+    its folder.
+    """
+    if content_path is None:
+        return None, ()
+    kind = machine.path_kind(content_path)
+    if kind == KIND_DIRECTORY:
+        for relative in rpcs3_boot.BOOT_FILES:
+            candidate = os.path.join(content_path, relative)
+            found = machine.path_kind(candidate)
+            if found == KIND_INACCESSIBLE:
+                return None, (
+                    f"the content path's boot file {candidate} could not be looked at, so its title id was not read",
+                )
+            if found == KIND_FILE:
+                return _rpcs3_title_beside(machine, candidate)
+        return None, (
+            f"the content path {content_path} holds none of the boot files RPCS3 looks for "
+            f"({', '.join(rpcs3_boot.BOOT_FILES)}; GetElfPathFromDir, System.cpp:1036-1063 at build d5213de6), "
+            "so no PARAM.SFO names its title id",
+        )
+    result = machine.read_ps3_title(content_path)
+    if result.status == PS3_TITLE_EXECUTABLE:
+        return _rpcs3_title_beside(machine, content_path)
+    return _rpcs3_named(content_path, result.facts, result.status)
+
+
+def _rpcs3_title_beside(machine: Machine, executable: str) -> tuple[_Ps3Title | None, tuple[str, ...]]:
+    """The title id of the ``PARAM.SFO`` RPCS3 loads for *executable*.
+
+    ``get_sfo_dir_from_game_path`` over the directory above the
+    executable's own (System.cpp:1738-1739): its ``PS3_GAME`` where a
+    ``PS3_DISC.SFB`` file stands in it, the directory itself otherwise
+    (system_utils.cpp:516-566) — a disc dump's ``PS3_GAME/PARAM.SFO`` either
+    way, the folder a disc game mounts is read from too (:1715-1726). The
+    trial-unlock branch that reads ``C00/`` instead (:552-563) is not
+    followed.
+    """
+    game = os.path.dirname(os.path.dirname(executable))
+    sfb = machine.path_kind(os.path.join(game, _RPCS3_SFB))
+    if sfb == KIND_INACCESSIBLE:
+        return None, (
+            f"whether {game} holds a {_RPCS3_SFB} could not be looked at, so which PARAM.SFO names the title id "
+            "is not established",
+        )
+    sfo_dir = os.path.join(game, _RPCS3_GAME_DIR) if sfb == KIND_FILE else game
+    sfo = os.path.join(sfo_dir, _RPCS3_PARAM_SFO)
+    result = machine.read_ps3_title(sfo)
+    if result.facts is not None and result.facts.source != ps3_title.SOURCE_PARAM_SFO:
+        return None, (f"{sfo} is no PARAM.SFO, so it names no title id",)
+    return _rpcs3_named(sfo, result.facts, result.status)
+
+
+def _rpcs3_named(
+    path: str, facts: ps3_title.Ps3TitleFacts | None, status: str
+) -> tuple[_Ps3Title | None, tuple[str, ...]]:
+    """The title id *facts* name, read from *path* — or the sentence saying why there is none."""
+    if facts is None:
+        return None, (
+            f"{path} was not read for a PS3 title id ({status}): atlas reads a PARAM.SFO, a PSN package's header "
+            "and an ISO image's PS3_GAME/PARAM.SFO",
+        )
+    title_id = ps3_title.title_id(facts)
+    if title_id is None:
+        return None, (
+            f"the title id {facts.title_id!r} {path} states is no PS3 product code (four uppercase letters, five "
+            "digits), so it names no savedata folder atlas can stand behind",
+        )
+    how = _RPCS3_PKG_CITATION if facts.source == ps3_title.SOURCE_PKG else _RPCS3_TITLE_CITATION
+    return (
+        _Ps3Title(
+            title_id,
+            f"the title id {title_id} is read from {path}, a {_PS3_TITLE_SOURCE_WORDS[facts.source]}: {how}; "
+            f"{_RPCS3_SAVEDATA_CITATION}",
+        ),
+        (),
+    )
+
+
+def _rpcs3_members(machine: Machine, directory: str, prefix: str) -> tuple[str, ...] | None:
+    """The folders in *directory* whose names begin with *prefix* — ``None`` where that is not established.
+
+    A member is a directory lying directly in savedata whose name begins with
+    the title id, ASCII case aside — Argosy's rule for this folder, as for
+    PSP's; RPCS3 compares exactly (``starts_with``, cellSaveData.cpp:245) and
+    names only uppercase folders, so the two agree on what it writes. Every
+    such folder is a save: nothing but the savedata utility writes there
+    (see :data:`_RPCS3_SAVEDATA_CITATION`), and its own scratch copies begin
+    with a period (``.backup_``, ``.working_``, :1500-1502), which no title id
+    does. An absent savedata holds none; one that cannot be listed, or a
+    matching entry whose kind cannot be told, establishes nothing.
+    """
+    names = _host_listing(machine, directory)
+    if names is None:
+        return None
+    members: list[str] = []
+    for name in sorted(set(names)):
+        if not begins_with_prefix(name, prefix):
+            continue
+        kind = machine.path_kind(os.path.join(directory, name))
+        if kind == KIND_INACCESSIBLE:
+            return None
+        if kind == KIND_DIRECTORY:
+            members.append(name)
+    return tuple(members)
+
+
+@dataclass(frozen=True, slots=True)
+class _Rpcs3Unit:
+    """What an RPCS3 answer states about the asked game's folders: its unit, its holes, its sources, its words."""
+
+    unit: SaveUnitStatement | None
+    needs: tuple[str, ...]
+    sources: tuple[str, ...]
+    names_sentence: str
+    names_data: tuple[tuple[str, DataValue], ...]
+    trailing: tuple[Caveat, ...]
+
+
+def _rpcs3_unit(
+    machine: Machine,
+    *,
+    token: str,
+    user_root: str,
+    content_path: str | None,
+    listing: GlobResult,
+    survey: _PerUserSurvey,
+) -> _Rpcs3Unit:
+    """The asked game's save unit, where its title id and one user account are established.
+
+    The unit is stated on the one account's savedata: with several, which
+    one the emulator runs is unrecorded and a restore must not guess it; with
+    none, or a listing that came back short or left an entry undecided, there
+    is no account to state it on. Without a unit the title id is the
+    ``save_id`` hole, its fill stated on ``file-names-unestablished``.
+    """
+    title, sources = _rpcs3_title(machine, content_path)
+    one_account = listing.status == GLOB_COMPLETE and not survey.unestablished and len(survey.listed) == 1
+    if title is not None and one_account:
+        savedata = os.path.join(user_root, survey.listed[0], "savedata")
+        members = _rpcs3_members(machine, savedata, title.title_id)
+        if members is not None:
+            return _Rpcs3Unit(
+                unit=SaveUnitStatement(SAVE_UNIT_PREFIXED_FOLDERS, members, None, prefix=title.title_id),
+                needs=(),
+                sources=(title.basis,),
+                names_sentence=(
+                    f"the game's save is the folders directly below savedata whose names begin with "
+                    f"{title.title_id} (ASCII case aside); the group's unit names the ones there now. The files "
+                    "inside each are the game's own writes, so each folder moves whole"
+                ),
+                names_data=(),
+                trailing=(_rpcs3_prefix_caveat(token, savedata, title.title_id),),
+            )
+        sources = (
+            title.basis,
+            f"the folders below {savedata} could not be established for {title.title_id}: the tree, or an entry "
+            "beginning with it, could not be looked at — so the title id stays a hole",
+        )
+    elif title is not None:
+        sources = (
+            title.basis,
+            "no one user account is established here — a unit is stated on the one account RPCS3 would list, "
+            "never on a guess among several — so the title id stays a hole",
+        )
+    return _Rpcs3Unit(
+        unit=None,
+        needs=(HOLE_SAVE_ID,),
+        sources=sources,
+        names_sentence=(
+            "a PS3 save is the folders directly below savedata whose names begin with the game's title id, joined "
+            "with a name the game alone chooses. The save_id hole is that id: the game's folders are the "
+            "directories here beginning with it (ASCII case aside); without it, move each title's folders whole "
+            "or back the tree up whole"
+        ),
+        names_data=(
+            (
+                HOLE_SAVE_ID,
+                "the game's TITLE_ID as its PARAM.SFO states it, nine characters — the prefix of its savedata "
+                "folders' names, not a whole name",
+            ),
+            ("save_id_spelling", SAVE_ID_SPELLING_PS3_TITLE_ID),
+        ),
+        trailing=(),
+    )
+
+
+def _rpcs3_prefix_caveat(token: str, directory: str, title_id: str) -> Caveat:
+    """``ps3-save-prefix-may-differ``: the game, not the emulator, names the folders it saves under."""
+    return Caveat(
+        CAVEAT_PS3_SAVE_PREFIX_MAY_DIFFER,
+        f"the folders begin with {title_id} by convention, not by rule: a game hands RPCS3 whatever folder name "
+        "it saves under and may list folders by other prefixes besides its own, so a game may keep or read saves "
+        "under another title's id — a disc release and its PSN one, a sequel reading its predecessor's — and "
+        "the unit lists none of those. atlas keeps no table of which game saves under which id",
+        {
+            "token": token,
+            "dir": directory,
+            "prefix": title_id,
+            "citation": _RPCS3_SAVEDATA_CITATION,
+        },
+    )
+
+
 def _rpcs3_savefile_placement(
     machine: Machine,
     *,
@@ -14510,7 +14798,7 @@ def _rpcs3_savefile_placement(
     content_path: str | None = None,
     cwd: str | None = None,
 ) -> SavefilePlacement | Unresolved:
-    """RPCS3's save answer: the drive vfs.yml names, then one directory per title.
+    """RPCS3's save answer: the drive vfs.yml names, then each user's savedata, then the game's folders there.
 
     Two steps, both the emulator's own. ``cfg_vfs::get`` takes the configured
     ``/dev_hdd0/`` or its compiled default, replaces ``$(EmulatorDir)``
@@ -14519,7 +14807,8 @@ def _rpcs3_savefile_placement(
     ``get_emu_dir()``'s answer — the stated value as written, or the config
     directory where it is empty (system_utils.cpp:148-152, called at
     System.cpp:450 and passed at :537). Below the drive the tree is
-    ``home/<user>/savedata``, one directory per title id.
+    ``home/<user>/savedata``, where a game's folders are the ones whose names
+    begin with its title id.
 
     The user is where this answer stops short of certainty: it is a runtime
     selection (``m_usr``, System.h:108) and no file records which one is in
@@ -14531,6 +14820,11 @@ def _rpcs3_savefile_placement(
     group either, and the caveat's sentence then claims the accounts
     established here rather than the emulator's whole list (see
     :func:`_rpcs3_listing_claim`).
+
+    Where the content path names the game's title id and exactly one account
+    is listed, that account's group states the game's folders as a unit
+    (``own-folders-by-prefix``, :func:`_rpcs3_unit`); otherwise the title id
+    is the ``save_id`` hole.
     """
     vfs = _rpcs3_vfs(machine, card, homes)
     vfs_path, config_dir, read = vfs.path, vfs.config_dir, vfs.read
@@ -14561,6 +14855,9 @@ def _rpcs3_savefile_placement(
     listing = found.listing
     survey = _rpcs3_users(machine, user_root, found.users, found.unstatable)
     claim = _rpcs3_listing_claim(survey)
+    game = _rpcs3_unit(
+        machine, token=card.token, user_root=user_root, content_path=content_path, listing=listing, survey=survey
+    )
     if survey.unestablished:
         # At least one entry found here is one atlas could not decide —
         # the opening clause cannot assert "no account exists" when that is
@@ -14602,8 +14899,13 @@ def _rpcs3_savefile_placement(
             first_user=_RPCS3_FIRST_USER,
             names_citation=(
                 "'/dev_hdd0/home/%08u/savedata/' as a whole string in the shipped binary "
-                "(build d5213de6)"
+                f"(build d5213de6); {_RPCS3_SAVEDATA_CITATION}"
             ),
+            names_sentence=game.names_sentence,
+            names_data=game.names_data,
+            unit=game.unit,
+            needs=game.needs,
+            extra_sources=game.sources,
             user_sentence=(
                 "which user account the emulator runs as is a runtime selection — it starts "
                 f"at {_RPCS3_FIRST_USER} (Emulator::m_usr, System.h:108) and the user manager "
@@ -14673,6 +14975,7 @@ def _rpcs3_savefile_placement(
                     "files": (),
                 },
             ),
+            *game.trailing,
         ),
     )
 
@@ -20452,6 +20755,45 @@ class ExtraContentAnswer:
     caveats: tuple[Caveat, ...] = ()
     """Every degradation of this answer, stated structurally so a client branches on the code rather than on prose."""
 
+
+@dataclass(frozen=True, slots=True)
+class PackageInstallAnswer:
+    """The command that installs a package into the entry's emulator, taken apart — and what the install leaves.
+
+    ``command`` is ``None`` exactly where the answer refuses, and a caveat
+    says why. Its program, environment and distribution environment are those
+    of the entry's own launch command; its arguments are the installer's
+    (:mod:`atlas.package_install` reads RPCS3's install).
+    """
+
+    entry: EmulatorEntry | None = None
+    """The catalogue entry whose emulator installs — the one a label names, or the first in the frontend's order whose
+    emulator has a package installer atlas reads; ``null`` where none was chosen."""
+    command: LaunchCommand | None = None
+    """The install command, ``null`` where the answer refuses."""
+    exit_status_reports_outcome: bool | None = None
+    """Whether the command's exit status says whether the install succeeded — ``false`` for RPCS3, which exits ``0``
+    whatever came of it; ``null`` beside no command."""
+    package_targets: tuple[PackageInstallTarget, ...] = ()
+    """Every package the install takes, in its order, with where it goes — empty where it takes none, beside no
+    command, or where what lies at the path is not established."""
+    licence_files: tuple[str, ...] = ()
+    """The ``.rap`` and ``.edat`` files the install copies into the licence folder before any package, in its
+    order."""
+    licence_folder: PackageInstallPath | None = None
+    """The folder the install puts licences in — ``null`` beside no command and where the drive is not
+    established."""
+    sources: tuple[str, ...] = ()
+    caveats: tuple[Caveat, ...] = ()
+    """Every degradation of this answer, its refusal among them, stated structurally so a client branches on the
+    code rather than on prose."""
+
+    def __post_init__(self) -> None:
+        if (self.exit_status_reports_outcome is None) != (self.command is None):
+            raise ValueError("PackageInstallAnswer: the exit status is judged exactly where a command stands")
+        if self.command is None and (self.package_targets or self.licence_files or self.licence_folder is not None):
+            raise ValueError("PackageInstallAnswer: what an install leaves stands only beside a command")
+
 # Flatpak's per-app overrides are GKeyFile INI, and only the environment they
 # assign is read here — the [Environment] group's KEY=VALUE lines and the
 # [Context] group's unset-environment list. Value semantics follow
@@ -22344,6 +22686,38 @@ def _catalogue_with_caveats(answer: CatalogueAnswer, caveats: tuple[Caveat, ...]
     return cast(CatalogueAnswer, _dc_replace(answer, caveats=caveats))
 
 
+def _package_install_with_caveats(
+    answer: PackageInstallAnswer, caveats: tuple[Caveat, ...]
+) -> PackageInstallAnswer:
+    """*answer* with *caveats* as its caveat list — ``dataclasses.replace`` behind a concrete signature."""
+    return cast(PackageInstallAnswer, _dc_replace(answer, caveats=caveats))
+
+
+# The emulators whose package install atlas reads, by the token their entries
+# spell (``%EMULATOR_X%``), each with the one system it installs for.
+_PACKAGE_INSTALLERS: Mapping[str, str] = MappingProxyType({"RPCS3": "ps3"})
+
+
+def _installer_entry(
+    entries: tuple[EmulatorEntry, ...], label: str | None, system: str
+) -> EmulatorEntry | Caveat | None:
+    """The entry a package install is about: the one *label* names, or the first whose emulator has an installer.
+
+    The frontend's first entry may hand the shell a shortcut (RPCS3's is), so
+    without a label the choice is the first in the frontend's order whose
+    emulator atlas reads a package install for, preferring one that hands the
+    emulator the file's path — the program is the same, and a serial entry's
+    command reads an ``%INJECT%`` file a package has none of. ``None`` where
+    there is none.
+    """
+    if label is not None:
+        return _chosen_entry(entries, label, system)
+    installers = [entry for entry in entries if _PACKAGE_INSTALLERS.get(entry.emulator or "") == system]
+    return next((entry for entry in installers if rpcs3_boot.hands_path(entry.command)), None) or next(
+        iter(installers), None
+    )
+
+
 def _extra_content_with_caveats(answer: ExtraContentAnswer, caveats: tuple[Caveat, ...]) -> ExtraContentAnswer:
     """*answer* with *caveats* as its caveat list — ``dataclasses.replace`` behind a concrete signature."""
     return cast(ExtraContentAnswer, _dc_replace(answer, caveats=caveats))
@@ -23804,6 +24178,36 @@ class _CatalogueQueries:
             answer, (*answer.caveats, *arrangement_caveats(self.kind, observed_version=version))
         )
 
+    @one_question
+    def package_install_command(
+        self, system: str, content_path: str, *, label: str | None = None
+    ) -> PackageInstallAnswer:
+        """The command that installs *content_path* — a package, or a directory of them — into *system*'s emulator.
+
+        The entry is the one *label* names or, without one, the first in the
+        frontend's order whose emulator atlas reads a package install for:
+        RPCS3, for ``ps3``, run by RetroDECK — every other entry and
+        arrangement answers no command, with ``package-install-unstated``.
+        The program, its environment and what it reads from the
+        distribution's start are the entry's own launch command's
+        (:meth:`launch_command`, whose refusals this answer shares); the
+        arguments are ``--headless --installpkg <content_path>``.
+
+        Beside the command: every package the install takes, in its order, and
+        where each goes — a game's ``install_folder`` and its ``boot_file``,
+        ``<dev_hdd0>/game/<folder>/USRDIR/EBOOT.BIN`` — and where licences
+        go. ``exit_status_reports_outcome`` is ``false``: RPCS3 exits ``0``
+        whatever came of the install, and the boot file standing afterwards is
+        the one sign a game installed. *content_path* is the emulator's
+        spelling and must be absolute, or this raises ``ValueError``.
+        """
+        if not os.path.isabs(content_path):
+            raise ValueError(f"content_path must be an absolute path, got {content_path!r}")
+        answer, version = self._package_install_answer(system, content_path, label)
+        return _package_install_with_caveats(
+            answer, (*answer.caveats, *arrangement_caveats(self.kind, observed_version=version))
+        )
+
     # The public questions above are the whole catalogue surface, and a
     # handle overrides the ``_…_answer`` methods below instead: what it
     # *answers* is its own, how the answer states its arrangement's evidence
@@ -23893,6 +24297,33 @@ class _CatalogueQueries:
         return (
             ExtraContentAnswer(entry=chosen, sources=answer.sources, caveats=(*answer.caveats, unstated)),
             version,
+        )
+
+    def _package_install_answer(
+        self, system: str, content_path: str, label: str | None
+    ) -> tuple[PackageInstallAnswer, str | None]:
+        # A package install is stated only where a handle reads one; every
+        # other answer says so, about the entry the install would be about.
+        answer, version = self._catalogue_answer(system, content_path=content_path)
+        chosen = _installer_entry(answer.entries, label, system)
+        if isinstance(chosen, Caveat):
+            return PackageInstallAnswer(sources=answer.sources, caveats=(*answer.caveats, chosen)), version
+        return (
+            PackageInstallAnswer(
+                entry=chosen, sources=answer.sources, caveats=(*answer.caveats, self._install_unstated(chosen))
+            ),
+            version,
+        )
+
+    def _install_unstated(self, chosen: EmulatorEntry | None) -> Caveat:
+        data: dict[str, DataValue] = {"installation": self.kind}
+        if chosen is not None:
+            data["entry"] = chosen.label
+        return Caveat(
+            CAVEAT_PACKAGE_INSTALL_UNSTATED,
+            "no package installer is stated for this entry's emulator — atlas reads RPCS3's, run by RetroDECK, "
+            "and no other",
+            data,
         )
 
     def _rom_location_answer(self, system: str) -> tuple[RomPlacement, str | None]:
@@ -25140,7 +25571,14 @@ class RetroDeck(_FirmwareQueries, _CatalogueQueries):
     def _launch_command_answer(
         self, system: str, content_path: str, label: str | None
     ) -> tuple[LaunchCommandAnswer, str | None]:
-        """RetroDECK's launch command — the catalogue snapshot its launchability answer takes, the entry's own lookup.
+        answer, version, _view = self._launch_command_viewed(system, content_path, label)
+        return answer, version
+
+    def _launch_command_viewed(
+        self, system: str, content_path: str, label: str | None
+    ) -> tuple[LaunchCommandAnswer, str | None, _SandboxLaunchView | None]:
+        """RetroDECK's launch command and the sandbox's view it was taken apart in, ``None`` where it was not — the
+        catalogue snapshot its launchability answer takes, the entry's own lookup.
 
         The entry's verdict and the texts its command is built from come out of
         one :class:`~atlas.launch.LaunchLookup` over one read of the find rules
@@ -25151,14 +25589,14 @@ class RetroDeck(_FirmwareQueries, _CatalogueQueries):
         """
         config, marker_issues = self._read_marker()
         if (finding := _not_set_up(marker_issues)) is not None:
-            return LaunchCommandAnswer(caveats=(finding,)), None
+            return LaunchCommandAnswer(caveats=(finding,)), None, None
         findings = self._health_from(config, marker_issues).issues
         root = self._config_path(config, "rd_home_path", "")[0]
         by_system, read, exclusive, catalogue_invalid = self._read_catalogue(root)
         invalid = (catalogue_invalid,) if catalogue_invalid is not None else ()
         version = _marker_version(config)
         if not read:
-            return LaunchCommandAnswer(caveats=(*findings, *_catalogue_unread_caveat(system))), version
+            return LaunchCommandAnswer(caveats=(*findings, *_catalogue_unread_caveat(system))), version, None
         status = self._catalogue_exclusive(root, system) if exclusive else ()
         anchor = self._esde_system_dir(by_system, system)
         lookups: list[tuple[LaunchLookup, _SandboxLaunchView]] = []
@@ -25179,18 +25617,18 @@ class RetroDeck(_FirmwareQueries, _CatalogueQueries):
                 f"the catalogue was read and declares no entry for system {system!r}",
                 {"system": system},
             )
-            return LaunchCommandAnswer(sources=sources, caveats=(*caveats, unknown)), version
+            return LaunchCommandAnswer(sources=sources, caveats=(*caveats, unknown)), version, None
         if isinstance(chosen, Caveat):
-            return LaunchCommandAnswer(sources=sources, caveats=(*caveats, chosen)), version
+            return LaunchCommandAnswer(sources=sources, caveats=(*caveats, chosen)), version, None
         if chosen.availability != AVAILABILITY_STARTABLE or not lookups:
-            return LaunchCommandAnswer(chosen, sources=sources, caveats=caveats), version
+            return LaunchCommandAnswer(chosen, sources=sources, caveats=caveats), version, None
         build = self._deployed_esde_build()
         if build != self.ESDE_FORK_BUILD:
-            return LaunchCommandAnswer(chosen, sources=sources, caveats=(*caveats, _build_unpinned(build))), version
+            return LaunchCommandAnswer(chosen, sources=sources, caveats=(*caveats, _build_unpinned(build))), version, None
         lookup, view = lookups[0]
         parts = lookup.command_parts(chosen.command, loads_core=chosen.kind == KIND_LIBRETRO)
         if parts is None:
-            return LaunchCommandAnswer(chosen, sources=sources, caveats=caveats), version
+            return LaunchCommandAnswer(chosen, sources=sources, caveats=caveats), version, None
         inputs = CommandInputs(
             content_path=content_path,
             parts=parts,
@@ -25200,7 +25638,67 @@ class RetroDeck(_FirmwareQueries, _CatalogueQueries):
         )
         taken = take_apart(chosen.command, inputs, view)
         command, read, notes = self._with_distribution_environment(taken.command, view, config)
-        return LaunchCommandAnswer(chosen, command, (*sources, *read), (*caveats, *taken.caveats, *notes)), version
+        return LaunchCommandAnswer(chosen, command, (*sources, *read), (*caveats, *taken.caveats, *notes)), version, view
+
+    def _package_install_answer(
+        self, system: str, content_path: str, label: str | None
+    ) -> tuple[PackageInstallAnswer, str | None]:
+        """RPCS3's package install: the entry's own launch command with the installer's arguments, and what the
+        install takes from the path (:mod:`atlas.package_install`).
+
+        RPCS3 runs inside this same sandbox, so the frontend's view is the
+        emulator's: the path is spelled and probed the way RPCS3 opens it. A
+        caveat the launch states about its own ``%ROM%`` argument does not
+        carry over — the install's argument is the path as it is, handed over
+        without a shell.
+        """
+        catalogue, _version = self._catalogue_answer(system, content_path=content_path)
+        chosen = _installer_entry(catalogue.entries, label, system)
+        if not isinstance(chosen, EmulatorEntry) or _PACKAGE_INSTALLERS.get(chosen.emulator or "") != system:
+            return super()._package_install_answer(system, content_path, label)
+        launch, version, view = self._launch_command_viewed(system, content_path, chosen.label)
+        if launch.command is None or view is None:
+            return PackageInstallAnswer(entry=launch.entry, sources=launch.sources, caveats=launch.caveats), version
+        command = cast(
+            LaunchCommand,
+            _dc_replace(launch.command, arguments=package_install.install_arguments(content_path), injections=()),
+        )
+        drive = _rpcs3_boot_dirs(self._machine, self._xdg_homes()).drive
+        reading = package_install.read_packages(content_path, view, self._machine.read_ps3_title, drive)
+        caveats = [caveat for caveat in launch.caveats if caveat.code != CAVEAT_LAUNCH_COMMAND_ARGUMENT_BROKEN]
+        caveats.extend(reading.caveats)
+        writes_licences = reading.licence_files or any(
+            target.destination == package_install.DESTINATION_LICENCE_FOLDER for target in reading.targets
+        )
+        if writes_licences and drive is not None:
+            account = package_install.licence_account_caveat(self._rpcs3_accounts(view, drive))
+            if account is not None:
+                caveats.append(account)
+        return (
+            PackageInstallAnswer(
+                entry=launch.entry,
+                command=command,
+                exit_status_reports_outcome=False,
+                package_targets=reading.targets,
+                licence_files=reading.licence_files,
+                licence_folder=reading.licence_folder,
+                sources=(*launch.sources, *reading.sources),
+                caveats=tuple(caveats),
+            ),
+            version,
+        )
+
+    def _rpcs3_accounts(self, view: _SandboxLaunchView, drive: str) -> tuple[str, ...] | None:
+        """The user accounts RPCS3 would list on *drive*, read as the save answer reads them — ``None`` where that
+        is not established."""
+        home = view.host_path(os.path.join(drive.rstrip("/"), "home"))
+        if home is None:
+            return None
+        found = _per_user_listing(self._machine, home)
+        survey = _rpcs3_users(self._machine, home, found.users, found.unstatable)
+        if found.listing.status != GLOB_COMPLETE or survey.unestablished:
+            return None
+        return survey.listed
 
     def _with_distribution_environment(
         self, command: LaunchCommand | None, view: _SandboxLaunchView, config: Mapping[str, Any]
@@ -30560,6 +31058,10 @@ class Installation(Protocol):
     def extra_content_folders(
         self, system: str, *, label: str | None = None, content_path: str | None = None
     ) -> ExtraContentAnswer: ...
+
+    def package_install_command(
+        self, system: str, content_path: str, *, label: str | None = None
+    ) -> PackageInstallAnswer: ...
 
     def rom_location(self, system: str) -> RomPlacement: ...
 

@@ -63,7 +63,8 @@ class DiscLaunchResolver:
         """Enumerate the launchable discs in *install*'s directory, in disc order.
 
         A single-file ROM (``rom_dir is None``) owns no folder and can hold no
-        second disc, so it enumerates to an empty list. A folder-backed ROM is
+        second disc, so it enumerates to an empty list; so does a game installed
+        from a package, whose folder is the installed title and holds no disc. A folder-backed ROM is
         scanned recursively; the live ES-DE accept-list for its system is
         intersected with the disc-image set so a disc the emulator cannot launch
         is never listed (falling back to the full disc set when ES-DE is
@@ -71,7 +72,7 @@ class DiscLaunchResolver:
         reading of the emulator sources; a call without one asks the accept-list
         fresh.
         """
-        if install.rom_dir is None:
+        if install.rom_dir is None or install.package_boot_file is not None:
             return []
         files = self._list_files(install.rom_dir)
         supported = self._system_extensions(install.system, reading=reading)

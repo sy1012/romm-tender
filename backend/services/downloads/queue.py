@@ -28,7 +28,7 @@ if TYPE_CHECKING:
 _DOWNLOAD_QUEUE_MAX_TERMINAL = 50
 
 # A download in one of these statuses has run to a terminal end — it is no
-# longer active/queued/paused/extracting. The queue prune trims the oldest of
+# longer active/queued/paused/extracting/installing. The queue prune trims the oldest of
 # these over the cap, and "Clear Completed" evicts all of them (#149). In normal
 # flow only completed/failed actually LINGER: a cancel is an explicit discard and
 # evicts its entry on the spot (#149 downloads-round), so "cancelled" stays in
@@ -281,6 +281,18 @@ class DownloadQueue:
         entry["resumable"] = False
         entry["_transferred"] = 0
         self.spawn_frame(self._frame_from_entry(rom_id, rom_name, platform_name, file_name, status="downloading"))
+
+    def report_installing(self, rom_id, rom_name, platform_name, file_name) -> None:
+        """Mark *rom_id*'s entry installing and report it: its package is being installed into the emulator.
+
+        The install states no progress, so the bar stands full, and nothing
+        about it resumes.
+        """
+        entry = self._live_entry(rom_id)
+        if entry is None:
+            return
+        entry.update({"status": "installing", "progress": 1.0, "resumable": False})
+        self.spawn_frame(self._frame_from_entry(rom_id, rom_name, platform_name, file_name, status="installing"))
 
     def mark_downloading(self, rom_id: int) -> None:
         """Mark *rom_id*'s entry downloading: its download holds a transfer slot."""

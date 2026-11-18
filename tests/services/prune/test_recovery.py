@@ -136,3 +136,48 @@ def test_playtime_text_includes_open_and_pending_session_details() -> None:
     assert "duration_ms: 3600000" in text
     assert "attempts: 1" in text
     assert "Steam appId: 9001" in text
+
+
+def test_a_title_installed_from_a_package_is_captured_inside_its_drives_game_folder() -> None:
+    class _Folders:
+        def rom_folders(self, systems: Any) -> dict[str, str]:
+            return {system: f"/roms/{system}" for system in systems}
+
+    coordinator = RecoveryCoordinator(
+        config=RecoveryCoordinatorConfig(
+            uow_factory=FakeUnitOfWorkFactory(FakeUnitOfWork()),
+            recovery_store=cast("Any", object()),
+            prepare_folder=cast("Any", object()),
+            prune_artifacts=cast("Any", object()),
+            steam_recovery=cast("Any", object()),
+            retrodeck_folders=cast("Any", _Folders()),
+            clock=FakeClock(),
+            uuid_gen=FakeUuidGen(),
+        )
+    )
+    snapshot: dict[str, object] = {
+        "installs": [
+            {
+                "rom_id": 1,
+                "system": "ps3",
+                "rom_dir": "/drive/game/NPUB30000",
+                "file_path": "/drive/game/NPUB30000/USRDIR/EBOOT.BIN",
+                "package_boot_file": "/in/EBOOT.BIN",
+            },
+            {
+                "rom_id": 2,
+                "system": "ps3",
+                "rom_dir": "/elsewhere/NPUB30001",
+                "file_path": "/x",
+                "package_boot_file": "/y",
+            },
+            {"rom_id": 3, "system": "gba", "rom_dir": None, "file_path": "/roms/gba/G.gba", "package_boot_file": None},
+        ]
+    }
+
+    artifacts = coordinator._installed_rom_artifacts(snapshot, {1, 2, 3})
+
+    assert [(a.get("rom_id"), a["source_path"], a["safe_root"]) for a in artifacts] == [
+        (1, "/drive/game/NPUB30000", "/drive/game"),
+        (3, "/roms/gba/G.gba", "/roms/gba"),
+    ]

@@ -11,7 +11,7 @@ export interface DownloadItem {
   rom_name: string;
   platform_name: string;
   file_name: string;
-  status: "queued" | "downloading" | "extracting" | "completed" | "failed" | "cancelled" | "paused";
+  status: "queued" | "downloading" | "extracting" | "installing" | "completed" | "failed" | "cancelled" | "paused";
   progress: number;
   bytes_downloaded: number;
   total_bytes: number;
@@ -53,6 +53,17 @@ export interface DownloadCompleteEvent {
   extra_content_missing?: number;
   /** Set where the download brought extra content alone, into a game already installed. */
   extra_content_only?: boolean;
+  /** Set where the download is a package that was not installed into its emulator; the download is kept. */
+  package_not_installed?: PackageNotInstalled;
+}
+
+/**
+ * Why a downloaded package was not installed into its emulator, and the emulator
+ * that was to install it (`null` where none was named).
+ */
+export interface PackageNotInstalled {
+  reason: "command_incomplete" | "several_games" | "did_not_finish" | "not_started" | "no_boot_file";
+  installer: string | null;
 }
 
 export interface DownloadFailedEvent {

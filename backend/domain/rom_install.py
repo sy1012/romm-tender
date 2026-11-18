@@ -12,14 +12,22 @@ answer read this record without joining the registry. Whether that launch file
 starts is not recorded: it is the resolver's answer, asked when it is read.
 The game's extra content downloaded into its folder is recorded with it
 (``extra_content``), each file by its place inside ``rom_dir``; whether the
-game is installed does not depend on it.
+game is installed does not depend on it. A game installed into its emulator
+from a package (ADR-0051) records the installed title instead of the download:
+``rom_dir`` is the title's folder on the emulator's drive, ``file_path`` its
+boot file, and ``package_boot_file`` the boot file as the emulator spells it,
+which is set for such a game alone and is what says it was installed so.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 from domain._aggregate import cosmic_aggregate
+
+if TYPE_CHECKING:
+    from domain.package_install import InstalledTitle
 
 
 @dataclass(frozen=True, slots=True)
@@ -46,6 +54,7 @@ class RomInstall:
     installed_at: str
     fetched_size_bytes: int | None = None
     extra_content: tuple[InstalledExtraContent, ...] = ()
+    package_boot_file: str | None = None
 
     @classmethod
     def mark_installed(
@@ -91,6 +100,17 @@ class RomInstall:
         self.rom_dir = new_rom_dir
         self.file_path = new_file_path
 
+    def install_from_package(self, title: InstalledTitle) -> None:
+        """Record the game as the title a package install of its download left in the emulator's drive.
+
+        The download goes once this is recorded, and its extra content with it:
+        the same install took every package of it into the emulator.
+        """
+        self.rom_dir = title.folder
+        self.file_path = title.boot_file
+        self.package_boot_file = title.boot_file_in_emulator
+        self.extra_content = ()
+
     def add_extra_content(self, file_id: int, rel_path: str, size_bytes: int) -> None:
         """Record a file of the game's extra content downloaded to *rel_path* inside the game's folder.
 
@@ -100,6 +120,8 @@ class RomInstall:
         """
         if self.rom_dir is None:
             raise ValueError("a game kept as one file keeps no extra content")
+        if self.package_boot_file is not None:
+            raise ValueError("a game installed from a package keeps its extra content in the emulator")
         if not rel_path:
             raise ValueError("extra content needs a place inside the game's folder")
         kept = tuple(entry for entry in self.extra_content if entry.file_id != file_id)

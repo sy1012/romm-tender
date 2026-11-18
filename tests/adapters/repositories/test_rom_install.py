@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from domain.package_install import InstalledTitle
 from domain.rom import Rom
 from domain.rom_install import RomInstall
 
@@ -75,6 +76,23 @@ class TestRoundTrip:
         loaded = uow.rom_installs.get(7)
         assert loaded is not None
         assert loaded.fetched_size_bytes == 1000
+
+    def test_a_title_installed_from_a_package_round_trips_with_its_boot_file(self, uow: SqliteUnitOfWork):
+        _seed_rom(uow, 8)
+        install = _install(8, path="/roms/ps3/G/G.pkg", rom_dir="/roms/ps3/G")
+        install.install_from_package(
+            InstalledTitle("/drive/game/NPUB30000", "/drive/game/NPUB30000/USRDIR/EBOOT.BIN", "/in/EBOOT.BIN")
+        )
+        uow.rom_installs.save(install)
+
+        loaded = uow.rom_installs.get(8)
+        assert loaded is not None
+        assert (loaded.rom_dir, loaded.file_path, loaded.package_boot_file) == (
+            "/drive/game/NPUB30000",
+            "/drive/game/NPUB30000/USRDIR/EBOOT.BIN",
+            "/in/EBOOT.BIN",
+        )
+        assert _install(9).package_boot_file is None
 
 
 class TestExtraContent:

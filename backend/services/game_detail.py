@@ -338,6 +338,9 @@ class GameDetailService:
             "target_path_occupied": target_occupied,
             "adoption_candidate_present": candidate_present,
             "file_missing_at": file_missing_at,
+            # Installed into its emulator from a downloaded package (ADR-0051):
+            # the panel asks before an uninstall removes the installed game.
+            "installed_from_package": install is not None and install.package_boot_file is not None,
         }
 
     def installed_app_ids(self) -> list[int]:

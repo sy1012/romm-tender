@@ -124,7 +124,10 @@ class GameStartService:
             raise Refused("cannot_start", f"ROM {rom_id} cannot start: {start}", start=start)
         label = resolved.choice.option.label
         path = asked_path(
-            install.file_path, install.rom_dir, self._disc_resolver.resolve_for_install(install, rom.selected_disc)
+            install.file_path,
+            install.rom_dir,
+            self._disc_resolver.resolve_for_install(install, rom.selected_disc),
+            package_boot_file=install.package_boot_file,
         )
         command = self._start_commands.start_command(
             install.system,

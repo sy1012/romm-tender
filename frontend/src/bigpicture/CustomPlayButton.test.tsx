@@ -950,6 +950,20 @@ describe("CustomPlayButton — extraction phase on a multi-file download", () =>
     expect(await findByText("Extracting… 42%")).toBeInTheDocument();
   });
 
+  it("shows 'Installing…' with no cancel control once an installing frame arrives", async () => {
+    const installingFrame: DownloadProgressEvent = {
+      ...extractingFrame,
+      status: "installing",
+      progress: 1,
+      bytes_downloaded: 10000,
+    };
+    const { findByText, queryByLabelText } = await renderWithFrames([downloadingFrame, installingFrame]);
+
+    expect(await findByText("Installing…")).toBeInTheDocument();
+    expect(queryByLabelText("Cancel download")).toBeNull();
+    expect(queryByLabelText("Download actions")).toBeNull();
+  });
+
   it("removes the cancel control during extraction and surfaces a disabled throbber instead", async () => {
     const { findByLabelText, queryByLabelText } = await renderWithFrames([downloadingFrame, extractingFrame]);
 
@@ -1298,6 +1312,31 @@ describe("CustomPlayButton — uninstall resets launch_options (#1051)", () => {
     // The shortcut carries its appId, installed or not; a start of a game that
     // is not installed is refused before anything runs (#2221 D10).
     expect(vi.mocked(setLaunchOptionsConfirmed)).not.toHaveBeenCalled();
+    expect(vi.mocked(backend.removeRom)).toHaveBeenCalledWith(42);
+  });
+
+  it("asks before it uninstalls a game installed from a package, and removes it only on OK", async () => {
+    vi.mocked(showModal).mockClear();
+    mockCachedDetail({ rom_id: 42, installed: true, installed_from_package: true });
+    const { container, findByText } = render(<CustomPlayButton appId={100} />);
+    await findByText("Play");
+
+    await clickUninstall(container);
+
+    expect(vi.mocked(backend.removeRom)).not.toHaveBeenCalled();
+    const modalCalls = vi.mocked(showModal).mock.calls;
+    const modal = modalCalls[modalCalls.length - 1]?.[0] as ReactElement<{
+      strTitle: string;
+      strDescription: string;
+      onOK: () => void;
+    }>;
+    expect(modal.props.strTitle).toBe("Uninstall the installed game?");
+    expect(modal.props.strDescription).toContain("Its saves stay");
+    await act(async () => {
+      modal.props.onOK();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
     expect(vi.mocked(backend.removeRom)).toHaveBeenCalledWith(42);
   });
 

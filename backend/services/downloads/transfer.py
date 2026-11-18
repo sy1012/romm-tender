@@ -2,7 +2,8 @@
 
 The task waits for a transfer slot, streams the ROM into its partial file, has
 the unpacker turn the finished transfer into an install, brings the extra
-content the user ticked into the game's folder, and reports how it ended:
+content the user ticked into the game's folder, has a download whose content
+is a package installed into its emulator, and reports how it ended:
 completed, paused, cancelled or failed. A download of an installed game's
 extra content alone is a task of its own kind here, which brings only that. Whatever way it ends, it gives
 back what the download's admission registered in the state box, unless a newer
@@ -23,6 +24,7 @@ from domain.rom_files import TMP_EXT, ZIP_TMP_EXT, lands_as_folder
 from lib.path_safety import safe_join
 from services.downloads._fetch import DownloadFetch, plan_fetch
 from services.downloads._names import extract_dir_name_for
+from services.downloads.package_install import PackageInstalled, PackageNotInstalled
 
 if TYPE_CHECKING:
     import logging
@@ -30,6 +32,7 @@ if TYPE_CHECKING:
 
     from domain.extra_content import ExtraContentFile
     from services.downloads._state import DownloadControl, DownloadsStateBox
+    from services.downloads.package_install import DownloadPackageInstall
     from services.downloads.queue import DownloadQueue
     from services.downloads.unpack import DownloadUnpacker
     from services.protocols import (
@@ -53,12 +56,15 @@ class DownloadTransferConfig:
     download's entry and ``unpacker`` turns the finished transfer into an
     install. ``install_recorder`` records each file of extra content once it is
     in place, ``download_file_store`` places it, and ``uow_factory`` reads the
-    folder of the install it goes into.
+    folder of the install it goes into. ``package_install`` installs a download
+    whose content is a package into its emulator, once its extra content is in
+    place beside it.
     """
 
     state: DownloadsStateBox
     queue: DownloadQueue
     unpacker: DownloadUnpacker
+    package_install: DownloadPackageInstall
     romm_api: RommRomReader
     install_recorder: RomInstallRecorder
     download_file_store: DownloadFileStore
@@ -75,6 +81,7 @@ class DownloadTransfer:
         self._state = config.state
         self._queue = config.queue
         self._unpacker = config.unpacker
+        self._package_install = config.package_install
         self._romm_api = config.romm_api
         self._install_recorder = config.install_recorder
         self._download_file_store = config.download_file_store
@@ -133,7 +140,15 @@ class DownloadTransfer:
         )
 
     async def _finalize_download_complete(
-        self, rom_id, final_path, rom_name, platform_name, *, extra_content_missing=0, extra_content_only=False
+        self,
+        rom_id,
+        final_path,
+        rom_name,
+        platform_name,
+        *,
+        extra_content_missing=0,
+        extra_content_only=False,
+        package_not_installed: PackageNotInstalled | None = None,
     ):
         """Mark the queue entry completed and emit ``download_complete``.
 
@@ -143,7 +158,10 @@ class DownloadTransfer:
         install committed before the cancel landed (#1049). The event says how
         many files of the extra content asked for did not arrive
         (``extra_content_missing``), and that the download brought extra
-        content alone (``extra_content_only``), each only where it is so.
+        content alone (``extra_content_only``), and why a download whose content
+        is a package was not installed into its emulator
+        (``package_not_installed``: the reason and the emulator), each only
+        where it is so.
         """
         entry = self._queue.mark_completed(rom_id)
         event = {
@@ -157,6 +175,11 @@ class DownloadTransfer:
             event["extra_content_missing"] = extra_content_missing
         if extra_content_only:
             event["extra_content_only"] = True
+        if package_not_installed is not None:
+            event["package_not_installed"] = {
+                "reason": package_not_installed.reason,
+                "installer": package_not_installed.installer,
+            }
         await self._emit("download_complete", event)
         self._logger.info(f"Download complete: {rom_name} -> {final_path}")
 
@@ -300,12 +323,16 @@ class DownloadTransfer:
                 await self._fetch_extra_content(
                     rom_id, rom_name, platform_name, file_name, extra_content, control, brought
                 )
+                packaged = await self._package_install.install(rom_id, rom_name, platform_name, file_name)
+                if isinstance(packaged, PackageInstalled):
+                    final_path = packaged.file_path
                 await self._finalize_download_complete(
                     rom_id,
                     final_path,
                     rom_name,
                     platform_name,
                     extra_content_missing=len(extra_content) - len(brought),
+                    package_not_installed=packaged if isinstance(packaged, PackageNotInstalled) else None,
                 )
 
         except asyncio.CancelledError:
@@ -447,10 +474,10 @@ class DownloadTransfer:
             offset += entry.size_bytes
 
     def _install_folder_io(self, rom_id: int) -> str | None:
-        """The folder of *rom_id*'s install, or ``None`` where it has none."""
+        """The folder of *rom_id*'s install, or ``None`` where it has none or it is a title installed from a package."""
         with self._uow_factory() as uow:
             install = uow.rom_installs.get(int(rom_id))
-        return install.rom_dir if install is not None else None
+        return install.rom_dir if install is not None and install.package_boot_file is None else None
 
     def _place_extra_content_io(
         self, rom_id: int, rom_dir: str, entry: ExtraContentFile, progress: Callable[[int, int], None]

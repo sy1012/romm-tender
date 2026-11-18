@@ -11,7 +11,7 @@ if TYPE_CHECKING:
     import sqlite3
     from collections.abc import Iterator
 
-_COLUMNS = "rom_id, file_path, rom_dir, platform_slug, system, installed_at, fetched_size_bytes"
+_COLUMNS = "rom_id, file_path, rom_dir, platform_slug, system, installed_at, fetched_size_bytes, package_boot_file"
 
 
 def _row_to_install(row: sqlite3.Row, extra_content: tuple[InstalledExtraContent, ...]) -> RomInstall:
@@ -24,6 +24,7 @@ def _row_to_install(row: sqlite3.Row, extra_content: tuple[InstalledExtraContent
         installed_at=row["installed_at"],
         fetched_size_bytes=row["fetched_size_bytes"],
         extra_content=extra_content,
+        package_boot_file=row["package_boot_file"],
     )
 
 
@@ -43,7 +44,7 @@ class SqliteRomInstallRepository(BaseRepository):
 
     def save(self, install: RomInstall) -> None:
         self._conn.execute(
-            f"INSERT OR REPLACE INTO rom_installs ({_COLUMNS}) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            f"INSERT OR REPLACE INTO rom_installs ({_COLUMNS}) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
             (
                 install.rom_id,
                 install.file_path,
@@ -52,6 +53,7 @@ class SqliteRomInstallRepository(BaseRepository):
                 install.system,
                 install.installed_at,
                 install.fetched_size_bytes,
+                install.package_boot_file,
             ),
         )
         self._conn.execute("DELETE FROM rom_install_extra_content WHERE rom_id = ?", (install.rom_id,))

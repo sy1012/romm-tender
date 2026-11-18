@@ -12,6 +12,7 @@ import logging
 
 import pytest
 
+from domain.package_install import InstalledTitle
 from domain.rom_install import RomInstall
 from services.disc_launch_resolver import DiscLaunchResolver, DiscLaunchResolverConfig
 
@@ -103,6 +104,16 @@ class TestEnumerateDiscs:
         install = _install(file_path="/roms/x/game/a.cue", rom_dir="/roms/x/game", system="unknown")
         discs = resolver.enumerate_discs(install)
         assert {d.filename for d in discs} == {"a.cue", "b.chd"}
+
+    def test_a_title_installed_from_a_package_holds_no_disc(self, logger):
+        title = "/drive/game/NPUB30000"
+        files = {title: [f"{title}/USRDIR/EBOOT.BIN", f"{title}/USRDIR/DATA.BIN"]}
+        resolver = _build(FakeFileLister(files), FakeSystemExtensions(), logger)
+        install = _install(file_path=f"{title}/USRDIR/EBOOT.BIN", rom_dir=title, system="ps3")
+        install.install_from_package(InstalledTitle(title, f"{title}/USRDIR/EBOOT.BIN", "/in/EBOOT.BIN"))
+
+        assert resolver.enumerate_discs(install) == []
+        assert resolver.resolve_for_install(install, None) == f"{title}/USRDIR/EBOOT.BIN"
 
 
 class TestResolveBakePath:
