@@ -23,6 +23,9 @@ declare var SteamClient: {
       callback: (gameActionId: number, gameId: string, action: string, launchSource: number) => void,
     ): SteamRegistration;
     CancelGameAction(gameActionId: number): void;
+    // Steam's own appStore takes every overview update through this, as a
+    // serialized protobuf; Steam answers the registration with nothing.
+    RegisterForAppOverviewChanges(callback: (data: ArrayBuffer) => void): void;
   };
   GameSessions: {
     RegisterForAppLifetimeNotifications(callback: (update: SteamAppLifetimeUpdate) => void): SteamRegistration;

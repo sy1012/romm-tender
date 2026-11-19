@@ -62,16 +62,25 @@ const DISPLAY_STATUS_INSTALLED = 11;
 const DISPLAY_STATUS_NOT_INSTALLED = 9;
 const THIS_MACHINE = "0";
 
+function hasInstallShape(local: SteamPerClientData, installed: boolean): boolean {
+  return installed
+    ? local.installed === true && local.status_percentage === 100 && local.display_status === DISPLAY_STATUS_INSTALLED
+    : local.installed === undefined &&
+        local.status_percentage === undefined &&
+        local.display_status === DISPLAY_STATUS_NOT_INSTALLED;
+}
+
 /**
  * Give this machine's entry in the overview's `per_client_data` the shape Steam
  * gives an installed app, or an uninstalled one — which is what Steam's own
  * Installed filters and `appOverview.installed` read. Other clients' entries
- * are left alone, and an overview with no entry for this machine is not
- * written. Idempotent.
+ * are left alone, and an overview with no entry for this machine, or one whose
+ * entry already has the shape, is not written.
  */
 export function writeInstallState(overview: SteamAppOverview, installed: boolean): void {
   const local = overview.per_client_data?.find((entry) => entry.clientid === THIS_MACHINE);
   if (!local) return;
+  if (hasInstallShape(local, installed)) return;
   stateTransaction(() => {
     if (installed) {
       local.installed = true;

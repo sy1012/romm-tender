@@ -100,6 +100,7 @@ vi.stubGlobal("SteamClient", {
     SetShortcutStartDir: vi.fn(),
     SetAppLaunchOptions: vi.fn(),
     RemoveShortcut: vi.fn(),
+    RegisterForAppOverviewChanges: vi.fn(),
   },
   GameSessions: {
     RegisterForAppLifetimeNotifications: vi.fn(() => ({ unregister: vi.fn() })),
