@@ -157,11 +157,13 @@ const removeStaleCollections = vi.fn().mockResolvedValue(undefined);
 const saveSyncedGamesCollection = vi.fn().mockResolvedValue([]);
 const adoptLegacyCollections = vi.fn().mockResolvedValue([]);
 const keepInstallStateWritten = vi.fn();
+const correctInstallStateOnRebuild = vi.fn();
 const applyLibraryHiding = vi.fn().mockResolvedValue(true);
 const applyInstallState = vi.fn().mockResolvedValue(undefined);
 vi.mock("./utils/installState", () => ({
   applyInstallState: (...args: unknown[]) => applyInstallState(...args),
   keepInstallStateWritten: () => keepInstallStateWritten(),
+  correctInstallStateOnRebuild: () => correctInstallStateOnRebuild(),
 }));
 vi.mock("./utils/libraryHiding", () => ({
   applyLibraryHiding: (...args: unknown[]) => applyLibraryHiding(...args),
@@ -978,10 +980,12 @@ describe("index.tsx — install state follows downloads and deletions", () => {
 
   it("keeps the install state written from start-up, so a rebuild after a resume is written over", async () => {
     keepInstallStateWritten.mockClear();
+    correctInstallStateOnRebuild.mockClear();
 
     panelFactory();
 
     expect(keepInstallStateWritten).toHaveBeenCalledTimes(1);
+    expect(correctInstallStateOnRebuild).toHaveBeenCalledTimes(1);
   });
 
   it("adopts an earlier version's collections at start-up and says which kept their old name", async () => {

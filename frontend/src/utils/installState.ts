@@ -10,18 +10,22 @@
 
 import { debugLog, getAppIdRomIdMap, getInstalledAppIds } from "../api/backend";
 import { detach } from "./detach";
-import { overviewFor, republishOverviews, writeInstallState } from "./steamOverview";
+import { hasInstallState, overviewFor, republishOverviews, writeInstallState } from "./steamOverview";
 
 // The same readiness ladder as the metadata and playtime passes: appStore may
 // not hold the shortcuts yet on a cold boot.
 const DELAYS = [0, 1000, 3000, 5000];
 
-// How often the last state is checked against Steam's overviews. A poll, never a
-// listener on Steam's overview changes — why is
-// docs/architecture/steam-non-steam-shortcuts.md, "Install state".
+// How often the last state is checked against Steam's overviews, behind the map
+// observer (docs/architecture/steam-non-steam-shortcuts.md, "Install state").
 const KEEP_WRITTEN_MS = 30_000;
 
-let lastApplied: { installed: ReadonlySet<number>; appIds: readonly number[] } | null = null;
+// How soon after Steam sets a shortcut back to installed the state is written
+// again; a rebuild sets every overview in waves, and each window covers a wave.
+const CORRECT_AFTER_MS = 250;
+
+let lastApplied: { installed: ReadonlySet<number>; appIds: readonly number[]; tender: ReadonlySet<number> } | null =
+  null;
 
 export async function applyInstallState(options: { tenderAppIds?: readonly number[] } = {}): Promise<void> {
   let installed: Set<number>;
@@ -33,7 +37,7 @@ export async function applyInstallState(options: { tenderAppIds?: readonly numbe
     ]);
     installed = new Set(installedIds);
     pending = [...tenderAppIds];
-    lastApplied = { installed, appIds: [...tenderAppIds] };
+    lastApplied = { installed, appIds: [...tenderAppIds], tender: new Set(tenderAppIds) };
   } catch (e) {
     detach(debugLog(`applyInstallState: could not read the install state, Steam left as it is: ${e}`));
     return;
@@ -75,4 +79,40 @@ function rewriteLastApplied(): void {
  */
 export function keepInstallStateWritten(): void {
   setInterval(rewriteLastApplied, KEEP_WRITTEN_MS);
+}
+
+let correction: ReturnType<typeof setTimeout> | undefined;
+
+/**
+ * Write the install state again within {@link CORRECT_AFTER_MS} of Steam setting
+ * one of Tender's shortcuts back to installed, by observing appStore's
+ * `m_mapApps` — the observable map Steam's rebuild after a resume sets every
+ * overview into. An observer is added beside Steam's own, never in place of
+ * them, unlike a `SteamClient.Apps.RegisterFor…` callback. A change that already
+ * has its state — Tender's own republished copies among them — is ignored, so
+ * the correction does not feed itself. Started once per load, it lasts as long
+ * as the JavaScript context; where the map cannot be observed, the periodic
+ * check alone keeps the state.
+ */
+export function correctInstallStateOnRebuild(): void {
+  const apps = appStore.m_mapApps;
+  if (typeof apps?.observe_ !== "function") {
+    detach(
+      debugLog(
+        "correctInstallStateOnRebuild: Steam's overview map cannot be observed; the periodic check keeps the state",
+      ),
+    );
+    return;
+  }
+  apps.observe_((change) => {
+    if (!lastApplied || correction !== undefined || change.type === "delete") return;
+    const appId = Number(change.name);
+    const overview = change.newValue;
+    if (!lastApplied.tender.has(appId) || !overview) return;
+    if (hasInstallState(overview, lastApplied.installed.has(appId))) return;
+    correction = setTimeout(() => {
+      correction = undefined;
+      rewriteLastApplied();
+    }, CORRECT_AFTER_MS);
+  });
 }

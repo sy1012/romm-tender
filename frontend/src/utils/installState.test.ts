@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import * as backend from "../api/backend";
-import { applyInstallState, keepInstallStateWritten } from "./installState";
+import { applyInstallState, correctInstallStateOnRebuild, keepInstallStateWritten } from "./installState";
 
 vi.mock("../api/backend", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../api/backend")>()),
@@ -202,5 +202,93 @@ describe("keepInstallStateWritten", () => {
     await vi.advanceTimersByTimeAsync(30_000);
 
     expect(overviews.get(102)!.per_client_data![0]).toEqual(thisMachine());
+  });
+});
+
+describe("correctInstallStateOnRebuild", () => {
+  type Change = { type: "add" | "update" | "delete"; name: number; newValue?: SteamAppOverview };
+  let overviews: Map<number, SteamAppOverview>;
+  let observer: ((change: Change) => void) | undefined;
+
+  // What Steam's rebuild does: a new overview, installed again, set into the map.
+  function steamSets(appid: number): void {
+    const rebuilt = overview(appid);
+    overviews.set(appid, rebuilt);
+    observer?.({ type: "update", name: appid, newValue: rebuilt });
+  }
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    observer = undefined;
+    overviews = new Map([101, 102].map((id) => [id, overview(id)]));
+    vi.stubGlobal("appStore", {
+      GetAppOverviewByAppID: (id: number) => overviews.get(id) ?? null,
+      m_mapApps: {
+        set: (id: number, o: SteamAppOverview) => {
+          overviews.set(id, o);
+          observer?.({ type: "update", name: id, newValue: o });
+        },
+        observe_: (listener: (change: Change) => void) => {
+          observer = listener;
+          return () => undefined;
+        },
+      },
+    });
+    vi.stubGlobal("collectionStore", { OnAppOverviewChange: vi.fn() });
+    vi.mocked(backend.getInstalledAppIds).mockResolvedValue([101]);
+    vi.mocked(backend.getAppIdRomIdMap).mockResolvedValue({ "101": 1, "102": 2 });
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.useRealTimers();
+    vi.clearAllMocks();
+  });
+
+  it("writes and republishes within a quarter of a second of Steam setting a shortcut back to installed", async () => {
+    vi.resetModules();
+    const fresh = await import("./installState");
+    fresh.correctInstallStateOnRebuild();
+    await fresh.applyInstallState();
+    vi.mocked(collectionStore.OnAppOverviewChange!).mockClear();
+
+    steamSets(102);
+    await vi.advanceTimersByTimeAsync(250);
+
+    expect(overviews.get(102)!.per_client_data![0]!.display_status).toBe(9);
+    expect(collectionStore.OnAppOverviewChange).toHaveBeenCalledTimes(1);
+  });
+
+  it("lets its own republished copies and other apps pass without writing again", async () => {
+    vi.resetModules();
+    const fresh = await import("./installState");
+    fresh.correctInstallStateOnRebuild();
+    await fresh.applyInstallState();
+    steamSets(102);
+    await vi.advanceTimersByTimeAsync(250);
+    vi.mocked(collectionStore.OnAppOverviewChange!).mockClear();
+
+    observer?.({ type: "update", name: 999, newValue: overview(999) });
+    await vi.advanceTimersByTimeAsync(1000);
+
+    expect(collectionStore.OnAppOverviewChange).not.toHaveBeenCalled();
+  });
+
+  it("does nothing before an install state has been read", async () => {
+    vi.resetModules();
+    const fresh = await import("./installState");
+    fresh.correctInstallStateOnRebuild();
+
+    steamSets(102);
+    await vi.advanceTimersByTimeAsync(1000);
+
+    expect(overviews.get(102)!.per_client_data![0]).toEqual(thisMachine());
+  });
+
+  it("logs, and leaves the periodic check to it, where the map cannot be observed", () => {
+    vi.stubGlobal("appStore", { GetAppOverviewByAppID: () => null, m_mapApps: { set: vi.fn() } });
+
+    expect(() => correctInstallStateOnRebuild()).not.toThrow();
+    expect(backend.debugLog).toHaveBeenCalledWith(expect.stringContaining("cannot be observed"));
   });
 });

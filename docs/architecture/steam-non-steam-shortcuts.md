@@ -524,6 +524,15 @@ does what Steam does for a change of its own — its custom sort name copies the
 the copy in `m_mapApps`, and its overview update then calls `collectionStore.OnAppOverviewChange` (read in `sp.js`) —
 for each overview it wrote, and only those. The load-time write needs none of this: it lands before anything filters.
 
+**The rebuild is caught as it happens.** `m_mapApps` is a MobX `ObservableMap`, and its `observe_` adds a listener
+beside the map's others rather than in place of one. Measured on a Deck: at rest the map took no change in 48 seconds;
+across a suspend and resume it took 14,594, every overview set up to 14 times in waves, 5,280 of them Tender's shortcuts
+set back to installed. `correctInstallStateOnRebuild` (`frontend/src/utils/installState.ts`) observes it: a set of one
+of Tender's shortcuts whose entry lacks the state the last `applyInstallState` read starts one correction 250 ms later —
+the check above, with its republish — and the window covers the rest of that wave. A set that already has its state is
+ignored, Tender's own republished copies among them, so a correction never starts another. The 30-second check stays
+behind it, for a change that reaches an overview without the map.
+
 Roads not taken: **a listener of Tender's own on `RegisterForAppOverviewChanges`**, which writes again the moment Steam
 does — registered on a Deck, it took that registration over from the appStore: the library page failed to render and the
 start-up check found Steam's overviews gone (its "Steam collections" feature reads one). Tender registers for nothing

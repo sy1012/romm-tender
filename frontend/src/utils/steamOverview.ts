@@ -62,6 +62,16 @@ const DISPLAY_STATUS_INSTALLED = 11;
 const DISPLAY_STATUS_NOT_INSTALLED = 9;
 const THIS_MACHINE = "0";
 
+/**
+ * Whether this machine's entry in the overview already has the shape
+ * {@link writeInstallState} would give it; `true` for an overview with no such
+ * entry, which that write leaves alone.
+ */
+export function hasInstallState(overview: SteamAppOverview, installed: boolean): boolean {
+  const local = overview.per_client_data?.find((entry) => entry.clientid === THIS_MACHINE);
+  return !local || hasInstallShape(local, installed);
+}
+
 function hasInstallShape(local: SteamPerClientData, installed: boolean): boolean {
   return installed
     ? local.installed === true && local.status_percentage === 100 && local.display_status === DISPLAY_STATUS_INSTALLED

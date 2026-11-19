@@ -123,7 +123,17 @@ declare var collectionStore: {
 declare var appStore: {
   GetAppOverviewByAppID(appId: number): SteamAppOverview | null;
   // Steam's observable map of overviews; a set is what its library's watchers react to.
-  m_mapApps?: { set(appId: number, overview: SteamAppOverview): void };
+  m_mapApps?: {
+    set(appId: number, overview: SteamAppOverview): void;
+    // MobX's ObservableMap.observe_: adds a listener beside the map's others; answers its disposer.
+    observe_?(
+      listener: (change: {
+        type: "add" | "update" | "delete";
+        name: number | string;
+        newValue?: SteamAppOverview;
+      }) => void,
+    ): () => void;
+  };
   // The URLs Steam tries for a shortcut's custom images, `.jpg` before `.png`,
   // each with `?v=<rt_custom_image_mtime>`, relative to steamloopback.host
   // (measured, Desktop Mode, 2026-10-21). Candidates, not files: a URL may 404.
