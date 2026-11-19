@@ -110,6 +110,7 @@ declare var collectionStore: {
   // collection is built, so reads must guard.
   deckDesktopApps?: { apps: Map<number, any> };
   userCollections: SteamCollection[];
+  OnAppOverviewChange?(changed: SteamAppOverview[], removed: number[]): void;
   /** Steam's collections as loaded from storage; absent until that load, and read before `userCollections` for that reason. */
   m_mapCollectionsFromStorage: unknown;
   NewUnsavedCollection(tag: string, filter?: unknown, overviews?: SteamAppOverview[]): SteamCollection;
@@ -121,6 +122,8 @@ declare var collectionStore: {
 
 declare var appStore: {
   GetAppOverviewByAppID(appId: number): SteamAppOverview | null;
+  // Steam's observable map of overviews; a set is what its library's watchers react to.
+  m_mapApps?: { set(appId: number, overview: SteamAppOverview): void };
   // The URLs Steam tries for a shortcut's custom images, `.jpg` before `.png`,
   // each with `?v=<rt_custom_image_mtime>`, relative to steamloopback.host
   // (measured, Desktop Mode, 2026-10-21). Candidates, not files: a URL may 404.

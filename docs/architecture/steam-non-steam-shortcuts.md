@@ -514,6 +514,16 @@ state the last `applyInstallState` read, from memory and without a call to the b
 entry that already has the shape, so a check normally writes nothing. Started once per load, it lasts as long as the
 JavaScript context.
 
+**A write after the library has filtered is republished.** Overviews are not observable themselves — only appStore's
+`m_mapApps` map is — so a field written into one is seen only by what reads it next, and a filtered tab, TabMaster's
+Installed tab among them, keeps the result it computed when Steam rebuilt the overviews. Measured on a Deck after a
+resume: every overview read not installed again, the tab still listed them, and telling the collections alone
+(`collectionStore.OnAppOverviewChange`) changed nothing; setting one fresh copy of one overview in the map made the
+whole tab filter again. So where a check wrote any entry, `republishOverviews` (`frontend/src/utils/steamOverview.ts`)
+does what Steam does for a change of its own — its custom sort name copies the overview with `Object.assign` and sets
+the copy in `m_mapApps`, and its overview update then calls `collectionStore.OnAppOverviewChange` (read in `sp.js`) —
+for each overview it wrote, and only those. The load-time write needs none of this: it lands before anything filters.
+
 Roads not taken: **a listener of Tender's own on `RegisterForAppOverviewChanges`**, which writes again the moment Steam
 does — registered on a Deck, it took that registration over from the appStore: the library page failed to render and the
 start-up check found Steam's overviews gone (its "Steam collections" feature reads one). Tender registers for nothing

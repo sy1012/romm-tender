@@ -181,6 +181,8 @@ export const STEAM_INTERNALS: readonly SteamInternal[] = [
   { path: "appStore.GetAppOverviewByAppID().per_client_data[].installed", asked: "call", ...LIBRARY },
   { path: "appStore.GetAppOverviewByAppID().per_client_data[].status_percentage", asked: "call", ...LIBRARY },
   { path: "appStore.GetAppOverviewByAppID().per_client_data[].display_status", asked: "call", ...LIBRARY },
+  { path: "appStore.m_mapApps.set", asked: "call", ...LIBRARY },
+  { path: "collectionStore.OnAppOverviewChange", asked: "call", ...LIBRARY },
   { path: "appStore.GetAppOverviewByAppID().minutes_playtime_forever", asked: "call", ...LIBRARY },
   { path: "appStore.GetAppOverviewByAppID().minutes_playtime_last_two_weeks", asked: "call", ...CLEANUP },
   { path: "appStore.GetAppOverviewByAppID().rt_last_time_played", asked: "call", ...LIBRARY },

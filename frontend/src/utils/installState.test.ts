@@ -128,7 +128,11 @@ describe("keepInstallStateWritten", () => {
   beforeEach(() => {
     vi.useFakeTimers();
     overviews = new Map([101, 102].map((id) => [id, overview(id)]));
-    vi.stubGlobal("appStore", { GetAppOverviewByAppID: (id: number) => overviews.get(id) ?? null });
+    vi.stubGlobal("appStore", {
+      GetAppOverviewByAppID: (id: number) => overviews.get(id) ?? null,
+      m_mapApps: { set: (id: number, o: SteamAppOverview) => overviews.set(id, o) },
+    });
+    vi.stubGlobal("collectionStore", { OnAppOverviewChange: vi.fn() });
     vi.mocked(backend.getInstalledAppIds).mockResolvedValue([101]);
     vi.mocked(backend.getAppIdRomIdMap).mockResolvedValue({ "101": 1, "102": 2 });
   });
@@ -137,6 +141,43 @@ describe("keepInstallStateWritten", () => {
     vi.unstubAllGlobals();
     vi.useRealTimers();
     vi.clearAllMocks();
+  });
+
+  it("puts a fresh copy of only the overviews it wrote in Steam's map and tells the collections", async () => {
+    keepInstallStateWritten();
+    await applyInstallState();
+    steamRebuilds(102);
+    const rebuilt = overviews.get(102)!;
+    const untouched = overviews.get(101)!;
+
+    await vi.advanceTimersByTimeAsync(30_000);
+
+    expect(overviews.get(102)).not.toBe(rebuilt);
+    expect(overviews.get(102)!.per_client_data![0]!.display_status).toBe(9);
+    expect(overviews.get(101)).toBe(untouched);
+    expect(collectionStore.OnAppOverviewChange).toHaveBeenCalledTimes(1);
+    expect(collectionStore.OnAppOverviewChange).toHaveBeenCalledWith([overviews.get(102)], []);
+  });
+
+  it("still writes the state, and tells nothing, where Steam's map cannot be reached", async () => {
+    vi.stubGlobal("appStore", { GetAppOverviewByAppID: (id: number) => overviews.get(id) ?? null });
+    keepInstallStateWritten();
+    await applyInstallState();
+    steamRebuilds(102);
+
+    await vi.advanceTimersByTimeAsync(30_000);
+
+    expect(overviews.get(102)!.per_client_data![0]!.display_status).toBe(9);
+    expect(collectionStore.OnAppOverviewChange).not.toHaveBeenCalled();
+  });
+
+  it("tells nothing when every overview already has its state", async () => {
+    keepInstallStateWritten();
+    await applyInstallState();
+
+    await vi.advanceTimersByTimeAsync(30_000);
+
+    expect(collectionStore.OnAppOverviewChange).not.toHaveBeenCalled();
   });
 
   it("writes the last install state again once Steam has rebuilt an overview, without asking the backend", async () => {

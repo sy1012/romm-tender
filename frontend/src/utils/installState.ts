@@ -10,7 +10,7 @@
 
 import { debugLog, getAppIdRomIdMap, getInstalledAppIds } from "../api/backend";
 import { detach } from "./detach";
-import { overviewFor, writeInstallState } from "./steamOverview";
+import { overviewFor, republishOverviews, writeInstallState } from "./steamOverview";
 
 // The same readiness ladder as the metadata and playtime passes: appStore may
 // not hold the shortcuts yet on a cold boot.
@@ -56,10 +56,12 @@ export async function applyInstallState(options: { tenderAppIds?: readonly numbe
 
 function rewriteLastApplied(): void {
   if (!lastApplied) return;
+  const written: number[] = [];
   for (const appId of lastApplied.appIds) {
     const overview = overviewFor(appId);
-    if (overview) writeInstallState(overview, lastApplied.installed.has(appId));
+    if (overview && writeInstallState(overview, lastApplied.installed.has(appId))) written.push(appId);
   }
+  if (written.length > 0) republishOverviews(written);
 }
 
 /**

@@ -75,12 +75,12 @@ function hasInstallShape(local: SteamPerClientData, installed: boolean): boolean
  * gives an installed app, or an uninstalled one — which is what Steam's own
  * Installed filters and `appOverview.installed` read. Other clients' entries
  * are left alone, and an overview with no entry for this machine, or one whose
- * entry already has the shape, is not written.
+ * entry already has the shape, is not written. Answers whether it wrote.
  */
-export function writeInstallState(overview: SteamAppOverview, installed: boolean): void {
+export function writeInstallState(overview: SteamAppOverview, installed: boolean): boolean {
   const local = overview.per_client_data?.find((entry) => entry.clientid === THIS_MACHINE);
-  if (!local) return;
-  if (hasInstallShape(local, installed)) return;
+  if (!local) return false;
+  if (hasInstallShape(local, installed)) return false;
   stateTransaction(() => {
     if (installed) {
       local.installed = true;
@@ -92,6 +92,33 @@ export function writeInstallState(overview: SteamAppOverview, installed: boolean
       local.display_status = DISPLAY_STATUS_NOT_INSTALLED;
     }
   });
+  return true;
+}
+
+/**
+ * Put a fresh copy of each overview in appStore's map and tell the collections
+ * they changed, as Steam does for a change of its own (its custom sort name
+ * copies the overview with `Object.assign`, sets it in `m_mapApps`, and its
+ * overview update tells `collectionStore.OnAppOverviewChange` — read in
+ * `sp.js`). Overviews are not observable themselves, so a field written into
+ * one is seen only by what reads it next; a filtered tab, TabMaster's among
+ * them, keeps its result until the map changes (measured on a Deck: one copy
+ * set made the whole Installed tab filter again). Answers how many were set.
+ */
+export function republishOverviews(appIds: readonly number[]): number {
+  const apps = appStore.m_mapApps;
+  if (typeof apps?.set !== "function") return 0;
+  const copies: SteamAppOverview[] = [];
+  for (const appId of appIds) {
+    const overview = overviewFor(appId);
+    if (!overview) continue;
+    const Overview = overview.constructor as new () => SteamAppOverview;
+    const copy = Object.assign(new Overview(), overview);
+    apps.set(appId, copy);
+    copies.push(copy);
+  }
+  if (copies.length > 0) collectionStore.OnAppOverviewChange?.(copies, []);
+  return copies.length;
 }
 
 /** What the overview held before {@link writePlaytimeFields} changed it. */
