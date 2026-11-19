@@ -23,6 +23,8 @@ declare var SteamClient: {
       callback: (gameActionId: number, gameId: string, action: string, launchSource: number) => void,
     ): SteamRegistration;
     CancelGameAction(gameActionId: number): void;
+    // Steam's own appStore takes every overview update through this, as a
+    // serialized protobuf; Steam answers the registration with nothing.
   };
   GameSessions: {
     RegisterForAppLifetimeNotifications(callback: (update: SteamAppLifetimeUpdate) => void): SteamRegistration;
@@ -108,6 +110,9 @@ declare var collectionStore: {
   // collection is built, so reads must guard.
   deckDesktopApps?: { apps: Map<number, any> };
   userCollections: SteamCollection[];
+  OnAppOverviewChange?(changed: SteamAppOverview[], removed: number[]): void;
+  /** Steam's collections as loaded from storage; absent until that load, and read before `userCollections` for that reason. */
+  m_mapCollectionsFromStorage: unknown;
   NewUnsavedCollection(tag: string, filter?: unknown, overviews?: SteamAppOverview[]): SteamCollection;
   // Steam's Hidden, asked for and set apart from the user collections. Optional,
   // because neither call has been measured on a device.
@@ -117,6 +122,18 @@ declare var collectionStore: {
 
 declare var appStore: {
   GetAppOverviewByAppID(appId: number): SteamAppOverview | null;
+  // Steam's observable map of overviews; a set is what its library's watchers react to.
+  m_mapApps?: {
+    set(appId: number, overview: SteamAppOverview): void;
+    // MobX's ObservableMap.observe_: adds a listener beside the map's others; answers its disposer.
+    observe_?(
+      listener: (change: {
+        type: "add" | "update" | "delete";
+        name: number | string;
+        newValue?: SteamAppOverview;
+      }) => void,
+    ): () => void;
+  };
   // The URLs Steam tries for a shortcut's custom images, `.jpg` before `.png`,
   // each with `?v=<rt_custom_image_mtime>`, relative to steamloopback.host
   // (measured, Desktop Mode, 2026-10-21). Candidates, not files: a URL may 404.

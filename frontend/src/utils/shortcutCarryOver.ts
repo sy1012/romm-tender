@@ -20,8 +20,9 @@ import {
 import { STEAM_ASSET_TYPES } from "./artwork";
 import { writeSlotArtwork } from "./artworkSlotsStore";
 import { slotThumbnailUrls } from "./artworkThumbs";
-import { isTenderCollection } from "./collections";
+import { tenderCollectionIds } from "./collections";
 import { detach } from "./detach";
+import { recordCarriedOverHide } from "./libraryHiding";
 import { pacedForEach } from "./pacedOps";
 
 /** A `sync_stale` removal the convergence made: the shortcut that goes, and the one its game keeps. */
@@ -58,9 +59,9 @@ export async function carryOverShortcutState(removal: ConvergedRemoval): Promise
 async function carryOverCollections({ app_id, kept_app_id }: ConvergedRemoval): Promise<void> {
   const kept = appStore.GetAppOverviewByAppID(kept_app_id);
   if (!kept) return;
+  const tenders = await tenderCollectionIds();
   const collections = collectionStore.userCollections.filter(
-    (collection) =>
-      collection.apps.has(app_id) && !collection.apps.has(kept_app_id) && !isTenderCollection(collection.displayName),
+    (collection) => collection.apps.has(app_id) && !collection.apps.has(kept_app_id) && !tenders.has(collection.id),
   );
   await pacedForEach(collections, async (collection) => {
     // One collection that cannot take the app — a dynamic one may have no
@@ -74,9 +75,12 @@ async function carryOverCollections({ app_id, kept_app_id }: ConvergedRemoval): 
   });
 }
 
-function carryOverHidden({ app_id, kept_app_id }: ConvergedRemoval): void {
+async function carryOverHidden({ app_id, kept_app_id }: ConvergedRemoval): Promise<void> {
   if (typeof collectionStore.BIsHidden !== "function" || typeof collectionStore.SetAppsAsHidden !== "function") return;
   if (collectionStore.BIsHidden(app_id) && !collectionStore.BIsHidden(kept_app_id)) {
+    // Recorded before Steam is changed, as every hide of Tender's is
+    // (utils/libraryHiding.ts).
+    if (!(await recordCarriedOverHide(app_id, kept_app_id))) throw new Error("the hide could not be recorded");
     collectionStore.SetAppsAsHidden([kept_app_id], true);
   }
 }

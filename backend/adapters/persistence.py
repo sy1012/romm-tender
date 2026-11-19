@@ -83,6 +83,10 @@ DEFAULT_SETTINGS: dict[str, Any] = {
     # docs/architecture/steam-non-steam-shortcuts.md § Hiding synced games.
     "steam_library_hidden": False,
     "steam_hidden_by_tender": [],
+    # The Steam collections Tender made, as ``{id, kind, key}`` records: Tender
+    # recognises its own collections by id, never by name.
+    # docs/architecture/steam-non-steam-shortcuts.md § Collection management.
+    "steam_collections_by_tender": [],
     # The Eden AppImage the user named, an absolute path, or "" to have the
     # resolver search for one. docs/architecture/core-emulator-selection.md
     # § Which emulator source answers.

@@ -437,6 +437,10 @@ class Endpoints:
         return self._services.settings_service.save_steam_library_hiding(enabled, hidden_by_tender)
 
     @route
+    def save_steam_collections(self, records):
+        return self._services.settings_service.save_steam_collections(records)
+
+    @route
     def save_eden_appimage(self, path):
         return self._services.settings_service.save_eden_appimage(path)
 

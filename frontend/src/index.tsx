@@ -61,15 +61,16 @@ import {
   logWarn,
 } from "./api/backend";
 import {
+  adoptLegacyCollections,
   createOrUpdateCollections,
   createOrUpdateRomMCollections,
-  clearPlatformCollection,
+  keptOldNameMessage,
+  nameTakenMessage,
+  removeStaleCollections,
   saveSyncedGamesCollection,
-  getHostname,
 } from "./utils/collections";
-import { foldCollectionName } from "./utils/collectionName";
 import { applyLibraryHiding } from "./utils/libraryHiding";
-import { applyInstallState } from "./utils/installState";
+import { applyInstallState, correctInstallStateOnRebuild, keepInstallStateWritten } from "./utils/installState";
 import { setMigrationStatus } from "./utils/migrationStore";
 import { fetchSettingsResetState } from "./utils/settingsResetStore";
 import { fetchQamEntryPositionState } from "./utils/qamEntryPositionStore";
@@ -335,62 +336,6 @@ function buildSyncCompleteToast(
   return { body };
 }
 
-const ROMM_COLLECTION_NAME = /^RomM: \[([^\]]+)\]/i;
-const COLLECTION_HOST_SUFFIX = /\s\([^)]+\)$/;
-
-/** The platform a "RomM: <platform> (host)" collection is named after. */
-function platformOfCollection(displayName: string): string {
-  return displayName.slice(6).replace(COLLECTION_HOST_SUFFIX, "");
-}
-
-/** Whether a platform collection on this host no longer has a platform behind it. */
-function isStalePlatformCollection(displayName: string, suffix: string, activePlatforms: Set<string>): boolean {
-  const folded = foldCollectionName(displayName);
-  if (!folded.startsWith("romm: ") || folded.slice(6).startsWith("[")) return false;
-  if (!folded.endsWith(foldCollectionName(suffix))) return false;
-  return !activePlatforms.has(foldCollectionName(platformOfCollection(displayName)));
-}
-
-/** Whether a "RomM: [name] (host)" collection on this host no longer has a RomM collection behind it. */
-function isStaleRomMCollection(displayName: string, suffix: string, activeNames: Set<string>): boolean {
-  const folded = foldCollectionName(displayName);
-  if (!folded.startsWith("romm: [") || !folded.endsWith(foldCollectionName(suffix))) return false;
-  const match = ROMM_COLLECTION_NAME.exec(displayName);
-  return match ? !activeNames.has(foldCollectionName(match[1]!)) : false;
-}
-
-/**
- * Drop this host's RomM collections whose source is gone. Scoped by the hostname
- * suffix so a Steam-Cloud-synced collection belonging to another device is never
- * touched.
- */
-async function removeStaleCollections(
-  activePlatformNames: string[],
-  activeCollectionNames: string[],
-  signal: AbortSignal,
-): Promise<void> {
-  const hostname = await getHostname();
-  if (isPruneLeaseCancelled(signal)) return;
-  const suffix = ` (${hostname})`;
-  const activePlatforms = new Set(activePlatformNames.map(foldCollectionName));
-  for (const collection of collectionStore.userCollections.filter((candidate) =>
-    isStalePlatformCollection(candidate.displayName, suffix, activePlatforms),
-  )) {
-    const platformName = platformOfCollection(collection.displayName);
-    logInfo(`Removing stale platform collection "${collection.displayName}"`);
-    await clearPlatformCollection(platformName, signal);
-    if (isPruneLeaseCancelled(signal)) return;
-  }
-  const activeNames = new Set(activeCollectionNames.map(foldCollectionName));
-  for (const collection of collectionStore.userCollections.filter((candidate) =>
-    isStaleRomMCollection(candidate.displayName, suffix, activeNames),
-  )) {
-    logInfo(`Removing stale RomM collection "${collection.displayName}"`);
-    if (isPruneLeaseCancelled(signal)) return;
-    await collection.Delete();
-  }
-}
-
 /**
  * Say what a finished cleanup run did, leading with anything that committed a
  * Steam change without finishing: an uncertain outcome and a committed-but-
@@ -530,6 +475,8 @@ const tender = definePanel(() => {
   disownStrandedPruneLeases();
   registerGameDetailPatch();
   registerLaunchInterceptor(() => launchPromptsForThisStart(gamepadLaunchPrompts));
+  keepInstallStateWritten();
+  correctInstallStateOnRebuild();
 
   // Load metadata cache, register store patches, and populate RomM app ID set.
   // Retries with backoff if the backend isn't ready yet (e.g. boot without network).
@@ -568,6 +515,11 @@ const tender = definePanel(() => {
     // Detached so the retry's backoff doesn't delay init completion.
     detach(applyAllMetadata());
     detach(applyInstallState({ tenderAppIds: Object.keys(appIdMap).map(Number) }));
+    adoptLegacyCollections()
+      .then((keptOldName) => {
+        if (keptOldName.length > 0) showToast(keptOldNameMessage(keptOldName));
+      })
+      .catch((e) => logError(`Failed to adopt the collections an earlier version made: ${e}`));
 
     try {
       const { playtime } = await withTimeout(getAllPlaytime(), ENDPOINT_TIMEOUT);
@@ -860,16 +812,17 @@ const tender = definePanel(() => {
     };
 
     const reconcileCollections = async (signal: AbortSignal): Promise<void> => {
+      const nameTaken: string[] = [];
       try {
         if (Object.keys(data.platform_app_ids).length > 0) {
-          await createOrUpdateCollections(data.platform_app_ids, undefined, signal);
+          nameTaken.push(...(await createOrUpdateCollections(data.platform_app_ids, undefined, signal)));
         }
         if (isPruneLeaseCancelled(signal)) return;
         if (data.romm_collection_app_ids && Object.keys(data.romm_collection_app_ids).length > 0) {
-          await createOrUpdateRomMCollections(data.romm_collection_app_ids, undefined, signal);
+          nameTaken.push(...(await createOrUpdateRomMCollections(data.romm_collection_app_ids, undefined, signal)));
         }
         if (isPruneLeaseCancelled(signal)) return;
-        if (!data.cancelled && typeof collectionStore !== "undefined") {
+        if (!data.cancelled) {
           await removeStaleCollections(
             Object.keys(data.platform_app_ids),
             Object.keys(data.romm_collection_app_ids ?? {}),
@@ -878,6 +831,8 @@ const tender = definePanel(() => {
         }
       } catch (e) {
         logError(`Failed to manage RomM collections: ${e}`);
+      } finally {
+        if (nameTaken.length > 0) showToast(nameTakenMessage(nameTaken));
       }
     };
 
@@ -909,7 +864,8 @@ const tender = definePanel(() => {
       try {
         const tenderAppIds = Object.keys(await getAppIdRomIdMap()).map(Number);
         if (isPruneLeaseCancelled(signal)) return;
-        await saveSyncedGamesCollection(tenderAppIds, signal);
+        const nameTaken = await saveSyncedGamesCollection(tenderAppIds, signal);
+        if (nameTaken.length > 0) showToast(nameTakenMessage(nameTaken));
         if (isPruneLeaseCancelled(signal)) return;
         await applyLibraryHiding({ tenderAppIds });
         if (isPruneLeaseCancelled(signal)) return;

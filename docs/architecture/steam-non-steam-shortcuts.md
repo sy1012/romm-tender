@@ -247,10 +247,13 @@ same paced `RemoveShortcut` loop. Before that loop, `frontend/src/utils/shortcut
 what Steam lets a running session move:
 
 - the user's collections in `collectionStore.userCollections` that hold the removed appId, each on its own, and not
-  Tender's own `RomM: …` collections, which the run's collection maps file the kept shortcut in; that Favorites is among
-  them is not measured on a device;
+  Tender's own collections — those whose id Tender recorded (below, "Collection management") — which the run's
+  collection maps file the kept shortcut in; that Favorites is among them is not measured on a device;
 - Hidden, through `collectionStore.BIsHidden` / `SetAppsAsHidden`, which the panel reads apart from the user collections
-  and skips where Steam has neither; neither call is measured on a device;
+  and skips where Steam has neither; neither call is measured on a device. Where Tender hid the removed shortcut (its
+  appId is in `steam_hidden_by_tender`), the kept one is recorded there before it is hidden (`recordCarriedOverHide`,
+  `frontend/src/utils/libraryHiding.ts`), so switching the hiding setting off shows it again; a hide that cannot be
+  recorded is not made;
 - every image but the icon the ARTWORK read (`get_artwork_slots`) calls set in Steam on the removed shortcut, where the
   kept one has none set in Steam, read from the loopback URL Steam shows it at and written with
   `SetCustomArtworkForApp`.
@@ -500,8 +503,44 @@ readiness ladder), after every sync in the library-view pass, and whenever what 
 `romm_rom_uninstalled`, and `romm_data_changed` of type `rom_adopted`. Measured on the device with one shortcut marked
 not installed: Steam's Installed filter and TabMaster's both left it out, its game page still showed Tender's section
 and buttons, nothing offered Steam's own Install button, and Steam did not put the entry back while the library was
-used. Whether some later overview update from Steam rewrites the entry is not established; a game that has just been
-played is installed anyway, and the next load or sync writes every entry again.
+used.
+
+**Steam also rewrites the entry without a mount.** Its appStore takes every overview update through
+`SteamClient.Apps.RegisterForAppOverviewChanges`, and `UpdateAppOverview` rebuilds each overview a **full** update names
+from Steam's own data (`InitFromProto`), `per_client_data` included — read in Steam's `sp.js`. On the user's Deck every
+Tender game read as installed again after a suspend and resume, which fits Steam sending its overviews again then.
+`keepInstallStateWritten` (`frontend/src/utils/installState.ts`) therefore checks every 30 seconds and writes again the
+state the last `applyInstallState` read, from memory and without a call to the backend; `writeInstallState` skips an
+entry that already has the shape, so a check normally writes nothing. Started once per load, it lasts as long as the
+JavaScript context.
+
+**A write after the library has filtered is republished.** Overviews are not observable themselves — only appStore's
+`m_mapApps` map is — so a field written into one is seen only by what reads it next, and a filtered tab, TabMaster's
+Installed tab among them, keeps the result it computed when Steam rebuilt the overviews. Measured on a Deck after a
+resume: every overview read not installed again, the tab still listed them, and telling the collections alone
+(`collectionStore.OnAppOverviewChange`) changed nothing; setting one fresh copy of one overview in the map made the
+whole tab filter again. So where a check wrote any entry, `republishOverviews` (`frontend/src/utils/steamOverview.ts`)
+does what Steam does for a change of its own — its custom sort name copies the overview with `Object.assign` and sets
+the copy in `m_mapApps`, and its overview update then calls `collectionStore.OnAppOverviewChange` (read in `sp.js`) —
+for each overview it wrote, and only those. The load-time write needs none of this: it lands before anything filters.
+
+**The rebuild is caught as it happens.** `m_mapApps` is a MobX `ObservableMap`, and its `observe_` adds a listener
+beside the map's others rather than in place of one. Measured on a Deck: at rest the map took no change in 48 seconds;
+across a suspend and resume it took 14,594, every overview set up to 14 times in waves, 5,280 of them Tender's shortcuts
+set back to installed. `correctInstallStateOnRebuild` (`frontend/src/utils/installState.ts`) observes it: a set of one
+of Tender's shortcuts whose entry lacks the state the last `applyInstallState` read starts one correction 250 ms later —
+the check above, with its republish — and the window covers the rest of that wave. A set that already has its state is
+ignored, Tender's own republished copies among them, so a correction never starts another. The 30-second check stays
+behind it, for a change that reaches an overview without the map.
+
+Roads not taken: **a listener of Tender's own on `RegisterForAppOverviewChanges`**, which writes again the moment Steam
+does — registered on a Deck, it took that registration over from the appStore: the library page failed to render and the
+start-up check found Steam's overviews gone (its "Steam collections" feature reads one). Tender registers for nothing
+there. `SteamClient.System.RegisterForOnResumeFromSuspend`, which `@decky/ui` types, is spelled nowhere in Steam's
+current client JavaScript and was found never to fire on SteamOS ([save-file sync](save-file-sync-architecture.md),
+"Suspend exclusion via the monotonic clock"); Steam's own resume notice (`SleepManager.NotifyResumeFromSuspend`) is
+reached only through a webpack module. That a resume sends the full update is inferred from the symptom, not measured;
+the check does not depend on it.
 
 ## VDF Format Notes
 
@@ -534,7 +573,7 @@ Each entry has these key fields:
 | `LaunchOptions` | string       | The shortcut's own appId, the same for every bound shortcut, installed or not ([#2221](https://github.com/danielcopper/romm-tender/issues/2221) D7, D10); `bin/tender-rom-launcher` reads only the appId and ignores anything after it. No `romm:<id>` marker; ownership is detected by the exe path instead |
 | `appid`         | signed int32 | Assigned by Steam when `AddShortcut` runs; stored as the signed int32 form (`to_signed_app_id`)                                                                                                                                                                                                              |
 | `icon`          | string       | Icon path or hash                                                                                                                                                                                                                                                                                            |
-| `tags`          | object       | Steam collection tags. Tender manages collections via `collectionStore` (machine-scoped names like `RomM: N64 (steamdeck)`), not by writing this VDF field.                                                                                                                                                  |
+| `tags`          | object       | Steam collection tags. Tender manages collections via `collectionStore` (named like `Nintendo 64` and known by their id), not by writing this VDF field.                                                                                                                                                     |
 
 ### shortcuts.vdf is memory-authoritative
 
@@ -550,11 +589,49 @@ See: `backend/adapters/steam_config.py`
 ## Collection management
 
 Steam collections are managed entirely on the frontend via `collectionStore`, not by writing the shortcut's `tags` VDF
-field. Tender owns machine-scoped collections named `RomM: <platform> (<hostname>)` for platforms and
-`RomM: [<name>] (<hostname>)` for synced RomM collections. The `sync_complete` event carries `platform_app_ids` and
+field. Tender makes one collection per platform, named after the platform (`Game Boy Advance` — Steam shows it in
+capitals), one per synced RomM collection, named by its key (below, "Collection naming mode"), and the synced-games
+collection `RomM (<hostname>)` (below, "Hiding synced games"). The `sync_complete` event carries `platform_app_ids` and
 `romm_collection_app_ids` maps; `onSyncComplete` (`frontend/src/index.tsx`) creates/updates the collections for the maps
-it receives and then runs a **stale-collection cleanup** that deletes any `RomM: …` collection for this machine whose
-platform/collection name is absent from those maps.
+it receives and then runs a **stale-collection cleanup** (`removeStaleCollections`, `frontend/src/utils/collections.ts`)
+that deletes each of Tender's platform and RomM collections whose key is absent from those maps.
+
+**Tender knows its collections by id, never by name.** Steam gives a collection its id when it is made
+(`NewUnsavedCollection`), and Tender records it, with the collection's family (`platform`, `collection` or `synced`) and
+the key it was filed under, in `settings.json` (`steam_collections_by_tender`, written whole by
+`save_steam_collections`) **before** the collection is saved: a collection saved but never recorded would read as
+someone else's and block its own name. The list is read once per load and every change to it goes through one queue
+(`frontend/src/utils/collectionRecords.ts`), so the platform pass and the synced-games pass, which run at once, never
+save a copy missing the other's record; a change the backend could not store holds for the rest of the load and is
+stored with the next one. A sync finds a family's collection by its recorded id — whatever the collection is called now,
+so one the user renamed keeps their name — and the stale cleanup, a platform's removal (`clearPlatformCollection`) and
+**Remove all** (`clearAllRomMCollections`) delete only recorded collections, then forget them. A recorded id Steam no
+longer holds (the user deleted the collection) is forgotten and the collection made again. When the record cannot be
+read, nothing is written or deleted.
+
+**A collection Tender did not make is left alone.** Where Tender has no collection for a key and another collection
+already holds the name, compared as Steam compares names ("Name identity is case-insensitive", below), Tender makes
+nothing and files no games there: Steam's `SaveCollection` deletes every collection sharing a new collection's name,
+which is how a colliding create once lost a collection's games (read in Steam's `sp.js`). The same holds when the name
+is held by another of Tender's own collections — a platform and a RomM collection with one name. The names left alone
+are shown in one toast after the run's collection writes (`nameTakenMessage`), and logged. A collection made on another
+device and carried here by Steam Cloud is someone else's on this one, so two devices on one account each keep their own
+collections only where their names differ; that is the cost of plain names, which the host suffix used to avoid.
+
+**Collections an earlier version made are adopted once per load.** Those versions named this host's collections
+`RomM: <platform> (<hostname>)` and `RomM: [<key>] (<hostname>)`, the host compared without regard to case. The first
+collection write of a load, or the start-up pass before it (`adoptLegacyCollections`), records every unrecorded one as
+Tender's and renames it to its plain key (`displayName` set, then `Save()`, as Steam's own rename dialog does — measured
+on a Deck: the renamed collections kept their games) where no other collection holds that name; where one does, it keeps
+its old name, is still recorded and updated by id, and the start-up toast names it (`keptOldNameMessage`).
+`RomM (<hostname>)` is recorded under its own name. Another host's collections, and the unsuffixed `RomM: <platform>`
+names of the oldest versions, are not adopted and are no longer Tender's to delete. Every collection write waits for the
+adoption, so no plain-named collection is made beside the one it was about to rename. The adoption itself waits until
+Steam has loaded its collections — `collectionStore.m_mapCollectionsFromStorage` exists — before it reads
+`userCollections`: that list is a MobX computed over the map, and read before the load it throws inside Steam's own
+reaction and the library page fails to render for the rest of the session (seen on a Deck when the adoption ran at panel
+load). It polls each second for up to a minute; a store that has not loaded by then fails the adoption, which the next
+collection write starts again.
 
 `<platform>` is the `name` RomM's platform listing gives the platform, never the `custom_name` a user set in RomM, for
 every platform the run's listing names, its sync on in Tender or not: the fetcher records each listed platform's name
@@ -592,10 +669,11 @@ Two things keep synced games out of Steam's main library views while leaving the
   (`get_app_id_rom_id_map`), not just the run's `platform_app_ids`: with platform groups off, a game a collection
   brought in is in no platform's collection. It is written after every sync by `saveSyncedGamesCollection`
   (`frontend/src/utils/collections.ts`), in the same group of passes as playtime and metadata, so it waits for the run's
-  removal to report. Its name never changes and no sync deletes it, unlike the platform and RomM collections, which a
-  naming-mode change or a platform switched off deletes and recreates. A library tab built on it — TabMaster's
-  Collection filter, which has an option to include hidden games — keeps working. It is swept with the others by Remove
-  all (`clearAllRomMCollections`), and never receives a carried-over shortcut (`isTenderCollection`).
+  removal to report. It is found by its recorded id, so its name never changes — not even when the device is renamed —
+  and no sync deletes it, unlike the platform and RomM collections, which a naming-mode change or a platform switched
+  off deletes and recreates. A library tab built on it — TabMaster's Collection filter, which has an option to include
+  hidden games — keeps working. It is swept with the others by Remove all (`clearAllRomMCollections`), and never
+  receives a carried-over shortcut (`tenderCollectionIds`).
 - **Steam's Hidden flag**, behind the **Hide synced games from Steam's library** setting (off by default).
   `applyLibraryHiding` (`frontend/src/utils/libraryHiding.ts`) runs when the setting changes and after every sync. On,
   it hides every Tender shortcut not hidden yet; off, it unhides **only the appIds Tender hid**, so a game the user hid
@@ -603,30 +681,34 @@ Two things keep synced games out of Steam's main library views while leaving the
   `steam_library_hidden`), written by `save_steam_library_hiding` **before** Steam is changed: a hide Tender made but
   never recorded is one it could never undo, while a recorded hide that never happened is skipped on the way back,
   because only a shortcut still hidden is unhidden. An appId whose shortcut is no longer Tender's is dropped from the
-  list. A shortcut the sync converges onto inherits Hidden from the one it replaces (`carryOverHidden`) without being
-  recorded, so it stays hidden when the setting is switched off.
+  list. A shortcut the sync converges onto inherits Hidden from the one it replaces (`carryOverHidden`), and is recorded
+  as Tender's hide when the one it replaces was (above, "A game with more than one shortcut"), so it is shown again when
+  the setting is switched off; one the user hid stays theirs.
+
+Steam leaves a hidden app out of **Recent games** and out of a collection's own view, so hiding costs the synced games
+both; the user guide recommends a TabMaster tab on the collections instead.
 
 Whether `SetAppsAsHidden` and `BIsHidden` behave on a device as their names say has not been measured.
 
 ### Collection naming mode — `merge` vs `by_label` (#1539)
 
 The `romm_collection_app_ids` wire payload is `name → appIds` **only** — kind/virtual_type are collapsed away before the
-frontend sees them, and the frontend simply wraps each key as `RomM: [<key>] (<hostname>)`. So the Steam-collection name
-is decided **entirely by the run finalizer's dict key**, which `RunFinalizer._resolve_collection_memberships`
+frontend sees them, and the frontend names each Steam collection by its key alone. So the Steam-collection name is
+decided **entirely by the run finalizer's dict key**, which `RunFinalizer._resolve_collection_memberships`
 (`services/library/run_finalizer.py`) takes from `domain/collection_label.py::steam_collection_key` under the
 `collection_naming_mode` setting:
 
 - **`merge`** (default) — the key is the bare collection display name. Same-named RomM collections of any kind union
-  into one `RomM: [<name>]` Steam collection (RomM permits same-named collections across kinds/users, #1503).
+  into one `<name>` Steam collection (RomM permits same-named collections across kinds/users, #1503).
 - **`by_label`** (opt-in) — a standard collection (a favorites collection included) keeps the bare name as its key;
   every other kind's key is `"<name> (<Label>)"`, where the label comes from the pure `domain/collection_label.py`
   kernel. The rule: the label is a short form of the kind's row name on the Collections page — `Smart` (Smart
   collections), `Franchise` (Franchises), `IGDB Collection` (IGDB collections). A virtual collection of no known type
   falls back to its group heading's word, `Autogenerated`; the sync never writes it, since it fetches only the franchise
   and IGDB-collection types. So a hand-picked collection, a franchise and an IGDB collection that share a name become
-  `RomM: [<name>]`, `RomM: [<name> (Franchise)]` and `RomM: [<name> (IGDB Collection)]` — three Steam collections.
-  Collections whose keys match still union: two of the same name and kind, and — accepted, since it takes a name
-  spelling out another kind's label — a standard collection named `"Foo (Smart)"` with a smart one named `"Foo"`.
+  `<name>`, `<name> (Franchise)` and `<name> (IGDB Collection)` — three Steam collections. Collections whose keys match
+  still union: two of the same name and kind, and — accepted, since it takes a name spelling out another kind's label —
+  a standard collection named `"Foo (Smart)"` with a smart one named `"Foo"`.
 
 `IGDB Collection` keeps its capital C: Steam tells collection names apart without regard to case, and Tender finds an
 existing collection the same way (below), so a change of case alone would not rename a collection that already exists.
@@ -646,18 +728,17 @@ on its own. The run finalizer needs the kind/virtual_type at its union key, so `
 `CollectionMembership.kind` + `CollectionMembership.virtual_type` thread that identity through the fetcher →
 orchestrator → run finalizer.
 
-**Label-format constraint:** the reconcile parses the collection name with `/^RomM: \[([^\]]+)\]/i`
-(`frontend/src/index.tsx`), so a label must contain **no** `]` character — it sits inside the single existing bracket
-pair. Parens (`(Franchise)`) are safe; a bracket would truncate the parsed name and orphan the collection. Every
-produced label is bracket-free (asserted in `tests/domain/test_collection_label.py`).
+**No label-format constraint remains.** The panel no longer reads a key back out of a collection's name — it finds its
+collections by recorded id — so a `]` in a label would break nothing; every produced label is still bracket-free
+(asserted in `tests/domain/test_collection_label.py`).
 
 **No Force Full Sync on a mode flip.** Because the create-name and the reconcile's `activeNames` both derive from the
 same `romm_collection_app_ids` keys, flipping the mode is applied by the ordinary **complete-set reconcile** on the next
 normal sync: the run finalizer re-emits the complete set of enabled collections under the new keys, `onSyncComplete`
-creates the new-named collections and deletes any old-named collection absent from the new complete set. No skip-state
-invalidation is involved (same mechanism owner-scope reshaping uses). A change to a label reaches Steam the same way: a
-sync that reaches the collection creates it under its new name, and the first sync that finishes in full (its
-`sync_complete` carries no `cancelled`) deletes the old one — a new Steam collection, not the old one renamed.
+creates the new-named collections and deletes each recorded collection whose key is absent from the new complete set. No
+skip-state invalidation is involved (same mechanism owner-scope reshaping uses). A change to a label reaches Steam the
+same way: a sync that reaches the collection creates it under its new name, and the first sync that finishes in full
+(its `sync_complete` carries no `cancelled`) deletes the old one — a new Steam collection, not the old one renamed.
 
 **The preview names collections by the same key.** A completed run records the run finalizer's keys as its
 `collections_completed`, and the preview's `collection_diff` builds its current set with the same
@@ -669,10 +750,10 @@ another collection already carries on that side; this holds until a run complete
 standard collection over a run recorded while standard collections still carried a `(Standard)` label.
 
 **Name identity is case-insensitive (#1569).** Steam collapses collection names by a **case-insensitive** identity — two
-collections whose display names differ only in case (`RomM: [7 up]` vs `RomM: [7 Up]`) are the same Steam collection, so
-creating the second silently overwrites the first and loses its games. To match, Tender folds both names wherever it
-asks whether two names are one Steam collection, by one rule on both sides: lower case, then upper case, then lower case
-again — `fold_collection_name` (`backend/domain/collection_name.py`) on the backend, `foldCollectionName`
+collections whose display names differ only in case (`7 up` vs `7 Up`) are the same Steam collection, so creating the
+second silently overwrites the first and loses its games. To match, Tender folds both names wherever it asks whether two
+names are one Steam collection, by one rule on both sides: lower case, then upper case, then lower case again —
+`fold_collection_name` (`backend/domain/collection_name.py`) on the backend, `foldCollectionName`
 (`frontend/src/utils/collectionName.ts`) on the frontend, both tested against the names in
 `tests/domain/collection_name_folds.json`. It is that chain rather than Python's `str.casefold()`, which JavaScript has
 no counterpart for, and rather than a single lower-casing, which keeps `Straße` apart from `STRASSE`. Python and
@@ -684,15 +765,13 @@ On the delete matchers, joining more means deleting more.
 
 Where the fold applies: the run finalizer groups both `romm_collection_app_ids` and `platform_app_ids` by the folded
 key, keeping the first-seen original casing for display (which casing wins is irrelevant — every match folds both
-sides); the preview's `collection_diff` and `platform_collection_diff` compare folded names the same way; and the
-frontend create/find (`createOrUpdateCollections` / `createOrUpdateRomMCollections`), the cleanup matchers
-(`clearPlatformCollection` / `clearAllRomMCollections`) and the `onSyncComplete` stale-delete (`removeStaleCollections`,
-`frontend/src/index.tsx`) fold the whole name, the `RomM:` prefix and the host suffix included — so a case variant of
-one of this machine's names matches as that name does, while one carrying another machine's suffix does not — a hostname
-differing from this one only by case counts as this machine, as it does for Steam. This is safe because Steam's identity
-is case-insensitive: two collections differing only by case can never coexist, so there is never an ambiguous match to
-disambiguate. The DB is unaffected — `collection_sync_state` is keyed by `(collection_id, collection_kind)`, never by
-name — so there is no migration.
+sides); the preview's `collection_diff` and `platform_collection_diff` compare folded names the same way; and on the
+frontend a recorded key is matched to the run's key folded (`findRecord`), the stale cleanup compares folded keys, the
+check for another collection holding a new collection's name folds both names, and the adoption of an earlier version's
+collections folds the `RomM:` prefix and the host suffix — a hostname differing from this one only by case counts as
+this machine, as it does for Steam. This is safe because Steam's identity is case-insensitive: two collections differing
+only by case can never coexist, so there is never an ambiguous match to disambiguate. The DB is unaffected —
+`collection_sync_state` is keyed by `(collection_id, collection_kind)`, never by name — so there is no migration.
 
 ## App IDs and Artwork
 
@@ -1235,7 +1314,7 @@ Which starts are refused and with what is [Save-file sync](save-file-sync-archit
 | `frontend/src/utils/steamShortcuts.ts`                | `addShortcut()`, `removeShortcut()`, `getExistingRomMShortcuts()`, `getLiveRomMShortcutAppIds()` (raw live appId scan for the sync-start reconcile) — frontend shortcut CRUD. The existing-shortcut scan emits a sync heartbeat every 10s between batches so a large library can't stall the run past the backend's per-unit heartbeat timeout                                                                   |
 | `frontend/src/utils/syncManager.ts`                   | Listens for sync events, orchestrates shortcut creation/removal, artwork application, collection management. `reconcileStaleShortcuts()` runs the sync-start reconcile of Steam-UI-deleted shortcuts. Caches the existing-shortcut scan per run (keyed by the `sync_apply_unit` `run_id`) so it scans Steam once per run, not once per unit                                                                      |
 | `backend/services/shortcut_removal.py`                | `ShortcutRemovalService` — resolves shortcut-removal sets, unbinds removed ROMs, and runs `reconcile_live_shortcuts` (the sync-start reconcile of Steam-UI-deleted bindings)                                                                                                                                                                                                                                     |
-| `frontend/src/utils/collections.ts`                   | Machine-scoped Steam collection management                                                                                                                                                                                                                                                                                                                                                                       |
+| `frontend/src/utils/collections.ts`                   | Steam collection management: Tender's collections found by recorded id, an earlier version's adopted, another's left alone; `collectionRecords.ts` beside it keeps the recorded ids                                                                                                                                                                                                                              |
 | `frontend/src/bigpicture/patches/gameDetailPatch.tsx` | The tree patch for Steam's game page — injects RomMPlaySection for custom game detail UI. Installed on the route component's render by `installGamePagePatch.ts` ([frontend-bundles.md](frontend-bundles.md#tenders-section-on-steams-game-page))                                                                                                                                                                |
 | `frontend/src/utils/metadataPatches.ts`               | Store patches for description, associations, categories, release date display                                                                                                                                                                                                                                                                                                                                    |
 | `backend/adapters/steam_config.py`                    | `SteamConfigAdapter` — VDF read/write, grid dir, shortcut icon write, Steam Input config                                                                                                                                                                                                                                                                                                                         |

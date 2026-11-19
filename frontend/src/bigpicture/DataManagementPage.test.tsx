@@ -1673,7 +1673,11 @@ describe("DataManagementPage", () => {
     });
 
     it("warns and shows a dash and the failure line when deckDesktopApps.apps is missing", async () => {
-      vi.stubGlobal("collectionStore", { deckDesktopApps: undefined, userCollections: [] });
+      vi.stubGlobal("collectionStore", {
+        deckDesktopApps: undefined,
+        m_mapCollectionsFromStorage: new Map(),
+        userCollections: [],
+      });
       const logSpy = vi.spyOn(backend, "logWarn").mockImplementation(() => {});
       const view = await pageOn("non-steam");
 

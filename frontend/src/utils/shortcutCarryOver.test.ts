@@ -60,6 +60,12 @@ let hidden: Set<number>;
 const setArtwork = vi.fn().mockResolvedValue(undefined);
 
 beforeEach(() => {
+  vi.mocked(backend.getSettings).mockResolvedValue({
+    steam_collections_by_tender: [
+      { id: "uc-3", kind: "platform", key: "Game Boy Advance" },
+      { id: "uc-5", kind: "synced", key: "" },
+    ],
+  } as Awaited<ReturnType<typeof backend.getSettings>>);
   vi.mocked(backend.getArtworkSlots).mockReset();
   vi.mocked(backend.logWarn).mockClear();
   answerSlots(slots({}), slots({}));
@@ -67,6 +73,7 @@ beforeEach(() => {
   collections = [];
   hidden = new Set();
   vi.stubGlobal("collectionStore", {
+    m_mapCollectionsFromStorage: new Map(),
     get userCollections() {
       return collections;
     },
@@ -115,7 +122,7 @@ describe("carryOverShortcutState (#2645)", () => {
   });
 
   it("leaves Tender's own collections and one already holding the kept shortcut alone", async () => {
-    const platform = collection("uc-3", "RomM: GBA (steamdeck)", [6031]);
+    const platform = collection("uc-3", "Game Boy Advance", [6031]);
     const synced = collection("uc-5", "RomM (steamdeck)", [6031]);
     const both = collection("uc-4", "Golf games", [6031, 6030]);
     collections = [platform, synced, both];
@@ -123,6 +130,15 @@ describe("carryOverShortcutState (#2645)", () => {
     await carryOverShortcutState(REMOVAL);
 
     expect([platform.added, synced.added, both.added]).toEqual([[], [], []]);
+  });
+
+  it("knows Tender's collections by id, so one merely named like Tender's is the user's and is carried", async () => {
+    const lookalike = collection("uc-8", "RomM: [Golf] (elsewhere)", [6031]);
+    collections = [lookalike];
+
+    await carryOverShortcutState(REMOVAL);
+
+    expect(lookalike.added).toEqual([6030]);
   });
 
   it("carries the other collections when one cannot take the app", async () => {
@@ -139,6 +155,7 @@ describe("carryOverShortcutState (#2645)", () => {
 
   it("carries the collections and the artwork where Steam offers no Hidden", async () => {
     vi.stubGlobal("collectionStore", {
+      m_mapCollectionsFromStorage: new Map(),
       get userCollections() {
         return collections;
       },
@@ -160,6 +177,41 @@ describe("carryOverShortcutState (#2645)", () => {
     await carryOverShortcutState(REMOVAL);
 
     expect(hidden.has(6030)).toBe(true);
+  });
+
+  it("records the kept shortcut as hidden by Tender before hiding it, when Tender hid the removed one", async () => {
+    hidden.add(6031);
+    vi.mocked(backend.getSettings).mockResolvedValue({
+      steam_library_hidden: true,
+      steam_hidden_by_tender: [6031],
+    } as Awaited<ReturnType<typeof backend.getSettings>>);
+    vi.mocked(backend.saveSteamLibraryHiding).mockImplementation(async () => {
+      expect(hidden.has(6030)).toBe(false);
+      return { success: true };
+    });
+
+    await carryOverShortcutState(REMOVAL);
+
+    expect(backend.saveSteamLibraryHiding).toHaveBeenCalledWith(true, [6031, 6030]);
+    expect(hidden.has(6030)).toBe(true);
+  });
+
+  it("does not hide the kept shortcut when Tender's hide of it could not be recorded", async () => {
+    hidden.add(6031);
+    vi.mocked(backend.getSettings).mockResolvedValue({
+      steam_library_hidden: true,
+      steam_hidden_by_tender: [6031],
+    } as Awaited<ReturnType<typeof backend.getSettings>>);
+    vi.mocked(backend.saveSteamLibraryHiding).mockResolvedValue({
+      success: false,
+      reason: "invalid_value",
+      message: "no",
+    });
+
+    await carryOverShortcutState(REMOVAL);
+
+    expect(hidden.has(6030)).toBe(false);
+    expect(vi.mocked(backend.logWarn)).toHaveBeenCalledWith(expect.stringContaining("Hidden of appId 6031"));
   });
 
   it("leaves the kept shortcut shown when the removed one was not hidden", async () => {

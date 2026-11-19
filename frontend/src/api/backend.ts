@@ -14,6 +14,7 @@ import type {
   CollectionOwnerScope,
   CollectionNamingMode,
   QamEntryPosition,
+  TenderCollectionRecord,
   RegistryPlatform,
   FirmwareStatus,
   PlatformFirmwareStatus,
@@ -530,6 +531,12 @@ export const saveSteamLibraryHiding = endpoint<
   [boolean, number[]],
   { success: boolean; reason?: WireReason; message?: string }
 >("save_steam_library_hiding");
+// Read via getSettings().steam_collections_by_tender; the whole list is replaced
+// (utils/collectionRecords.ts).
+export const saveSteamCollections = endpoint<
+  [TenderCollectionRecord[]],
+  { success: boolean; reason?: WireReason; message?: string }
+>("save_steam_collections");
 // Read via getSettings().qam_entry_position; docs/architecture/qam-panel.md § The entry.
 export const setQamEntryPosition = endpoint<
   [QamEntryPosition],

@@ -40,6 +40,16 @@ export interface InstalledRom {
 /** Where Tender's Quick Access entry sits beside Decky Loader's (`qam/quickAccessEntry.tsx`). */
 export type QamEntryPosition = "above_decky" | "below_decky";
 
+/** Which of Tender's collection families a Steam collection Tender made belongs to. */
+export type TenderCollectionKind = "platform" | "collection" | "synced";
+
+/** One Steam collection Tender made: its Steam id, and the key the sync filed it under. */
+export interface TenderCollectionRecord {
+  id: string;
+  kind: TenderCollectionKind;
+  key: string;
+}
+
 export interface Settings {
   romm_url: string;
   has_token: boolean;
@@ -73,6 +83,10 @@ export interface Settings {
   // as off and none.
   steam_library_hidden?: boolean;
   steam_hidden_by_tender?: number[];
+  // The Steam collections Tender made, recognised by id
+  // (utils/collectionRecords.ts). Optional: older payloads / test fixtures may
+  // omit it, treated as none.
+  steam_collections_by_tender?: TenderCollectionRecord[];
   // The Eden AppImage the user named, an absolute path, or "" where the
   // resolver searches for one. Optional: older payloads / test fixtures may
   // omit it, treated as none named.
