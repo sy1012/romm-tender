@@ -112,6 +112,15 @@ game's save, and refuses rather than write over anything else. A compressed imag
 is not read, so nothing is synced for it. A PlayStation Network release may save under the ID of its disc release;
 Tender syncs the folders under the game's own ID. Upload and restore have both been observed on a Steam Deck.
 
+**PS2 syncs on PCSX2 (Standalone) with a folder memory card.** PCSX2's memory cards are one file shared by every game
+unless you convert the card in slot 1 to a **folder** card (PCSX2 › Settings › Memory Cards › Convert), which keeps each
+save as a folder of its own, named after the game (`BASLUS-20152…`). Tender reads the game's serial from the disc
+(`.iso`, `.bin`, `.img` or `.mdf`; a `.chd` or `.cso` is not read) and carries the card folders that game's saves are
+named by to RomM as one `<game>.zip`, each folder at the top, the way Argosy lays them out. A game PCSX2 files under
+another serial — a second disc saving as the first, say — is followed as PCSX2's own game list says. A card file, two
+folder cards in different slots, or a game whose saves PCSX2 looks for under several serials is not synced. Upload and
+restore have both been observed on a Steam Deck.
+
 **PS3 syncs on RPCS3 (Standalone)**, the same way: Tender reads the game's title ID (`BLUS30443`, say) — from a folder
 dump's `PS3_GAME/PARAM.SFO`, a PSN package's header or an `.iso` — and carries the folders in RPCS3's `savedata` whose
 names start with it to RomM as one `<game>.zip`, each folder at the top. Where RPCS3 has more than one user account,
@@ -150,13 +159,12 @@ outside the per-game save folder, or haven't been pinned down yet. A shared card
 other games' saves, so it doesn't fit per-game sync today. We're looking at safe ways to handle these in a future
 release.
 
-| System        | Why it doesn't sync today                                                                                                                                                                                                                         |
-| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Dreamcast     | Flycast ships with **Per-Game VMUs off**, so every game shares `vmu_save_A1.bin` and its siblings in RetroDECK's system folder. The core _can_ write per-game VMUs; the names it uses then aren't pinned down yet.                                |
-| PlayStation 2 | The LRPS2 core ships with **shared memory cards on** (`Mcd001.ps2` / `Mcd002.ps2`). With that option off it writes one `<game>.ps2` card per game — which would fit per-game sync. The PCEE2 core always writes shared cards, in the same folder. |
-| Neo Geo CD    | Ships writing one shared save. The core has a per-content mode; which one wins when loading isn't confirmed.                                                                                                                                      |
-| Arcade (MAME) | NVRAM is stored separately by the emulator, not as a file named after your ROM.                                                                                                                                                                   |
-| Amiga         | PUAE keeps an `.adf` floppy's save inside the disk image itself, so there is no separate file to carry. A `.lha` names a `WHDSaves` folder whose contents the core does not list, and an `.hdf` is not answered at all.                           |
+| System        | Why it doesn't sync today                                                                                                                                                                                               |
+| ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Dreamcast     | Flycast ships with **Per-Game VMUs off**, so every game shares `vmu_save_A1.bin` and its siblings in RetroDECK's system folder. The core _can_ write per-game VMUs; the names it uses then aren't pinned down yet.      |
+| Neo Geo CD    | Ships writing one shared save. The core has a per-content mode; which one wins when loading isn't confirmed.                                                                                                            |
+| Arcade (MAME) | NVRAM is stored separately by the emulator, not as a file named after your ROM.                                                                                                                                         |
+| Amiga         | PUAE keeps an `.adf` floppy's save inside the disk image itself, so there is no separate file to carry. A `.lha` names a `WHDSaves` folder whose contents the core does not list, and an `.hdf` is not answered at all. |
 
 ## No save data ⚪
 
@@ -207,9 +215,9 @@ states still work locally). See the full table for specifics.
     | `naomigd` | ❌ | Shared VMU card (Flycast default; the core has a per-game mode) |
     | `neogeocd` | ❌ | Shared save (the core has a per-content mode) |
     | `neogeocdjp` | ❌ | Shared save (the core has a per-content mode) |
-    | `ps2` | ❌ | Shared memory card by default (LRPS2), always (PCEE2); per-game `<game>.ps2` available as an LRPS2 core option |
     | `psp` | ✅ | PPSSPP (Standalone): the game's save folders (named by its ID) as one zip — `.iso` only |
     | `wiiu` | ✅ | Cemu (Standalone): the title's save folder, as one zip — `.wua` and folder dumps |
+    | `ps2` | ✅ | PCSX2 (Standalone) with a folder memory card: the game's save folders on the card, as one zip — `.iso`/`.bin`/`.img`/`.mdf`; a file card is shared and not synced |
     | `ps3` | ✅ | RPCS3 (Standalone): the game's save folders (named by its title ID) as one zip |
     | `pv1000` | ❌ | Saves are stored separately by the emulator (MAME) |
     | `scummvm` | ❌ | Not synced |

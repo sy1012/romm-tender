@@ -513,6 +513,17 @@ CAVEAT_PSN_SAVE_PREFIX_MAY_DIFFER = "psn-save-prefix-may-differ"
 # the ``prefix`` it matches by and the ``citation``; atlas keeps no table of
 # which game saves under which id.
 CAVEAT_PS3_SAVE_PREFIX_MAY_DIFFER = "ps3-save-prefix-may-differ"
+# The folder-name prefix a PS2 save unit matches by is B, a region letter and
+# the disc's serial (BASLUS-20152): the directory name a game hands the memory
+# card, by the platform's convention. PCSX2 shows a running game every folder
+# of its folder card whose name CONTAINS the serial (FilterMatches), which a
+# prefix states only where the folders found begin that way; the region
+# letter is read off the card's own folders where the game has saved, and by
+# the serial's convention (SLUS A, SLES E, SLPS I) only where it has not. A
+# game may still save or read under another name. Stated beside every PS2
+# unit. ``data`` carries the ``token``, the ``dir`` the unit matches in, the
+# ``prefix`` it matches by and the ``citation``.
+CAVEAT_PS2_SAVE_PREFIX_MAY_DIFFER = "ps2-save-prefix-may-differ"
 # A directory under this answer's own root that the card states and the
 # observation did not read. An observed set's groups describe the one directory
 # that was read, so a mode whose parts lie in sibling subdirectories — Kronos's
@@ -1614,9 +1625,11 @@ class SaveUnitStatement:
     path's disc names the Wii title or the GameCube game code, Eden's, where
     the content names the Switch application, and PPSSPP's, where the
     content path's disc names the PSP game's id, Azahar's, where the
-    content path's 3DS image names the title, and RPCS3's, where the content
-    path names the PS3 game's title id and one user account is established —
-    and is ``None`` on every other group.
+    content path's 3DS image names the title, RPCS3's, where the content
+    path names the PS3 game's title id and one user account is established,
+    and PCSX2's, where the content path's disc names the PS2 serial and one
+    indexed folder card is in its slots — and is ``None`` on every other
+    group.
 
     ``kind`` is :data:`SAVE_UNIT_FOLDER`, :data:`SAVE_UNIT_MEMBERS` or
     :data:`SAVE_UNIT_PREFIXED_FOLDERS` or :data:`SAVE_UNIT_ROOTED_FOLDERS`;
@@ -1643,8 +1656,9 @@ class SaveUnitStatement:
     """
     prefix: str | None = None
     """The start every member's name has, compared ASCII case-insensitively — a PSP game's
-    nine-character id such as ``ULUS10064``, or a PS3 game's title id such as ``BLUS30443`` — where
-    ``kind`` is ``own-folders-by-prefix``, and ``None`` otherwise.
+    nine-character id such as ``ULUS10064``, a PS3 game's title id such as ``BLUS30443``, or a PS2
+    save directory's start such as ``BASLUS-20152`` — where ``kind`` is ``own-folders-by-prefix``,
+    and ``None`` otherwise.
     """
     archive_roots: tuple[tuple[str, str], ...] | None = None
     """``(root, directory)`` pairs in root-name order, where ``kind`` is

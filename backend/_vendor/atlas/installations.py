@@ -208,11 +208,12 @@ from .firmware import firmware_for_core as _resolve_for_core
 from .firmware import firmware_for_system as _resolve_for_system
 from .firmware import firmware_inventory as _resolve_inventory
 from .firmware import identify_firmware as _resolve_identification
-from . import dolphin_disc, eden, n3ds_rom, ps3_title, psp_disc, switch_title, wua
+from . import dolphin_disc, eden, n3ds_rom, ps2_disc, ps3_title, psp_disc, switch_title, wua
 from .machine import (
     APPIMAGE_CAPABILITY_MISSING,
     DOLPHIN_DISC_OK,
     PSP_PARAM_SFO_MISSING,
+    PCSX2_SUPERBLOCK_FORMATTED,
     PS3_TITLE_EXECUTABLE,
     EDEN_PROFILES_OK,
     EDEN_PROFILES_UNREADABLE,
@@ -340,6 +341,7 @@ from .placement import (
     CAVEAT_ACTIVE_PROFILE_UNESTABLISHED,
     CAVEAT_PSN_SAVE_PREFIX_MAY_DIFFER,
     CAVEAT_PS3_SAVE_PREFIX_MAY_DIFFER,
+    CAVEAT_PS2_SAVE_PREFIX_MAY_DIFFER,
     HOLE_PROFILE_ID,
     TEMPLATE_PROFILE_ID,
     CAVEAT_SOFT_PATCHING_APPLIES,
@@ -13169,6 +13171,12 @@ def _pcsx2_savefile_placement(
     ``inis/PCSX2.ini`` inside. The type of every enabled card is read off the
     disk the way ``FileMcd_SetType`` reads it, so a folder card answers as
     the per-game tree it is and a file card as the shared image it is.
+
+    Where the content path is a PS2 disc whose serial atlas reads and the
+    slots hold one indexed folder card, that card's group states the game's
+    own directories there as a unit (``own-folders-by-prefix``,
+    :func:`_pcsx2_game_unit`); otherwise the answer is unchanged and the
+    reason rides its sources.
     """
     settings = _standalone_settings(card)
     data_root = homes.emulator_root(settings.bases[0], card.token)
@@ -13209,6 +13217,12 @@ def _pcsx2_savefile_placement(
     # Two slots can name one card file, and the answer states it once.
     groups, merge_caveats = _one_entry_per_file(listing.groups)
     caveats.extend(merge_caveats)
+    game = _pcsx2_game_unit(machine, card.token, groups, content_path)
+    groups = tuple(
+        _dc_replace(group, unit=game.unit) if game.unit is not None and group.dir == game.card_dir else group
+        for group in groups
+    )
+    caveats = [game.names if game.names is not None and _names_this_card(c, game.card_dir) else c for c in caveats]
     readings = (dir_reading, *listing.readings)
     if groups:
         directory = groups[0].dir
@@ -13262,8 +13276,8 @@ def _pcsx2_savefile_placement(
             complete=False,
             groups=groups,
         ),
-        sources=_card_sources(card, ((groups, _card_image_size(_PCSX2_CARD_SIZE)),)),
-        caveats=tuple(caveats),
+        sources=(*_card_sources(card, ((groups, _card_image_size(_PCSX2_CARD_SIZE)),)), *game.sources),
+        caveats=(*caveats, *game.trailing),
         physical_dir=physical,
         granularity=Granularity(
             value=groups[0].granularity if groups else GRANULARITY_NONE,
@@ -13277,6 +13291,273 @@ def _pcsx2_savefile_placement(
             ),
         ),
     )
+
+
+# How PCSX2 decides which of a folder card's directories a game sees, read at
+# v2.8.2 (fd9d310c). A folder card is indexed only behind a formatted
+# superblock (LoadMemoryCardData and IsFormatted, MemoryCardFolder.cpp:133-137,
+# :232-275), and with filtering — always on at this release — a directory
+# directly in the card is loaded only where its name CONTAINS one of the
+# filter's strings (FilterMatches :424-446, AddFolder :448-490): the disc's
+# serial, or the GameDB entry's memcardFilters where it lists any
+# (VMManager.cpp:1113, :1161), beside the shared DATA-SYSTEM and BWNETCNF
+# (:452-463). Names beginning _pcsx2_ are the card's own bookkeeping —
+# _pcsx2_superblock, _pcsx2_index, a deleted entry's _pcsx2_deleted_<name> —
+# and are never listed (GetOrderedFiles :1785; :1391).
+_PCSX2_FOLDER_FILTER_CITATION = (
+    "a folder card is indexed behind a formatted _pcsx2_superblock and shows a game the directories directly "
+    "in it whose names contain its filter — the disc's serial, or its GameDB memcardFilters — besides "
+    "DATA-SYSTEM and BWNETCNF (IsFormatted and LoadMemoryCardData, MemoryCardFolder.cpp:133-137, :232-275; "
+    "FilterMatches and AddFolder, :424-490; GetOrderedFiles skipping _pcsx2_ names, :1785; "
+    "VMManager.cpp:1113, :1161 at v2.8.2)"
+)
+_PCSX2_SERIAL_CITATION = (
+    "the BOOT2 line of the disc's SYSTEM.CNF spelled as a serial (GetPS2ElfName and ExecutablePathToSerial, "
+    "CDVD.cpp:471-575; cdvdGetDiscInfo :577-620; the flat image's layout by InputIsoFile::Detect, "
+    "InputIsoFile.cpp:245-312, and its root directory by IsoReader, IsoReader.cpp:45-308, at v2.8.2)"
+)
+_PCSX2_GAMEDB_CITATION = "VMManager.cpp:1113, :1161 at v2.8.2"
+_PCSX2_OWN_PREFIX = "_pcsx2_"
+_PCSX2_SUPERBLOCK = "_pcsx2_superblock"
+# The save directory a PS2 game names begins B, a region letter and its
+# product code; the letter by the serial's family, used only where the card
+# holds no directory of the game's to read it off.
+_PS2_SAVE_REGION_LETTERS: Mapping[str, str] = MappingProxyType(
+    {"SLUS": "A", "SCUS": "A", "SLES": "E", "SCES": "E", "SLPS": "I", "SLPM": "I", "SCPS": "I"}
+)
+_PS2_SAVE_LEAD = "B"
+
+
+@dataclass(frozen=True, slots=True)
+class _Ps2Serial:
+    """The serial PCSX2 filters a folder card by for the content path's disc, and how it was read."""
+
+    serial: str
+    basis: str
+
+
+@dataclass(frozen=True, slots=True)
+class _Pcsx2GameUnit:
+    """What a PCSX2 answer states about the asked game: the card's unit, its words, its sources.
+
+    ``card_dir`` is the folder card the unit sits on (``None`` where no unit
+    is stated), ``names`` the ``file-names-unestablished`` caveat that card's
+    replaces, ``trailing`` the caveats appended and ``sources`` the sentences
+    saying how the serial was read or why no unit stands.
+    """
+
+    unit: SaveUnitStatement | None = None
+    card_dir: str | None = None
+    names: Caveat | None = None
+    trailing: tuple[Caveat, ...] = ()
+    sources: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True, slots=True)
+class _Pcsx2Members:
+    """The game's directories on a folder card: the prefix they begin with, and whether the card showed it."""
+
+    prefix: str
+    members: tuple[str, ...]
+    observed: bool
+
+
+def _names_this_card(caveat: Caveat, card_dir: str | None) -> bool:
+    return caveat.code == CAVEAT_FILE_NAMES_UNESTABLISHED and caveat.data.get("dir") == card_dir
+
+
+def _pcsx2_serial(machine: Machine, content_path: str) -> tuple[_Ps2Serial | None, tuple[str, ...]]:
+    """The serial PCSX2 filters a folder card by for the disc at *content_path* — or ``None`` and why not.
+
+    The disc's own serial (:func:`atlas.ps2_disc.product_serial`), unless its
+    GameDB entry lists ``memcardFilters``: one serial there is the filter in
+    its place (a second disc saving as its first); several, or one that is no
+    serial, name no one prefix.
+    """
+    result = machine.read_ps2_disc(content_path)
+    if result.facts is None:
+        return None, (
+            f"the content path {content_path} was not read as a PS2 disc ({result.status}): atlas reads a flat "
+            "image's SYSTEM.CNF (.iso, .bin, .img, .mdf), and a CHD, CSO, ZSO or gzipped image is a container "
+            "PCSX2 opens and atlas does not (GetFileReader, InputIsoFile.cpp:40-57 at v2.8.2): no card folder is "
+            "established as the game's",
+        )
+    serial = ps2_disc.product_serial(result.facts)
+    if serial is None:
+        return None, (
+            f"the disc's {result.facts.disc_type.upper()} boot line {result.facts.boot!r} names no PS2 serial of "
+            f"the form SLUS-20152 ({_PCSX2_SERIAL_CITATION}), so no card folder is established as the game's",
+        )
+    basis = f"the serial {serial} is {_PCSX2_SERIAL_CITATION}"
+    filters = ps2_disc.memcard_filters(serial)
+    if filters is None:
+        return _Ps2Serial(serial, basis), ()
+    if len(filters) == 1 and ps2_disc.is_product_serial(filters[0]):
+        return _Ps2Serial(
+            filters[0],
+            f"{basis}; PCSX2's GameDB lists memcardFilters [{filters[0]}] for it, which replace the serial as "
+            f"the folder card's filter ({_PCSX2_GAMEDB_CITATION})",
+        ), ()
+    return None, (
+        basis,
+        f"PCSX2's GameDB lists memcardFilters [{', '.join(filters)}] for {serial}, which replace the serial as "
+        f"the folder card's filter ({_PCSX2_GAMEDB_CITATION}): the game sees the folders of each, and which of "
+        "them it saves under is not established, so no one prefix names its save",
+    )
+
+
+def _pcsx2_game_unit(
+    machine: Machine, token: str, groups: Sequence[FileGroup], content_path: str | None
+) -> _Pcsx2GameUnit:
+    """The asked game's own directories on the one folder card the slots hold — or why there is no unit.
+
+    Read only where the slots hold exactly one folder card (two slots on one
+    folder are one group already): with none there is no card folder to
+    state, and with several which one a game saves to is the game's choice.
+    """
+    if content_path is None:
+        return _Pcsx2GameUnit()
+    cards = [group.dir for group in groups if group.role == ROLE_MEMORY_CARD and group.files is None]
+    if not cards:
+        return _Pcsx2GameUnit()
+    if len(cards) > 1:
+        return _Pcsx2GameUnit(
+            sources=(
+                f"the slots hold {len(cards)} folder cards ({', '.join(cards)}) and a game saves to whichever "
+                "it chooses, so no one card's folders are stated as the game's",
+            )
+        )
+    (card_dir,) = cards
+    game, unread = _pcsx2_serial(machine, content_path)
+    if game is None:
+        return _Pcsx2GameUnit(sources=unread)
+    found = _pcsx2_card_members(machine, card_dir, game.serial)
+    if isinstance(found, str):
+        return _Pcsx2GameUnit(sources=(game.basis, found))
+    return _Pcsx2GameUnit(
+        unit=SaveUnitStatement(SAVE_UNIT_PREFIXED_FOLDERS, found.members, None, prefix=found.prefix),
+        card_dir=card_dir,
+        names=_pcsx2_listed_names(token, card_dir, found.prefix),
+        trailing=(_pcsx2_prefix_caveat(token, card_dir, game.serial, found),),
+        sources=(game.basis,),
+    )
+
+
+def _pcsx2_listed_names(token: str, card_dir: str, prefix: str) -> Caveat:
+    """``file-names-unestablished`` on a folder card whose game directories were listed."""
+    return Caveat(
+        CAVEAT_FILE_NAMES_UNESTABLISHED,
+        f"the game's save is the directories directly in the folder card whose names begin with {prefix} "
+        "(ASCII case aside) — B, a region letter and the serial PCSX2 filters the card by; the group's unit "
+        "names the ones there now. The files inside each are the game's own writes, so each directory moves "
+        "whole, and the card's own _pcsx2_ files stay with the card",
+        {
+            "token": token,
+            "dir": card_dir,
+            "role": ROLE_MEMORY_CARD,
+            "citation": _PCSX2_FOLDER_FILTER_CITATION,
+        },
+    )
+
+
+def _pcsx2_prefix_caveat(token: str, card_dir: str, serial: str, found: _Pcsx2Members) -> Caveat:
+    """``ps2-save-prefix-may-differ``: the game, not PCSX2, names its directories, and the letter is a reading."""
+    how = (
+        "read off the card's own directories of the game"
+        if found.observed
+        else f"taken from the convention of the serial's family, the card holding no directory of {serial} yet"
+    )
+    return Caveat(
+        CAVEAT_PS2_SAVE_PREFIX_MAY_DIFFER,
+        f"the directories begin with {found.prefix} by the platform's convention, not by PCSX2's rule: the game "
+        f"names its own directories, and PCSX2 shows it every directory whose name contains {serial} anywhere. "
+        f"The region letter was {how}. A game saving under another serial or another lead, or reading a "
+        "predecessor's saves, keeps directories the unit does not list",
+        {
+            "token": token,
+            "dir": card_dir,
+            "prefix": found.prefix,
+            "citation": _PCSX2_FOLDER_FILTER_CITATION,
+        },
+    )
+
+
+def _pcsx2_card_directories(machine: Machine, card_dir: str) -> set[str] | str:
+    """The directories directly in an indexed folder card, its own ``_pcsx2_`` entries aside — or why not."""
+    superblock = machine.read_pcsx2_superblock(os.path.join(card_dir, _PCSX2_SUPERBLOCK))
+    if superblock != PCSX2_SUPERBLOCK_FORMATTED:
+        return (
+            f"the folder card {card_dir} has no formatted {_PCSX2_SUPERBLOCK} ({superblock}), so PCSX2 indexes "
+            f"none of its directories ({_PCSX2_FOLDER_FILTER_CITATION}) and none is established as the game's"
+        )
+    names = _host_listing(machine, card_dir)
+    if names is None:
+        return f"the folder card {card_dir} could not be listed, so the game's directories in it are not established"
+    directories: set[str] = set()
+    for name in sorted(set(names)):
+        if name.startswith(_PCSX2_OWN_PREFIX):
+            continue
+        kind = machine.path_kind(os.path.join(card_dir, name))
+        if kind == KIND_INACCESSIBLE:
+            return (
+                f"{name} in the folder card {card_dir} could not be looked at, so the game's directories are not "
+                "established"
+            )
+        if kind == KIND_DIRECTORY:
+            directories.add(name)
+    return directories
+
+
+def _pcsx2_prefix(card_dir: str, serial: str, shown: Sequence[str]) -> tuple[str, bool] | str:
+    """The prefix the game's directories begin with, and whether the card showed it — or why there is none.
+
+    Where the card holds directories PCSX2 shows the game, each must begin
+    ``B``, one shared region letter and the serial, and that start is the
+    prefix; where it holds none, the letter is the serial's family's.
+    """
+    if shown:
+        leads = {name[:2] for name in shown}
+        if len(leads) == 1 and all(n.startswith(_PS2_SAVE_LEAD) and n[2:].startswith(serial) for n in shown):
+            return f"{shown[0][:2]}{serial}", True
+        return (
+            f"the folder card {card_dir} holds directories PCSX2 shows {serial} ({', '.join(shown)}) that do not "
+            f"all begin B, one region letter and {serial}, so no one prefix names the game's save"
+        )
+    letter = _PS2_SAVE_REGION_LETTERS.get(serial[:4])
+    if letter is None:
+        return (
+            f"the folder card {card_dir} holds no directory of {serial} yet, and the region letter its "
+            f"directories would carry is not established for the {serial[:4]} family, so no prefix is stated"
+        )
+    return f"{_PS2_SAVE_LEAD}{letter}{serial}", False
+
+
+def _pcsx2_card_members(machine: Machine, card_dir: str, serial: str) -> _Pcsx2Members | str:
+    """The game's directories on the folder card *card_dir* — or the sentence saying why they are not established.
+
+    The card must be indexed (a formatted superblock). The directories PCSX2
+    shows the game are those whose names contain *serial*, compared exactly
+    as ``FilterMatches`` compares; the prefix is :func:`_pcsx2_prefix`'s. The
+    members are the directories beginning with the prefix, ASCII case aside —
+    the unit's own match — and each must be one PCSX2 shows the game, or the
+    unit would claim a directory the game never sees.
+    """
+    directories = _pcsx2_card_directories(machine, card_dir)
+    if isinstance(directories, str):
+        return directories
+    shown = sorted(name for name in directories if serial in name)
+    found = _pcsx2_prefix(card_dir, serial, shown)
+    if isinstance(found, str):
+        return found
+    prefix, observed = found
+    members = tuple(sorted(name for name in directories if begins_with_prefix(name, prefix)))
+    stray = [name for name in members if name not in shown]
+    if stray:
+        return (
+            f"the folder card {card_dir} holds {', '.join(stray)}, which begins with {prefix} in another case and "
+            f"which PCSX2 does not show {serial}, so the game's directories are not established"
+        )
+    return _Pcsx2Members(prefix, members, observed)
 
 
 # ---------------------------------------------------------------------------

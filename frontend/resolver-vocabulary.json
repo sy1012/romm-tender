@@ -228,6 +228,7 @@
     "platform-unknown",
     "platform-unmapped",
     "program-not-found",
+    "ps2-save-prefix-may-differ",
     "ps3-save-prefix-may-differ",
     "psn-save-prefix-may-differ",
     "redirect-outranked",

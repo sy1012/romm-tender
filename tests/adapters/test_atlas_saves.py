@@ -39,6 +39,7 @@ from _vendor.atlas import (
     CAVEAT_EMULATOR_CONFIG_UNREADABLE,
     CAVEAT_FILE_NAMES_UNESTABLISHED,
     CAVEAT_FILENAMES_CONTENT_CONDITIONAL,
+    CAVEAT_PS2_SAVE_PREFIX_MAY_DIFFER,
     CAVEAT_PS3_SAVE_PREFIX_MAY_DIFFER,
     CAVEAT_PSN_SAVE_PREFIX_MAY_DIFFER,
     CAVEAT_REDIRECT_OUTRANKED,
@@ -2188,6 +2189,76 @@ class TestACemuSave:
         ],
     )
     def test_a_title_that_could_not_be_read_is_no_unit(self, traces, vector_name):
+        answer = self._answer(vector_name, traces)
+
+        assert answer.unit is None
+        assert answer.syncable is False
+
+
+def _pcsx2(vector_name: str, traces: list[str]) -> tuple[AtlasSaveLocationAdapter, str]:
+    """The save adapter over the recorded PCSX2 machine *vector_name*, and the content its query names."""
+    path = os.path.join(os.path.dirname(__file__), "atlas_vectors", "vectors", "machines", "pcsx2-folder-cards.json")
+    with open(path, encoding="utf-8") as handle:
+        vectors = json.load(handle)["vectors"]
+    inp = next(vector for vector in vectors if vector["name"] == vector_name)["input"]
+    sources = _sources(atlas_detect, traces, machine=fixture_machine(inp))
+    return AtlasSaveLocationAdapter(sources=sources, log_debug=traces.append), inp["entry_savefile_query"][
+        "content_path"
+    ]
+
+
+class TestAPcsx2Save:
+    """A PS2 game's saves on a PCSX2 folder card: its directories, picked by their prefix, synced as a unit."""
+
+    _CARD = "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards/Mcd001.ps2"
+
+    def _answer(self, vector_name: str, traces: list[str]):
+        adapter, content = _pcsx2(vector_name, traces)
+        return adapter.resolve_save_answer(
+            system="ps2", content_path=content, emulator_label="PCSX2 (Standalone)", content_installed=True
+        )
+
+    @pytest.mark.parametrize(
+        ("vector_name", "prefix", "members"),
+        [
+            (
+                "pcsx2-a-folder-card-names-the-games-own-directories",
+                "BASLUS-20152",
+                ("BASLUS-20152AC04", "BASLUS-20152SYS"),
+            ),
+            ("pcsx2-a-game-that-never-saved-is-a-unit-of-no-directories", "BASLUS-20152", ()),
+            (
+                "pcsx2-a-pal-disc-reads-its-region-letter-off-the-card",
+                "BESLES-50821",
+                ("BESLES-50821SAVE0", "BESLES-50821SAVE1"),
+            ),
+            (
+                "pcsx2-a-second-disc-saves-under-the-serial-its-gamedb-entry-names",
+                "BESLES-82011",
+                ("BESLES-82011DATA",),
+            ),
+        ],
+    )
+    def test_the_game_s_card_directories_are_one_unit_carrying_the_note(self, traces, vector_name, prefix, members):
+        answer = self._answer(vector_name, traces)
+
+        assert answer.state == SAVE_STATE_PER_GAME_UNIT
+        assert answer.unit == SaveUnit(root=self._CARD, members=members, prefix=prefix)
+        assert CAVEAT_PS2_SAVE_PREFIX_MAY_DIFFER in answer.caveats
+
+    @pytest.mark.parametrize(
+        "vector_name",
+        [
+            "pcsx2-several-gamedb-filters-state-no-unit",
+            "pcsx2-directories-of-two-region-letters-state-no-unit",
+            "pcsx2-an-unformatted-folder-card-states-no-unit",
+            "pcsx2-a-file-card-in-slot-one-states-no-unit",
+            "pcsx2-an-unreadable-disc-keeps-the-tree",
+            "pcsx2-a-chd-is-not-read",
+            "pcsx2-two-folder-cards-state-no-unit",
+        ],
+    )
+    def test_a_game_or_card_that_could_not_be_settled_is_no_unit(self, traces, vector_name):
         answer = self._answer(vector_name, traces)
 
         assert answer.unit is None

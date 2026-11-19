@@ -1,0 +1,1857 @@
+{
+  "family": "machines",
+  "schema": 5,
+  "spec": "DESIGN.md — installations, the machine seam, standalone save cards (issue #181)",
+  "description": "PCSX2's save answer where the question names a PS2 disc and the slots hold one folder card: the serial read from the disc's SYSTEM.CNF (atlas/ps2_disc.py), the GameDB's memcardFilters consulted, and the card's directories beginning B, the region letter and that serial stated as the game's save unit, own-folders-by-prefix — or the folder card's tree unchanged where the serial, the card or the prefix is not established.",
+  "vectors": [
+    {
+      "name": "pcsx2-a-folder-card-names-the-games-own-directories",
+      "rationale": "Slot 1 holds a folder card (a directory at Mcd001.ps2, FileMcd_SetType, MemoryCardFile.cpp:584-604 at v2.8.2) whose _pcsx2_superblock is formatted, so PCSX2 indexes it (IsFormatted, MemoryCardFolder.cpp:133-137). The question names Game.iso, whose SYSTEM.CNF says BOOT2 = cdrom0:\\SLUS_201.52;1 — the serial SLUS-20152 (ExecutablePathToSerial, CDVD.cpp:525-575). PCSX2 shows the game the card's directories whose names contain SLUS-20152 (FilterMatches, MemoryCardFolder.cpp:424-446): BASLUS-20152AC04 and BASLUS-20152SYS, both beginning BA and the serial, so the prefix is BASLUS-20152, read off the card. BESLES-50000GAME is another game's, BADATA-SYSTEM the console's shared folder, _pcsx2_deleted_BASLUS-20152OLD the card's own record of a deleted save (its _pcsx2_ names are never listed, :1785, :1391), and BASLUS-20152.txt no directory. The folder card's group carries own-folders-by-prefix, the file card in slot 2 stays the shared image it is, and ps2-save-prefix-may-differ says the game, not PCSX2, picked the prefix.",
+      "input": {
+        "home": "/home/deck",
+        "files": {
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retrodeck/retrodeck.json": "{\"paths\": {\"rd_home_path\": \"/mnt/sd/retrodeck\", \"saves_path\": \"/mnt/sd/retrodeck/saves\"}}",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retroarch/retroarch.cfg": "",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/files/retrodeck/components/es-de/share/es-de/resources/systems/linux/es_systems.xml": "<?xml version=\"1.0\"?>\n<systemList>\n  <system>\n    <name>ps2</name>\n    <fullname>Sony PlayStation 2</fullname>\n    <path>%ROMPATH%/ps2</path>\n    <extension>.iso .ISO .bin .BIN .chd .CHD</extension>\n    <command label=\"PCSX2 (Standalone)\">%EMULATOR_PCSX2% -batch %ROM%</command>\n    <platform>ps2</platform>\n  </system>\n</systemList>\n",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/PCSX2/inis/PCSX2.ini": "[Folders]\nMemoryCards = /mnt/sd/retrodeck/saves/ps2/pcsx2/memcards\n[MemoryCards]\nSlot1_Enable = true\nSlot1_Filename = Mcd001.ps2\nSlot2_Enable = true\nSlot2_Filename = Mcd002.ps2\n",
+          "/mnt/sd/retrodeck/roms/ps2/Game.iso": "disc",
+          "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards/Mcd001.ps2/_pcsx2_superblock": "superblock",
+          "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards/Mcd001.ps2/_pcsx2_index": "save",
+          "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards/Mcd001.ps2/BASLUS-20152AC04/icon.sys": "save",
+          "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards/Mcd001.ps2/BASLUS-20152AC04/_pcsx2_index": "save",
+          "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards/Mcd001.ps2/BASLUS-20152SYS/data": "save",
+          "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards/Mcd001.ps2/BESLES-50000GAME/data": "save",
+          "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards/Mcd001.ps2/BADATA-SYSTEM/history": "save",
+          "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards/Mcd001.ps2/_pcsx2_deleted_BASLUS-20152OLD/data": "save",
+          "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards/Mcd001.ps2/BASLUS-20152.txt": "save"
+        },
+        "dirs": [
+          "/mnt/sd/retrodeck/saves",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/ROMs",
+          "/mnt/sd/retrodeck/bios",
+          "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards/Mcd001.ps2"
+        ],
+        "entry_savefile_query": {
+          "system": "ps2",
+          "content_path": "/mnt/sd/retrodeck/roms/ps2/Game.iso"
+        },
+        "ps2_discs": {
+          "/mnt/sd/retrodeck/roms/ps2/Game.iso": {
+            "disc_type": "ps2",
+            "boot": "cdrom0:\\SLUS_201.52;1"
+          }
+        },
+        "pcsx2_superblocks": {
+          "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards/Mcd001.ps2/_pcsx2_superblock": "formatted"
+        }
+      },
+      "expected": {
+        "installations": [
+          {
+            "kind": "retrodeck",
+            "label": "RetroDECK",
+            "kinds": [
+              "retrodeck"
+            ],
+            "root": "/mnt/sd/retrodeck",
+            "health": []
+          }
+        ],
+        "entry_savefile_location": {
+          "dir": "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards/Mcd001.ps2",
+          "root_kind": "emulator_directory",
+          "needs": [],
+          "fallback_dir": null,
+          "physical_dir": null,
+          "file_set": {
+            "state": "declared",
+            "files": [],
+            "complete": false,
+            "groups": [
+              {
+                "dir": "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards/Mcd001.ps2",
+                "files": null,
+                "granularity": "per-game-files",
+                "role": "memory-card",
+                "size_fixed": false,
+                "unit": {
+                  "kind": "own-folders-by-prefix",
+                  "members": [
+                    "BASLUS-20152AC04",
+                    "BASLUS-20152SYS"
+                  ],
+                  "archive_folder": null,
+                  "prefix": "BASLUS-20152",
+                  "archive_roots": null
+                }
+              },
+              {
+                "dir": "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards",
+                "files": [
+                  "Mcd002.ps2"
+                ],
+                "granularity": "shared-card",
+                "role": "memory-card",
+                "size_fixed": true,
+                "unit": null
+              }
+            ]
+          },
+          "caveats": [
+            {
+              "code": "file-names-unestablished",
+              "data": {
+                "token": "PCSX2",
+                "dir": "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards/Mcd001.ps2",
+                "role": "memory-card",
+                "citation": "a folder card is indexed behind a formatted _pcsx2_superblock and shows a game the directories directly in it whose names contain its filter — the disc's serial, or its GameDB memcardFilters — besides DATA-SYSTEM and BWNETCNF (IsFormatted and LoadMemoryCardData, MemoryCardFolder.cpp:133-137, :232-275; FilterMatches and AddFolder, :424-490; GetOrderedFiles skipping _pcsx2_ names, :1785; VMManager.cpp:1113, :1161 at v2.8.2)"
+              }
+            },
+            {
+              "code": "ps2-save-prefix-may-differ",
+              "data": {
+                "token": "PCSX2",
+                "dir": "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards/Mcd001.ps2",
+                "prefix": "BASLUS-20152",
+                "citation": "a folder card is indexed behind a formatted _pcsx2_superblock and shows a game the directories directly in it whose names contain its filter — the disc's serial, or its GameDB memcardFilters — besides DATA-SYSTEM and BWNETCNF (IsFormatted and LoadMemoryCardData, MemoryCardFolder.cpp:133-137, :232-275; FilterMatches and AddFolder, :424-490; GetOrderedFiles skipping _pcsx2_ names, :1785; VMManager.cpp:1113, :1161 at v2.8.2)"
+              }
+            }
+          ],
+          "redirects": [
+            {
+              "via": "flag",
+              "name": "-datapath",
+              "argument": "<dir>",
+              "moves": [
+                "saves",
+                "savestates",
+                "configuration",
+                "firmware"
+              ]
+            },
+            {
+              "via": "variable",
+              "name": "XDG_CONFIG_HOME",
+              "argument": "<dir>",
+              "moves": [
+                "saves",
+                "savestates",
+                "configuration",
+                "firmware"
+              ]
+            }
+          ],
+          "granularity": {
+            "value": "per-game-files",
+            "mode": "folder+file",
+            "readings": [
+              {
+                "key": "MemoryCards",
+                "value": "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards",
+                "options_file": "/home/deck/.var/app/net.retrodeck.retrodeck/config/PCSX2/inis/PCSX2.ini"
+              },
+              {
+                "key": "Slot1_Enable",
+                "value": "true",
+                "options_file": "/home/deck/.var/app/net.retrodeck.retrodeck/config/PCSX2/inis/PCSX2.ini"
+              },
+              {
+                "key": "Slot1_Filename",
+                "value": "Mcd001.ps2",
+                "options_file": "/home/deck/.var/app/net.retrodeck.retrodeck/config/PCSX2/inis/PCSX2.ini"
+              },
+              {
+                "key": "Slot2_Enable",
+                "value": "true",
+                "options_file": "/home/deck/.var/app/net.retrodeck.retrodeck/config/PCSX2/inis/PCSX2.ini"
+              },
+              {
+                "key": "Slot2_Filename",
+                "value": "Mcd002.ps2",
+                "options_file": "/home/deck/.var/app/net.retrodeck.retrodeck/config/PCSX2/inis/PCSX2.ini"
+              }
+            ],
+            "alternatives": []
+          }
+        }
+      }
+    },
+    {
+      "name": "pcsx2-a-game-that-never-saved-is-a-unit-of-no-directories",
+      "rationale": "The card is indexed and holds no directory whose name contains SLUS-20152, so the game has not saved here yet. The unit is stated all the same, with no members: the prefix is BASLUS-20152, its region letter taken from the serial's family (SLUS, America) because the card shows none, and the ps2-save-prefix-may-differ caveat says so. Once the game saves, the next answer reads the letter off the card.",
+      "input": {
+        "home": "/home/deck",
+        "files": {
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retrodeck/retrodeck.json": "{\"paths\": {\"rd_home_path\": \"/mnt/sd/retrodeck\", \"saves_path\": \"/mnt/sd/retrodeck/saves\"}}",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retroarch/retroarch.cfg": "",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/files/retrodeck/components/es-de/share/es-de/resources/systems/linux/es_systems.xml": "<?xml version=\"1.0\"?>\n<systemList>\n  <system>\n    <name>ps2</name>\n    <fullname>Sony PlayStation 2</fullname>\n    <path>%ROMPATH%/ps2</path>\n    <extension>.iso .ISO .bin .BIN .chd .CHD</extension>\n    <command label=\"PCSX2 (Standalone)\">%EMULATOR_PCSX2% -batch %ROM%</command>\n    <platform>ps2</platform>\n  </system>\n</systemList>\n",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/PCSX2/inis/PCSX2.ini": "[Folders]\nMemoryCards = /mnt/sd/retrodeck/saves/ps2/pcsx2/memcards\n[MemoryCards]\nSlot1_Enable = true\nSlot1_Filename = Mcd001.ps2\nSlot2_Enable = true\nSlot2_Filename = Mcd002.ps2\n",
+          "/mnt/sd/retrodeck/roms/ps2/Game.iso": "disc",
+          "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards/Mcd001.ps2/_pcsx2_superblock": "superblock",
+          "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards/Mcd001.ps2/_pcsx2_index": "save",
+          "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards/Mcd001.ps2/BESLES-50000GAME/data": "save"
+        },
+        "dirs": [
+          "/mnt/sd/retrodeck/saves",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/ROMs",
+          "/mnt/sd/retrodeck/bios",
+          "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards/Mcd001.ps2"
+        ],
+        "entry_savefile_query": {
+          "system": "ps2",
+          "content_path": "/mnt/sd/retrodeck/roms/ps2/Game.iso"
+        },
+        "ps2_discs": {
+          "/mnt/sd/retrodeck/roms/ps2/Game.iso": {
+            "disc_type": "ps2",
+            "boot": "cdrom0:\\SLUS_201.52;1"
+          }
+        },
+        "pcsx2_superblocks": {
+          "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards/Mcd001.ps2/_pcsx2_superblock": "formatted"
+        }
+      },
+      "expected": {
+        "installations": [
+          {
+            "kind": "retrodeck",
+            "label": "RetroDECK",
+            "kinds": [
+              "retrodeck"
+            ],
+            "root": "/mnt/sd/retrodeck",
+            "health": []
+          }
+        ],
+        "entry_savefile_location": {
+          "dir": "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards/Mcd001.ps2",
+          "root_kind": "emulator_directory",
+          "needs": [],
+          "fallback_dir": null,
+          "physical_dir": null,
+          "file_set": {
+            "state": "declared",
+            "files": [],
+            "complete": false,
+            "groups": [
+              {
+                "dir": "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards/Mcd001.ps2",
+                "files": null,
+                "granularity": "per-game-files",
+                "role": "memory-card",
+                "size_fixed": false,
+                "unit": {
+                  "kind": "own-folders-by-prefix",
+                  "members": [],
+                  "archive_folder": null,
+                  "prefix": "BASLUS-20152",
+                  "archive_roots": null
+                }
+              },
+              {
+                "dir": "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards",
+                "files": [
+                  "Mcd002.ps2"
+                ],
+                "granularity": "shared-card",
+                "role": "memory-card",
+                "size_fixed": true,
+                "unit": null
+              }
+            ]
+          },
+          "caveats": [
+            {
+              "code": "file-names-unestablished",
+              "data": {
+                "token": "PCSX2",
+                "dir": "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards/Mcd001.ps2",
+                "role": "memory-card",
+                "citation": "a folder card is indexed behind a formatted _pcsx2_superblock and shows a game the directories directly in it whose names contain its filter — the disc's serial, or its GameDB memcardFilters — besides DATA-SYSTEM and BWNETCNF (IsFormatted and LoadMemoryCardData, MemoryCardFolder.cpp:133-137, :232-275; FilterMatches and AddFolder, :424-490; GetOrderedFiles skipping _pcsx2_ names, :1785; VMManager.cpp:1113, :1161 at v2.8.2)"
+              }
+            },
+            {
+              "code": "ps2-save-prefix-may-differ",
+              "data": {
+                "token": "PCSX2",
+                "dir": "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards/Mcd001.ps2",
+                "prefix": "BASLUS-20152",
+                "citation": "a folder card is indexed behind a formatted _pcsx2_superblock and shows a game the directories directly in it whose names contain its filter — the disc's serial, or its GameDB memcardFilters — besides DATA-SYSTEM and BWNETCNF (IsFormatted and LoadMemoryCardData, MemoryCardFolder.cpp:133-137, :232-275; FilterMatches and AddFolder, :424-490; GetOrderedFiles skipping _pcsx2_ names, :1785; VMManager.cpp:1113, :1161 at v2.8.2)"
+              }
+            }
+          ],
+          "redirects": [
+            {
+              "via": "flag",
+              "name": "-datapath",
+              "argument": "<dir>",
+              "moves": [
+                "saves",
+                "savestates",
+                "configuration",
+                "firmware"
+              ]
+            },
+            {
+              "via": "variable",
+              "name": "XDG_CONFIG_HOME",
+              "argument": "<dir>",
+              "moves": [
+                "saves",
+                "savestates",
+                "configuration",
+                "firmware"
+              ]
+            }
+          ],
+          "granularity": {
+            "value": "per-game-files",
+            "mode": "folder+file",
+            "readings": [
+              {
+                "key": "MemoryCards",
+                "value": "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards",
+                "options_file": "/home/deck/.var/app/net.retrodeck.retrodeck/config/PCSX2/inis/PCSX2.ini"
+              },
+              {
+                "key": "Slot1_Enable",
+                "value": "true",
+                "options_file": "/home/deck/.var/app/net.retrodeck.retrodeck/config/PCSX2/inis/PCSX2.ini"
+              },
+              {
+                "key": "Slot1_Filename",
+                "value": "Mcd001.ps2",
+                "options_file": "/home/deck/.var/app/net.retrodeck.retrodeck/config/PCSX2/inis/PCSX2.ini"
+              },
+              {
+                "key": "Slot2_Enable",
+                "value": "true",
+                "options_file": "/home/deck/.var/app/net.retrodeck.retrodeck/config/PCSX2/inis/PCSX2.ini"
+              },
+              {
+                "key": "Slot2_Filename",
+                "value": "Mcd002.ps2",
+                "options_file": "/home/deck/.var/app/net.retrodeck.retrodeck/config/PCSX2/inis/PCSX2.ini"
+              }
+            ],
+            "alternatives": []
+          }
+        }
+      }
+    },
+    {
+      "name": "pcsx2-a-pal-disc-reads-its-region-letter-off-the-card",
+      "rationale": "A PAL disc: BOOT2 = cdrom0:\\SLES_508.21;1 is the serial SLES-50821. The card holds BESLES-50821SAVE0 and BESLES-50821SAVE1, which PCSX2 shows the game; both begin BE and the serial, so the prefix is BESLES-50821. BASLUS-20152AC04 is another game's.",
+      "input": {
+        "home": "/home/deck",
+        "files": {
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retrodeck/retrodeck.json": "{\"paths\": {\"rd_home_path\": \"/mnt/sd/retrodeck\", \"saves_path\": \"/mnt/sd/retrodeck/saves\"}}",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retroarch/retroarch.cfg": "",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/files/retrodeck/components/es-de/share/es-de/resources/systems/linux/es_systems.xml": "<?xml version=\"1.0\"?>\n<systemList>\n  <system>\n    <name>ps2</name>\n    <fullname>Sony PlayStation 2</fullname>\n    <path>%ROMPATH%/ps2</path>\n    <extension>.iso .ISO .bin .BIN .chd .CHD</extension>\n    <command label=\"PCSX2 (Standalone)\">%EMULATOR_PCSX2% -batch %ROM%</command>\n    <platform>ps2</platform>\n  </system>\n</systemList>\n",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/PCSX2/inis/PCSX2.ini": "[Folders]\nMemoryCards = /mnt/sd/retrodeck/saves/ps2/pcsx2/memcards\n[MemoryCards]\nSlot1_Enable = true\nSlot1_Filename = Mcd001.ps2\nSlot2_Enable = true\nSlot2_Filename = Mcd002.ps2\n",
+          "/mnt/sd/retrodeck/roms/ps2/Pal.iso": "disc",
+          "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards/Mcd001.ps2/_pcsx2_superblock": "superblock",
+          "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards/Mcd001.ps2/BESLES-50821SAVE0/data": "save",
+          "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards/Mcd001.ps2/BESLES-50821SAVE1/data": "save",
+          "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards/Mcd001.ps2/BASLUS-20152AC04/data": "save"
+        },
+        "dirs": [
+          "/mnt/sd/retrodeck/saves",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/ROMs",
+          "/mnt/sd/retrodeck/bios",
+          "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards/Mcd001.ps2"
+        ],
+        "entry_savefile_query": {
+          "system": "ps2",
+          "content_path": "/mnt/sd/retrodeck/roms/ps2/Pal.iso"
+        },
+        "ps2_discs": {
+          "/mnt/sd/retrodeck/roms/ps2/Pal.iso": {
+            "disc_type": "ps2",
+            "boot": "cdrom0:\\SLES_508.21;1"
+          }
+        },
+        "pcsx2_superblocks": {
+          "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards/Mcd001.ps2/_pcsx2_superblock": "formatted"
+        }
+      },
+      "expected": {
+        "installations": [
+          {
+            "kind": "retrodeck",
+            "label": "RetroDECK",
+            "kinds": [
+              "retrodeck"
+            ],
+            "root": "/mnt/sd/retrodeck",
+            "health": []
+          }
+        ],
+        "entry_savefile_location": {
+          "dir": "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards/Mcd001.ps2",
+          "root_kind": "emulator_directory",
+          "needs": [],
+          "fallback_dir": null,
+          "physical_dir": null,
+          "file_set": {
+            "state": "declared",
+            "files": [],
+            "complete": false,
+            "groups": [
+              {
+                "dir": "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards/Mcd001.ps2",
+                "files": null,
+                "granularity": "per-game-files",
+                "role": "memory-card",
+                "size_fixed": false,
+                "unit": {
+                  "kind": "own-folders-by-prefix",
+                  "members": [
+                    "BESLES-50821SAVE0",
+                    "BESLES-50821SAVE1"
+                  ],
+                  "archive_folder": null,
+                  "prefix": "BESLES-50821",
+                  "archive_roots": null
+                }
+              },
+              {
+                "dir": "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards",
+                "files": [
+                  "Mcd002.ps2"
+                ],
+                "granularity": "shared-card",
+                "role": "memory-card",
+                "size_fixed": true,
+                "unit": null
+              }
+            ]
+          },
+          "caveats": [
+            {
+              "code": "file-names-unestablished",
+              "data": {
+                "token": "PCSX2",
+                "dir": "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards/Mcd001.ps2",
+                "role": "memory-card",
+                "citation": "a folder card is indexed behind a formatted _pcsx2_superblock and shows a game the directories directly in it whose names contain its filter — the disc's serial, or its GameDB memcardFilters — besides DATA-SYSTEM and BWNETCNF (IsFormatted and LoadMemoryCardData, MemoryCardFolder.cpp:133-137, :232-275; FilterMatches and AddFolder, :424-490; GetOrderedFiles skipping _pcsx2_ names, :1785; VMManager.cpp:1113, :1161 at v2.8.2)"
+              }
+            },
+            {
+              "code": "ps2-save-prefix-may-differ",
+              "data": {
+                "token": "PCSX2",
+                "dir": "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards/Mcd001.ps2",
+                "prefix": "BESLES-50821",
+                "citation": "a folder card is indexed behind a formatted _pcsx2_superblock and shows a game the directories directly in it whose names contain its filter — the disc's serial, or its GameDB memcardFilters — besides DATA-SYSTEM and BWNETCNF (IsFormatted and LoadMemoryCardData, MemoryCardFolder.cpp:133-137, :232-275; FilterMatches and AddFolder, :424-490; GetOrderedFiles skipping _pcsx2_ names, :1785; VMManager.cpp:1113, :1161 at v2.8.2)"
+              }
+            }
+          ],
+          "redirects": [
+            {
+              "via": "flag",
+              "name": "-datapath",
+              "argument": "<dir>",
+              "moves": [
+                "saves",
+                "savestates",
+                "configuration",
+                "firmware"
+              ]
+            },
+            {
+              "via": "variable",
+              "name": "XDG_CONFIG_HOME",
+              "argument": "<dir>",
+              "moves": [
+                "saves",
+                "savestates",
+                "configuration",
+                "firmware"
+              ]
+            }
+          ],
+          "granularity": {
+            "value": "per-game-files",
+            "mode": "folder+file",
+            "readings": [
+              {
+                "key": "MemoryCards",
+                "value": "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards",
+                "options_file": "/home/deck/.var/app/net.retrodeck.retrodeck/config/PCSX2/inis/PCSX2.ini"
+              },
+              {
+                "key": "Slot1_Enable",
+                "value": "true",
+                "options_file": "/home/deck/.var/app/net.retrodeck.retrodeck/config/PCSX2/inis/PCSX2.ini"
+              },
+              {
+                "key": "Slot1_Filename",
+                "value": "Mcd001.ps2",
+                "options_file": "/home/deck/.var/app/net.retrodeck.retrodeck/config/PCSX2/inis/PCSX2.ini"
+              },
+              {
+                "key": "Slot2_Enable",
+                "value": "true",
+                "options_file": "/home/deck/.var/app/net.retrodeck.retrodeck/config/PCSX2/inis/PCSX2.ini"
+              },
+              {
+                "key": "Slot2_Filename",
+                "value": "Mcd002.ps2",
+                "options_file": "/home/deck/.var/app/net.retrodeck.retrodeck/config/PCSX2/inis/PCSX2.ini"
+              }
+            ],
+            "alternatives": []
+          }
+        }
+      }
+    },
+    {
+      "name": "pcsx2-an-ntsc-j-disc-states-the-bi-prefix",
+      "rationale": "An NTSC-J disc, its BOOT2 line spelled in lower case and without a version: cdrom0:\\slpm_652.86 is the serial SLPM-65286, upper-cased by ExecutablePathToSerial. The card holds BISLPM-65286SYS and BISLPM-65286NET, both beginning BI and the serial, so the prefix is BISLPM-65286.",
+      "input": {
+        "home": "/home/deck",
+        "files": {
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retrodeck/retrodeck.json": "{\"paths\": {\"rd_home_path\": \"/mnt/sd/retrodeck\", \"saves_path\": \"/mnt/sd/retrodeck/saves\"}}",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retroarch/retroarch.cfg": "",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/files/retrodeck/components/es-de/share/es-de/resources/systems/linux/es_systems.xml": "<?xml version=\"1.0\"?>\n<systemList>\n  <system>\n    <name>ps2</name>\n    <fullname>Sony PlayStation 2</fullname>\n    <path>%ROMPATH%/ps2</path>\n    <extension>.iso .ISO .bin .BIN .chd .CHD</extension>\n    <command label=\"PCSX2 (Standalone)\">%EMULATOR_PCSX2% -batch %ROM%</command>\n    <platform>ps2</platform>\n  </system>\n</systemList>\n",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/PCSX2/inis/PCSX2.ini": "[Folders]\nMemoryCards = /mnt/sd/retrodeck/saves/ps2/pcsx2/memcards\n[MemoryCards]\nSlot1_Enable = true\nSlot1_Filename = Mcd001.ps2\nSlot2_Enable = true\nSlot2_Filename = Mcd002.ps2\n",
+          "/mnt/sd/retrodeck/roms/ps2/Japan.bin": "disc",
+          "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards/Mcd001.ps2/_pcsx2_superblock": "superblock",
+          "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards/Mcd001.ps2/BISLPM-65286SYS/data": "save",
+          "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards/Mcd001.ps2/BISLPM-65286NET/data": "save"
+        },
+        "dirs": [
+          "/mnt/sd/retrodeck/saves",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/ROMs",
+          "/mnt/sd/retrodeck/bios",
+          "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards/Mcd001.ps2"
+        ],
+        "entry_savefile_query": {
+          "system": "ps2",
+          "content_path": "/mnt/sd/retrodeck/roms/ps2/Japan.bin"
+        },
+        "ps2_discs": {
+          "/mnt/sd/retrodeck/roms/ps2/Japan.bin": {
+            "disc_type": "ps2",
+            "boot": "cdrom0:\\slpm_652.86"
+          }
+        },
+        "pcsx2_superblocks": {
+          "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards/Mcd001.ps2/_pcsx2_superblock": "formatted"
+        }
+      },
+      "expected": {
+        "installations": [
+          {
+            "kind": "retrodeck",
+            "label": "RetroDECK",
+            "kinds": [
+              "retrodeck"
+            ],
+            "root": "/mnt/sd/retrodeck",
+            "health": []
+          }
+        ],
+        "entry_savefile_location": {
+          "dir": "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards/Mcd001.ps2",
+          "root_kind": "emulator_directory",
+          "needs": [],
+          "fallback_dir": null,
+          "physical_dir": null,
+          "file_set": {
+            "state": "declared",
+            "files": [],
+            "complete": false,
+            "groups": [
+              {
+                "dir": "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards/Mcd001.ps2",
+                "files": null,
+                "granularity": "per-game-files",
+                "role": "memory-card",
+                "size_fixed": false,
+                "unit": {
+                  "kind": "own-folders-by-prefix",
+                  "members": [
+                    "BISLPM-65286NET",
+                    "BISLPM-65286SYS"
+                  ],
+                  "archive_folder": null,
+                  "prefix": "BISLPM-65286",
+                  "archive_roots": null
+                }
+              },
+              {
+                "dir": "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards",
+                "files": [
+                  "Mcd002.ps2"
+                ],
+                "granularity": "shared-card",
+                "role": "memory-card",
+                "size_fixed": true,
+                "unit": null
+              }
+            ]
+          },
+          "caveats": [
+            {
+              "code": "file-names-unestablished",
+              "data": {
+                "token": "PCSX2",
+                "dir": "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards/Mcd001.ps2",
+                "role": "memory-card",
+                "citation": "a folder card is indexed behind a formatted _pcsx2_superblock and shows a game the directories directly in it whose names contain its filter — the disc's serial, or its GameDB memcardFilters — besides DATA-SYSTEM and BWNETCNF (IsFormatted and LoadMemoryCardData, MemoryCardFolder.cpp:133-137, :232-275; FilterMatches and AddFolder, :424-490; GetOrderedFiles skipping _pcsx2_ names, :1785; VMManager.cpp:1113, :1161 at v2.8.2)"
+              }
+            },
+            {
+              "code": "ps2-save-prefix-may-differ",
+              "data": {
+                "token": "PCSX2",
+                "dir": "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards/Mcd001.ps2",
+                "prefix": "BISLPM-65286",
+                "citation": "a folder card is indexed behind a formatted _pcsx2_superblock and shows a game the directories directly in it whose names contain its filter — the disc's serial, or its GameDB memcardFilters — besides DATA-SYSTEM and BWNETCNF (IsFormatted and LoadMemoryCardData, MemoryCardFolder.cpp:133-137, :232-275; FilterMatches and AddFolder, :424-490; GetOrderedFiles skipping _pcsx2_ names, :1785; VMManager.cpp:1113, :1161 at v2.8.2)"
+              }
+            }
+          ],
+          "redirects": [
+            {
+              "via": "flag",
+              "name": "-datapath",
+              "argument": "<dir>",
+              "moves": [
+                "saves",
+                "savestates",
+                "configuration",
+                "firmware"
+              ]
+            },
+            {
+              "via": "variable",
+              "name": "XDG_CONFIG_HOME",
+              "argument": "<dir>",
+              "moves": [
+                "saves",
+                "savestates",
+                "configuration",
+                "firmware"
+              ]
+            }
+          ],
+          "granularity": {
+            "value": "per-game-files",
+            "mode": "folder+file",
+            "readings": [
+              {
+                "key": "MemoryCards",
+                "value": "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards",
+                "options_file": "/home/deck/.var/app/net.retrodeck.retrodeck/config/PCSX2/inis/PCSX2.ini"
+              },
+              {
+                "key": "Slot1_Enable",
+                "value": "true",
+                "options_file": "/home/deck/.var/app/net.retrodeck.retrodeck/config/PCSX2/inis/PCSX2.ini"
+              },
+              {
+                "key": "Slot1_Filename",
+                "value": "Mcd001.ps2",
+                "options_file": "/home/deck/.var/app/net.retrodeck.retrodeck/config/PCSX2/inis/PCSX2.ini"
+              },
+              {
+                "key": "Slot2_Enable",
+                "value": "true",
+                "options_file": "/home/deck/.var/app/net.retrodeck.retrodeck/config/PCSX2/inis/PCSX2.ini"
+              },
+              {
+                "key": "Slot2_Filename",
+                "value": "Mcd002.ps2",
+                "options_file": "/home/deck/.var/app/net.retrodeck.retrodeck/config/PCSX2/inis/PCSX2.ini"
+              }
+            ],
+            "alternatives": []
+          }
+        }
+      }
+    },
+    {
+      "name": "pcsx2-a-second-disc-saves-under-the-serial-its-gamedb-entry-names",
+      "rationale": "SLES-82012 is the second disc of a two-disc release, and PCSX2's GameDB lists memcardFilters [SLES-82011] for it (bin/resources/GameIndex.yaml at fd9d310c), which replace the serial as the folder card's filter (VMManager.cpp:1113, :1161): the game sees the first disc's directories, so the prefix is BESLES-82011 and BESLES-82011DATA is the member.",
+      "input": {
+        "home": "/home/deck",
+        "files": {
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retrodeck/retrodeck.json": "{\"paths\": {\"rd_home_path\": \"/mnt/sd/retrodeck\", \"saves_path\": \"/mnt/sd/retrodeck/saves\"}}",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retroarch/retroarch.cfg": "",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/files/retrodeck/components/es-de/share/es-de/resources/systems/linux/es_systems.xml": "<?xml version=\"1.0\"?>\n<systemList>\n  <system>\n    <name>ps2</name>\n    <fullname>Sony PlayStation 2</fullname>\n    <path>%ROMPATH%/ps2</path>\n    <extension>.iso .ISO .bin .BIN .chd .CHD</extension>\n    <command label=\"PCSX2 (Standalone)\">%EMULATOR_PCSX2% -batch %ROM%</command>\n    <platform>ps2</platform>\n  </system>\n</systemList>\n",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/PCSX2/inis/PCSX2.ini": "[Folders]\nMemoryCards = /mnt/sd/retrodeck/saves/ps2/pcsx2/memcards\n[MemoryCards]\nSlot1_Enable = true\nSlot1_Filename = Mcd001.ps2\nSlot2_Enable = true\nSlot2_Filename = Mcd002.ps2\n",
+          "/mnt/sd/retrodeck/roms/ps2/Disc2.iso": "disc",
+          "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards/Mcd001.ps2/_pcsx2_superblock": "superblock",
+          "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards/Mcd001.ps2/BESLES-82011DATA/data": "save"
+        },
+        "dirs": [
+          "/mnt/sd/retrodeck/saves",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/ROMs",
+          "/mnt/sd/retrodeck/bios",
+          "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards/Mcd001.ps2"
+        ],
+        "entry_savefile_query": {
+          "system": "ps2",
+          "content_path": "/mnt/sd/retrodeck/roms/ps2/Disc2.iso"
+        },
+        "ps2_discs": {
+          "/mnt/sd/retrodeck/roms/ps2/Disc2.iso": {
+            "disc_type": "ps2",
+            "boot": "cdrom0:\\SLES_820.12;1"
+          }
+        },
+        "pcsx2_superblocks": {
+          "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards/Mcd001.ps2/_pcsx2_superblock": "formatted"
+        }
+      },
+      "expected": {
+        "installations": [
+          {
+            "kind": "retrodeck",
+            "label": "RetroDECK",
+            "kinds": [
+              "retrodeck"
+            ],
+            "root": "/mnt/sd/retrodeck",
+            "health": []
+          }
+        ],
+        "entry_savefile_location": {
+          "dir": "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards/Mcd001.ps2",
+          "root_kind": "emulator_directory",
+          "needs": [],
+          "fallback_dir": null,
+          "physical_dir": null,
+          "file_set": {
+            "state": "declared",
+            "files": [],
+            "complete": false,
+            "groups": [
+              {
+                "dir": "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards/Mcd001.ps2",
+                "files": null,
+                "granularity": "per-game-files",
+                "role": "memory-card",
+                "size_fixed": false,
+                "unit": {
+                  "kind": "own-folders-by-prefix",
+                  "members": [
+                    "BESLES-82011DATA"
+                  ],
+                  "archive_folder": null,
+                  "prefix": "BESLES-82011",
+                  "archive_roots": null
+                }
+              },
+              {
+                "dir": "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards",
+                "files": [
+                  "Mcd002.ps2"
+                ],
+                "granularity": "shared-card",
+                "role": "memory-card",
+                "size_fixed": true,
+                "unit": null
+              }
+            ]
+          },
+          "caveats": [
+            {
+              "code": "file-names-unestablished",
+              "data": {
+                "token": "PCSX2",
+                "dir": "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards/Mcd001.ps2",
+                "role": "memory-card",
+                "citation": "a folder card is indexed behind a formatted _pcsx2_superblock and shows a game the directories directly in it whose names contain its filter — the disc's serial, or its GameDB memcardFilters — besides DATA-SYSTEM and BWNETCNF (IsFormatted and LoadMemoryCardData, MemoryCardFolder.cpp:133-137, :232-275; FilterMatches and AddFolder, :424-490; GetOrderedFiles skipping _pcsx2_ names, :1785; VMManager.cpp:1113, :1161 at v2.8.2)"
+              }
+            },
+            {
+              "code": "ps2-save-prefix-may-differ",
+              "data": {
+                "token": "PCSX2",
+                "dir": "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards/Mcd001.ps2",
+                "prefix": "BESLES-82011",
+                "citation": "a folder card is indexed behind a formatted _pcsx2_superblock and shows a game the directories directly in it whose names contain its filter — the disc's serial, or its GameDB memcardFilters — besides DATA-SYSTEM and BWNETCNF (IsFormatted and LoadMemoryCardData, MemoryCardFolder.cpp:133-137, :232-275; FilterMatches and AddFolder, :424-490; GetOrderedFiles skipping _pcsx2_ names, :1785; VMManager.cpp:1113, :1161 at v2.8.2)"
+              }
+            }
+          ],
+          "redirects": [
+            {
+              "via": "flag",
+              "name": "-datapath",
+              "argument": "<dir>",
+              "moves": [
+                "saves",
+                "savestates",
+                "configuration",
+                "firmware"
+              ]
+            },
+            {
+              "via": "variable",
+              "name": "XDG_CONFIG_HOME",
+              "argument": "<dir>",
+              "moves": [
+                "saves",
+                "savestates",
+                "configuration",
+                "firmware"
+              ]
+            }
+          ],
+          "granularity": {
+            "value": "per-game-files",
+            "mode": "folder+file",
+            "readings": [
+              {
+                "key": "MemoryCards",
+                "value": "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards",
+                "options_file": "/home/deck/.var/app/net.retrodeck.retrodeck/config/PCSX2/inis/PCSX2.ini"
+              },
+              {
+                "key": "Slot1_Enable",
+                "value": "true",
+                "options_file": "/home/deck/.var/app/net.retrodeck.retrodeck/config/PCSX2/inis/PCSX2.ini"
+              },
+              {
+                "key": "Slot1_Filename",
+                "value": "Mcd001.ps2",
+                "options_file": "/home/deck/.var/app/net.retrodeck.retrodeck/config/PCSX2/inis/PCSX2.ini"
+              },
+              {
+                "key": "Slot2_Enable",
+                "value": "true",
+                "options_file": "/home/deck/.var/app/net.retrodeck.retrodeck/config/PCSX2/inis/PCSX2.ini"
+              },
+              {
+                "key": "Slot2_Filename",
+                "value": "Mcd002.ps2",
+                "options_file": "/home/deck/.var/app/net.retrodeck.retrodeck/config/PCSX2/inis/PCSX2.ini"
+              }
+            ],
+            "alternatives": []
+          }
+        }
+      }
+    },
+    {
+      "name": "pcsx2-several-gamedb-filters-state-no-unit",
+      "rationale": "SLUS-20719's GameDB entry lists memcardFilters [SLUS-20719, PSCD10088]: PCSX2 shows the game the folders of both, and which it saves under is not established, so no prefix names its save. The folder card stays the tree it is, its names refused; the reason rides sources.",
+      "input": {
+        "home": "/home/deck",
+        "files": {
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retrodeck/retrodeck.json": "{\"paths\": {\"rd_home_path\": \"/mnt/sd/retrodeck\", \"saves_path\": \"/mnt/sd/retrodeck/saves\"}}",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retroarch/retroarch.cfg": "",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/files/retrodeck/components/es-de/share/es-de/resources/systems/linux/es_systems.xml": "<?xml version=\"1.0\"?>\n<systemList>\n  <system>\n    <name>ps2</name>\n    <fullname>Sony PlayStation 2</fullname>\n    <path>%ROMPATH%/ps2</path>\n    <extension>.iso .ISO .bin .BIN .chd .CHD</extension>\n    <command label=\"PCSX2 (Standalone)\">%EMULATOR_PCSX2% -batch %ROM%</command>\n    <platform>ps2</platform>\n  </system>\n</systemList>\n",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/PCSX2/inis/PCSX2.ini": "[Folders]\nMemoryCards = /mnt/sd/retrodeck/saves/ps2/pcsx2/memcards\n[MemoryCards]\nSlot1_Enable = true\nSlot1_Filename = Mcd001.ps2\nSlot2_Enable = true\nSlot2_Filename = Mcd002.ps2\n",
+          "/mnt/sd/retrodeck/roms/ps2/Filtered.iso": "disc",
+          "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards/Mcd001.ps2/_pcsx2_superblock": "superblock",
+          "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards/Mcd001.ps2/BASLUS-20719SAVE/data": "save"
+        },
+        "dirs": [
+          "/mnt/sd/retrodeck/saves",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/ROMs",
+          "/mnt/sd/retrodeck/bios",
+          "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards/Mcd001.ps2"
+        ],
+        "entry_savefile_query": {
+          "system": "ps2",
+          "content_path": "/mnt/sd/retrodeck/roms/ps2/Filtered.iso"
+        },
+        "ps2_discs": {
+          "/mnt/sd/retrodeck/roms/ps2/Filtered.iso": {
+            "disc_type": "ps2",
+            "boot": "cdrom0:\\SLUS_207.19;1"
+          }
+        },
+        "pcsx2_superblocks": {
+          "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards/Mcd001.ps2/_pcsx2_superblock": "formatted"
+        }
+      },
+      "expected": {
+        "installations": [
+          {
+            "kind": "retrodeck",
+            "label": "RetroDECK",
+            "kinds": [
+              "retrodeck"
+            ],
+            "root": "/mnt/sd/retrodeck",
+            "health": []
+          }
+        ],
+        "entry_savefile_location": {
+          "dir": "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards/Mcd001.ps2",
+          "root_kind": "emulator_directory",
+          "needs": [],
+          "fallback_dir": null,
+          "physical_dir": null,
+          "file_set": {
+            "state": "declared",
+            "files": [],
+            "complete": false,
+            "groups": [
+              {
+                "dir": "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards/Mcd001.ps2",
+                "files": null,
+                "granularity": "per-game-files",
+                "role": "memory-card",
+                "size_fixed": false,
+                "unit": null
+              },
+              {
+                "dir": "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards",
+                "files": [
+                  "Mcd002.ps2"
+                ],
+                "granularity": "shared-card",
+                "role": "memory-card",
+                "size_fixed": true,
+                "unit": null
+              }
+            ]
+          },
+          "caveats": [
+            {
+              "code": "file-names-unestablished",
+              "data": {
+                "token": "PCSX2",
+                "dir": "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards/Mcd001.ps2",
+                "role": "memory-card",
+                "citation": "FileMcd_SetType, MemoryCardFile.cpp:584-604 at v2.8.2 — a directory at the card's full path is MemoryCardType::Folder (its filtering always on: SetFiltering(true), MemoryCardFile.cpp:614, and FileMcd_ReIndex passing true, :826)"
+              }
+            }
+          ],
+          "redirects": [
+            {
+              "via": "flag",
+              "name": "-datapath",
+              "argument": "<dir>",
+              "moves": [
+                "saves",
+                "savestates",
+                "configuration",
+                "firmware"
+              ]
+            },
+            {
+              "via": "variable",
+              "name": "XDG_CONFIG_HOME",
+              "argument": "<dir>",
+              "moves": [
+                "saves",
+                "savestates",
+                "configuration",
+                "firmware"
+              ]
+            }
+          ],
+          "granularity": {
+            "value": "per-game-files",
+            "mode": "folder+file",
+            "readings": [
+              {
+                "key": "MemoryCards",
+                "value": "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards",
+                "options_file": "/home/deck/.var/app/net.retrodeck.retrodeck/config/PCSX2/inis/PCSX2.ini"
+              },
+              {
+                "key": "Slot1_Enable",
+                "value": "true",
+                "options_file": "/home/deck/.var/app/net.retrodeck.retrodeck/config/PCSX2/inis/PCSX2.ini"
+              },
+              {
+                "key": "Slot1_Filename",
+                "value": "Mcd001.ps2",
+                "options_file": "/home/deck/.var/app/net.retrodeck.retrodeck/config/PCSX2/inis/PCSX2.ini"
+              },
+              {
+                "key": "Slot2_Enable",
+                "value": "true",
+                "options_file": "/home/deck/.var/app/net.retrodeck.retrodeck/config/PCSX2/inis/PCSX2.ini"
+              },
+              {
+                "key": "Slot2_Filename",
+                "value": "Mcd002.ps2",
+                "options_file": "/home/deck/.var/app/net.retrodeck.retrodeck/config/PCSX2/inis/PCSX2.ini"
+              }
+            ],
+            "alternatives": []
+          }
+        }
+      }
+    },
+    {
+      "name": "pcsx2-directories-of-two-region-letters-state-no-unit",
+      "rationale": "The card holds BASLUS-20152AC04 and BESLUS-20152AC04, both shown to SLUS-20152 by PCSX2 (each contains the serial), under two region letters. No one prefix covers what the game sees, so no unit is stated.",
+      "input": {
+        "home": "/home/deck",
+        "files": {
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retrodeck/retrodeck.json": "{\"paths\": {\"rd_home_path\": \"/mnt/sd/retrodeck\", \"saves_path\": \"/mnt/sd/retrodeck/saves\"}}",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retroarch/retroarch.cfg": "",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/files/retrodeck/components/es-de/share/es-de/resources/systems/linux/es_systems.xml": "<?xml version=\"1.0\"?>\n<systemList>\n  <system>\n    <name>ps2</name>\n    <fullname>Sony PlayStation 2</fullname>\n    <path>%ROMPATH%/ps2</path>\n    <extension>.iso .ISO .bin .BIN .chd .CHD</extension>\n    <command label=\"PCSX2 (Standalone)\">%EMULATOR_PCSX2% -batch %ROM%</command>\n    <platform>ps2</platform>\n  </system>\n</systemList>\n",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/PCSX2/inis/PCSX2.ini": "[Folders]\nMemoryCards = /mnt/sd/retrodeck/saves/ps2/pcsx2/memcards\n[MemoryCards]\nSlot1_Enable = true\nSlot1_Filename = Mcd001.ps2\nSlot2_Enable = true\nSlot2_Filename = Mcd002.ps2\n",
+          "/mnt/sd/retrodeck/roms/ps2/Game.iso": "disc",
+          "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards/Mcd001.ps2/_pcsx2_superblock": "superblock",
+          "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards/Mcd001.ps2/BASLUS-20152AC04/data": "save",
+          "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards/Mcd001.ps2/BESLUS-20152AC04/data": "save"
+        },
+        "dirs": [
+          "/mnt/sd/retrodeck/saves",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/ROMs",
+          "/mnt/sd/retrodeck/bios",
+          "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards/Mcd001.ps2"
+        ],
+        "entry_savefile_query": {
+          "system": "ps2",
+          "content_path": "/mnt/sd/retrodeck/roms/ps2/Game.iso"
+        },
+        "ps2_discs": {
+          "/mnt/sd/retrodeck/roms/ps2/Game.iso": {
+            "disc_type": "ps2",
+            "boot": "cdrom0:\\SLUS_201.52;1"
+          }
+        },
+        "pcsx2_superblocks": {
+          "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards/Mcd001.ps2/_pcsx2_superblock": "formatted"
+        }
+      },
+      "expected": {
+        "installations": [
+          {
+            "kind": "retrodeck",
+            "label": "RetroDECK",
+            "kinds": [
+              "retrodeck"
+            ],
+            "root": "/mnt/sd/retrodeck",
+            "health": []
+          }
+        ],
+        "entry_savefile_location": {
+          "dir": "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards/Mcd001.ps2",
+          "root_kind": "emulator_directory",
+          "needs": [],
+          "fallback_dir": null,
+          "physical_dir": null,
+          "file_set": {
+            "state": "declared",
+            "files": [],
+            "complete": false,
+            "groups": [
+              {
+                "dir": "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards/Mcd001.ps2",
+                "files": null,
+                "granularity": "per-game-files",
+                "role": "memory-card",
+                "size_fixed": false,
+                "unit": null
+              },
+              {
+                "dir": "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards",
+                "files": [
+                  "Mcd002.ps2"
+                ],
+                "granularity": "shared-card",
+                "role": "memory-card",
+                "size_fixed": true,
+                "unit": null
+              }
+            ]
+          },
+          "caveats": [
+            {
+              "code": "file-names-unestablished",
+              "data": {
+                "token": "PCSX2",
+                "dir": "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards/Mcd001.ps2",
+                "role": "memory-card",
+                "citation": "FileMcd_SetType, MemoryCardFile.cpp:584-604 at v2.8.2 — a directory at the card's full path is MemoryCardType::Folder (its filtering always on: SetFiltering(true), MemoryCardFile.cpp:614, and FileMcd_ReIndex passing true, :826)"
+              }
+            }
+          ],
+          "redirects": [
+            {
+              "via": "flag",
+              "name": "-datapath",
+              "argument": "<dir>",
+              "moves": [
+                "saves",
+                "savestates",
+                "configuration",
+                "firmware"
+              ]
+            },
+            {
+              "via": "variable",
+              "name": "XDG_CONFIG_HOME",
+              "argument": "<dir>",
+              "moves": [
+                "saves",
+                "savestates",
+                "configuration",
+                "firmware"
+              ]
+            }
+          ],
+          "granularity": {
+            "value": "per-game-files",
+            "mode": "folder+file",
+            "readings": [
+              {
+                "key": "MemoryCards",
+                "value": "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards",
+                "options_file": "/home/deck/.var/app/net.retrodeck.retrodeck/config/PCSX2/inis/PCSX2.ini"
+              },
+              {
+                "key": "Slot1_Enable",
+                "value": "true",
+                "options_file": "/home/deck/.var/app/net.retrodeck.retrodeck/config/PCSX2/inis/PCSX2.ini"
+              },
+              {
+                "key": "Slot1_Filename",
+                "value": "Mcd001.ps2",
+                "options_file": "/home/deck/.var/app/net.retrodeck.retrodeck/config/PCSX2/inis/PCSX2.ini"
+              },
+              {
+                "key": "Slot2_Enable",
+                "value": "true",
+                "options_file": "/home/deck/.var/app/net.retrodeck.retrodeck/config/PCSX2/inis/PCSX2.ini"
+              },
+              {
+                "key": "Slot2_Filename",
+                "value": "Mcd002.ps2",
+                "options_file": "/home/deck/.var/app/net.retrodeck.retrodeck/config/PCSX2/inis/PCSX2.ini"
+              }
+            ],
+            "alternatives": []
+          }
+        }
+      }
+    },
+    {
+      "name": "pcsx2-an-unformatted-folder-card-states-no-unit",
+      "rationale": "The folder card's _pcsx2_superblock is not formatted (byte 0x16 is not 0x6F, IsFormatted, MemoryCardFolder.cpp:133-137), so PCSX2 indexes none of its directories (LoadMemoryCardData :232-275) and none is established as the game's: the answer is the folder card's tree, unchanged.",
+      "input": {
+        "home": "/home/deck",
+        "files": {
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retrodeck/retrodeck.json": "{\"paths\": {\"rd_home_path\": \"/mnt/sd/retrodeck\", \"saves_path\": \"/mnt/sd/retrodeck/saves\"}}",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retroarch/retroarch.cfg": "",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/files/retrodeck/components/es-de/share/es-de/resources/systems/linux/es_systems.xml": "<?xml version=\"1.0\"?>\n<systemList>\n  <system>\n    <name>ps2</name>\n    <fullname>Sony PlayStation 2</fullname>\n    <path>%ROMPATH%/ps2</path>\n    <extension>.iso .ISO .bin .BIN .chd .CHD</extension>\n    <command label=\"PCSX2 (Standalone)\">%EMULATOR_PCSX2% -batch %ROM%</command>\n    <platform>ps2</platform>\n  </system>\n</systemList>\n",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/PCSX2/inis/PCSX2.ini": "[Folders]\nMemoryCards = /mnt/sd/retrodeck/saves/ps2/pcsx2/memcards\n[MemoryCards]\nSlot1_Enable = true\nSlot1_Filename = Mcd001.ps2\nSlot2_Enable = true\nSlot2_Filename = Mcd002.ps2\n",
+          "/mnt/sd/retrodeck/roms/ps2/Game.iso": "disc",
+          "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards/Mcd001.ps2/_pcsx2_superblock": "superblock",
+          "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards/Mcd001.ps2/BASLUS-20152AC04/data": "save"
+        },
+        "dirs": [
+          "/mnt/sd/retrodeck/saves",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/ROMs",
+          "/mnt/sd/retrodeck/bios",
+          "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards/Mcd001.ps2"
+        ],
+        "entry_savefile_query": {
+          "system": "ps2",
+          "content_path": "/mnt/sd/retrodeck/roms/ps2/Game.iso"
+        },
+        "ps2_discs": {
+          "/mnt/sd/retrodeck/roms/ps2/Game.iso": {
+            "disc_type": "ps2",
+            "boot": "cdrom0:\\SLUS_201.52;1"
+          }
+        },
+        "pcsx2_superblocks": {
+          "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards/Mcd001.ps2/_pcsx2_superblock": "unformatted"
+        }
+      },
+      "expected": {
+        "installations": [
+          {
+            "kind": "retrodeck",
+            "label": "RetroDECK",
+            "kinds": [
+              "retrodeck"
+            ],
+            "root": "/mnt/sd/retrodeck",
+            "health": []
+          }
+        ],
+        "entry_savefile_location": {
+          "dir": "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards/Mcd001.ps2",
+          "root_kind": "emulator_directory",
+          "needs": [],
+          "fallback_dir": null,
+          "physical_dir": null,
+          "file_set": {
+            "state": "declared",
+            "files": [],
+            "complete": false,
+            "groups": [
+              {
+                "dir": "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards/Mcd001.ps2",
+                "files": null,
+                "granularity": "per-game-files",
+                "role": "memory-card",
+                "size_fixed": false,
+                "unit": null
+              },
+              {
+                "dir": "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards",
+                "files": [
+                  "Mcd002.ps2"
+                ],
+                "granularity": "shared-card",
+                "role": "memory-card",
+                "size_fixed": true,
+                "unit": null
+              }
+            ]
+          },
+          "caveats": [
+            {
+              "code": "file-names-unestablished",
+              "data": {
+                "token": "PCSX2",
+                "dir": "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards/Mcd001.ps2",
+                "role": "memory-card",
+                "citation": "FileMcd_SetType, MemoryCardFile.cpp:584-604 at v2.8.2 — a directory at the card's full path is MemoryCardType::Folder (its filtering always on: SetFiltering(true), MemoryCardFile.cpp:614, and FileMcd_ReIndex passing true, :826)"
+              }
+            }
+          ],
+          "redirects": [
+            {
+              "via": "flag",
+              "name": "-datapath",
+              "argument": "<dir>",
+              "moves": [
+                "saves",
+                "savestates",
+                "configuration",
+                "firmware"
+              ]
+            },
+            {
+              "via": "variable",
+              "name": "XDG_CONFIG_HOME",
+              "argument": "<dir>",
+              "moves": [
+                "saves",
+                "savestates",
+                "configuration",
+                "firmware"
+              ]
+            }
+          ],
+          "granularity": {
+            "value": "per-game-files",
+            "mode": "folder+file",
+            "readings": [
+              {
+                "key": "MemoryCards",
+                "value": "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards",
+                "options_file": "/home/deck/.var/app/net.retrodeck.retrodeck/config/PCSX2/inis/PCSX2.ini"
+              },
+              {
+                "key": "Slot1_Enable",
+                "value": "true",
+                "options_file": "/home/deck/.var/app/net.retrodeck.retrodeck/config/PCSX2/inis/PCSX2.ini"
+              },
+              {
+                "key": "Slot1_Filename",
+                "value": "Mcd001.ps2",
+                "options_file": "/home/deck/.var/app/net.retrodeck.retrodeck/config/PCSX2/inis/PCSX2.ini"
+              },
+              {
+                "key": "Slot2_Enable",
+                "value": "true",
+                "options_file": "/home/deck/.var/app/net.retrodeck.retrodeck/config/PCSX2/inis/PCSX2.ini"
+              },
+              {
+                "key": "Slot2_Filename",
+                "value": "Mcd002.ps2",
+                "options_file": "/home/deck/.var/app/net.retrodeck.retrodeck/config/PCSX2/inis/PCSX2.ini"
+              }
+            ],
+            "alternatives": []
+          }
+        }
+      }
+    },
+    {
+      "name": "pcsx2-a-file-card-in-slot-one-states-no-unit",
+      "rationale": "Both slots hold file cards: the question names a readable disc, and a shared .ps2 image is no folder the game owns, so the answer is the shared-card listing it is without a content path.",
+      "input": {
+        "home": "/home/deck",
+        "files": {
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retrodeck/retrodeck.json": "{\"paths\": {\"rd_home_path\": \"/mnt/sd/retrodeck\", \"saves_path\": \"/mnt/sd/retrodeck/saves\"}}",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retroarch/retroarch.cfg": "",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/files/retrodeck/components/es-de/share/es-de/resources/systems/linux/es_systems.xml": "<?xml version=\"1.0\"?>\n<systemList>\n  <system>\n    <name>ps2</name>\n    <fullname>Sony PlayStation 2</fullname>\n    <path>%ROMPATH%/ps2</path>\n    <extension>.iso .ISO .bin .BIN .chd .CHD</extension>\n    <command label=\"PCSX2 (Standalone)\">%EMULATOR_PCSX2% -batch %ROM%</command>\n    <platform>ps2</platform>\n  </system>\n</systemList>\n",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/PCSX2/inis/PCSX2.ini": "[Folders]\nMemoryCards = /mnt/sd/retrodeck/saves/ps2/pcsx2/memcards\n[MemoryCards]\nSlot1_Enable = true\nSlot1_Filename = Mcd001.ps2\nSlot2_Enable = true\nSlot2_Filename = Mcd002.ps2\n",
+          "/mnt/sd/retrodeck/roms/ps2/Game.iso": "disc",
+          "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards/Mcd001.ps2": "card",
+          "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards/Mcd002.ps2": "card"
+        },
+        "dirs": [
+          "/mnt/sd/retrodeck/saves",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/ROMs",
+          "/mnt/sd/retrodeck/bios"
+        ],
+        "entry_savefile_query": {
+          "system": "ps2",
+          "content_path": "/mnt/sd/retrodeck/roms/ps2/Game.iso"
+        },
+        "ps2_discs": {
+          "/mnt/sd/retrodeck/roms/ps2/Game.iso": {
+            "disc_type": "ps2",
+            "boot": "cdrom0:\\SLUS_201.52;1"
+          }
+        }
+      },
+      "expected": {
+        "installations": [
+          {
+            "kind": "retrodeck",
+            "label": "RetroDECK",
+            "kinds": [
+              "retrodeck"
+            ],
+            "root": "/mnt/sd/retrodeck",
+            "health": []
+          }
+        ],
+        "entry_savefile_location": {
+          "dir": "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards",
+          "root_kind": "emulator_directory",
+          "needs": [],
+          "fallback_dir": null,
+          "physical_dir": null,
+          "file_set": {
+            "state": "declared",
+            "files": [
+              "Mcd001.ps2",
+              "Mcd002.ps2"
+            ],
+            "complete": false,
+            "groups": [
+              {
+                "dir": "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards",
+                "files": [
+                  "Mcd001.ps2"
+                ],
+                "granularity": "shared-card",
+                "role": "memory-card",
+                "size_fixed": true,
+                "unit": null
+              },
+              {
+                "dir": "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards",
+                "files": [
+                  "Mcd002.ps2"
+                ],
+                "granularity": "shared-card",
+                "role": "memory-card",
+                "size_fixed": true,
+                "unit": null
+              }
+            ]
+          },
+          "caveats": [],
+          "redirects": [
+            {
+              "via": "flag",
+              "name": "-datapath",
+              "argument": "<dir>",
+              "moves": [
+                "saves",
+                "savestates",
+                "configuration",
+                "firmware"
+              ]
+            },
+            {
+              "via": "variable",
+              "name": "XDG_CONFIG_HOME",
+              "argument": "<dir>",
+              "moves": [
+                "saves",
+                "savestates",
+                "configuration",
+                "firmware"
+              ]
+            }
+          ],
+          "granularity": {
+            "value": "shared-card",
+            "mode": "file+file",
+            "readings": [
+              {
+                "key": "MemoryCards",
+                "value": "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards",
+                "options_file": "/home/deck/.var/app/net.retrodeck.retrodeck/config/PCSX2/inis/PCSX2.ini"
+              },
+              {
+                "key": "Slot1_Enable",
+                "value": "true",
+                "options_file": "/home/deck/.var/app/net.retrodeck.retrodeck/config/PCSX2/inis/PCSX2.ini"
+              },
+              {
+                "key": "Slot1_Filename",
+                "value": "Mcd001.ps2",
+                "options_file": "/home/deck/.var/app/net.retrodeck.retrodeck/config/PCSX2/inis/PCSX2.ini"
+              },
+              {
+                "key": "Slot2_Enable",
+                "value": "true",
+                "options_file": "/home/deck/.var/app/net.retrodeck.retrodeck/config/PCSX2/inis/PCSX2.ini"
+              },
+              {
+                "key": "Slot2_Filename",
+                "value": "Mcd002.ps2",
+                "options_file": "/home/deck/.var/app/net.retrodeck.retrodeck/config/PCSX2/inis/PCSX2.ini"
+              }
+            ],
+            "alternatives": []
+          }
+        }
+      }
+    },
+    {
+      "name": "pcsx2-an-unreadable-disc-keeps-the-tree",
+      "rationale": "Game.iso is a declared file no ps2_discs entry models, which the fixture reads as unreadable: no serial is established, so the folder card stays the tree it is and the reason rides sources.",
+      "input": {
+        "home": "/home/deck",
+        "files": {
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retrodeck/retrodeck.json": "{\"paths\": {\"rd_home_path\": \"/mnt/sd/retrodeck\", \"saves_path\": \"/mnt/sd/retrodeck/saves\"}}",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retroarch/retroarch.cfg": "",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/files/retrodeck/components/es-de/share/es-de/resources/systems/linux/es_systems.xml": "<?xml version=\"1.0\"?>\n<systemList>\n  <system>\n    <name>ps2</name>\n    <fullname>Sony PlayStation 2</fullname>\n    <path>%ROMPATH%/ps2</path>\n    <extension>.iso .ISO .bin .BIN .chd .CHD</extension>\n    <command label=\"PCSX2 (Standalone)\">%EMULATOR_PCSX2% -batch %ROM%</command>\n    <platform>ps2</platform>\n  </system>\n</systemList>\n",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/PCSX2/inis/PCSX2.ini": "[Folders]\nMemoryCards = /mnt/sd/retrodeck/saves/ps2/pcsx2/memcards\n[MemoryCards]\nSlot1_Enable = true\nSlot1_Filename = Mcd001.ps2\nSlot2_Enable = true\nSlot2_Filename = Mcd002.ps2\n",
+          "/mnt/sd/retrodeck/roms/ps2/Game.iso": "disc",
+          "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards/Mcd001.ps2/_pcsx2_superblock": "superblock",
+          "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards/Mcd001.ps2/BASLUS-20152AC04/data": "save"
+        },
+        "dirs": [
+          "/mnt/sd/retrodeck/saves",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/ROMs",
+          "/mnt/sd/retrodeck/bios",
+          "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards/Mcd001.ps2"
+        ],
+        "entry_savefile_query": {
+          "system": "ps2",
+          "content_path": "/mnt/sd/retrodeck/roms/ps2/Game.iso"
+        },
+        "pcsx2_superblocks": {
+          "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards/Mcd001.ps2/_pcsx2_superblock": "formatted"
+        }
+      },
+      "expected": {
+        "installations": [
+          {
+            "kind": "retrodeck",
+            "label": "RetroDECK",
+            "kinds": [
+              "retrodeck"
+            ],
+            "root": "/mnt/sd/retrodeck",
+            "health": []
+          }
+        ],
+        "entry_savefile_location": {
+          "dir": "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards/Mcd001.ps2",
+          "root_kind": "emulator_directory",
+          "needs": [],
+          "fallback_dir": null,
+          "physical_dir": null,
+          "file_set": {
+            "state": "declared",
+            "files": [],
+            "complete": false,
+            "groups": [
+              {
+                "dir": "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards/Mcd001.ps2",
+                "files": null,
+                "granularity": "per-game-files",
+                "role": "memory-card",
+                "size_fixed": false,
+                "unit": null
+              },
+              {
+                "dir": "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards",
+                "files": [
+                  "Mcd002.ps2"
+                ],
+                "granularity": "shared-card",
+                "role": "memory-card",
+                "size_fixed": true,
+                "unit": null
+              }
+            ]
+          },
+          "caveats": [
+            {
+              "code": "file-names-unestablished",
+              "data": {
+                "token": "PCSX2",
+                "dir": "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards/Mcd001.ps2",
+                "role": "memory-card",
+                "citation": "FileMcd_SetType, MemoryCardFile.cpp:584-604 at v2.8.2 — a directory at the card's full path is MemoryCardType::Folder (its filtering always on: SetFiltering(true), MemoryCardFile.cpp:614, and FileMcd_ReIndex passing true, :826)"
+              }
+            }
+          ],
+          "redirects": [
+            {
+              "via": "flag",
+              "name": "-datapath",
+              "argument": "<dir>",
+              "moves": [
+                "saves",
+                "savestates",
+                "configuration",
+                "firmware"
+              ]
+            },
+            {
+              "via": "variable",
+              "name": "XDG_CONFIG_HOME",
+              "argument": "<dir>",
+              "moves": [
+                "saves",
+                "savestates",
+                "configuration",
+                "firmware"
+              ]
+            }
+          ],
+          "granularity": {
+            "value": "per-game-files",
+            "mode": "folder+file",
+            "readings": [
+              {
+                "key": "MemoryCards",
+                "value": "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards",
+                "options_file": "/home/deck/.var/app/net.retrodeck.retrodeck/config/PCSX2/inis/PCSX2.ini"
+              },
+              {
+                "key": "Slot1_Enable",
+                "value": "true",
+                "options_file": "/home/deck/.var/app/net.retrodeck.retrodeck/config/PCSX2/inis/PCSX2.ini"
+              },
+              {
+                "key": "Slot1_Filename",
+                "value": "Mcd001.ps2",
+                "options_file": "/home/deck/.var/app/net.retrodeck.retrodeck/config/PCSX2/inis/PCSX2.ini"
+              },
+              {
+                "key": "Slot2_Enable",
+                "value": "true",
+                "options_file": "/home/deck/.var/app/net.retrodeck.retrodeck/config/PCSX2/inis/PCSX2.ini"
+              },
+              {
+                "key": "Slot2_Filename",
+                "value": "Mcd002.ps2",
+                "options_file": "/home/deck/.var/app/net.retrodeck.retrodeck/config/PCSX2/inis/PCSX2.ini"
+              }
+            ],
+            "alternatives": []
+          }
+        }
+      }
+    },
+    {
+      "name": "pcsx2-a-chd-is-not-read",
+      "rationale": "Game.chd is a CHD, which PCSX2 opens through its CHD reader (GetFileReader, InputIsoFile.cpp:40-57) and atlas does not read: format-not-read, and the folder card stays the tree it is.",
+      "input": {
+        "home": "/home/deck",
+        "files": {
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retrodeck/retrodeck.json": "{\"paths\": {\"rd_home_path\": \"/mnt/sd/retrodeck\", \"saves_path\": \"/mnt/sd/retrodeck/saves\"}}",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retroarch/retroarch.cfg": "",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/files/retrodeck/components/es-de/share/es-de/resources/systems/linux/es_systems.xml": "<?xml version=\"1.0\"?>\n<systemList>\n  <system>\n    <name>ps2</name>\n    <fullname>Sony PlayStation 2</fullname>\n    <path>%ROMPATH%/ps2</path>\n    <extension>.iso .ISO .bin .BIN .chd .CHD</extension>\n    <command label=\"PCSX2 (Standalone)\">%EMULATOR_PCSX2% -batch %ROM%</command>\n    <platform>ps2</platform>\n  </system>\n</systemList>\n",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/PCSX2/inis/PCSX2.ini": "[Folders]\nMemoryCards = /mnt/sd/retrodeck/saves/ps2/pcsx2/memcards\n[MemoryCards]\nSlot1_Enable = true\nSlot1_Filename = Mcd001.ps2\nSlot2_Enable = true\nSlot2_Filename = Mcd002.ps2\n",
+          "/mnt/sd/retrodeck/roms/ps2/Game.chd": "disc",
+          "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards/Mcd001.ps2/_pcsx2_superblock": "superblock",
+          "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards/Mcd001.ps2/BASLUS-20152AC04/data": "save"
+        },
+        "dirs": [
+          "/mnt/sd/retrodeck/saves",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/ROMs",
+          "/mnt/sd/retrodeck/bios",
+          "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards/Mcd001.ps2"
+        ],
+        "entry_savefile_query": {
+          "system": "ps2",
+          "content_path": "/mnt/sd/retrodeck/roms/ps2/Game.chd"
+        },
+        "pcsx2_superblocks": {
+          "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards/Mcd001.ps2/_pcsx2_superblock": "formatted"
+        }
+      },
+      "expected": {
+        "installations": [
+          {
+            "kind": "retrodeck",
+            "label": "RetroDECK",
+            "kinds": [
+              "retrodeck"
+            ],
+            "root": "/mnt/sd/retrodeck",
+            "health": []
+          }
+        ],
+        "entry_savefile_location": {
+          "dir": "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards/Mcd001.ps2",
+          "root_kind": "emulator_directory",
+          "needs": [],
+          "fallback_dir": null,
+          "physical_dir": null,
+          "file_set": {
+            "state": "declared",
+            "files": [],
+            "complete": false,
+            "groups": [
+              {
+                "dir": "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards/Mcd001.ps2",
+                "files": null,
+                "granularity": "per-game-files",
+                "role": "memory-card",
+                "size_fixed": false,
+                "unit": null
+              },
+              {
+                "dir": "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards",
+                "files": [
+                  "Mcd002.ps2"
+                ],
+                "granularity": "shared-card",
+                "role": "memory-card",
+                "size_fixed": true,
+                "unit": null
+              }
+            ]
+          },
+          "caveats": [
+            {
+              "code": "file-names-unestablished",
+              "data": {
+                "token": "PCSX2",
+                "dir": "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards/Mcd001.ps2",
+                "role": "memory-card",
+                "citation": "FileMcd_SetType, MemoryCardFile.cpp:584-604 at v2.8.2 — a directory at the card's full path is MemoryCardType::Folder (its filtering always on: SetFiltering(true), MemoryCardFile.cpp:614, and FileMcd_ReIndex passing true, :826)"
+              }
+            }
+          ],
+          "redirects": [
+            {
+              "via": "flag",
+              "name": "-datapath",
+              "argument": "<dir>",
+              "moves": [
+                "saves",
+                "savestates",
+                "configuration",
+                "firmware"
+              ]
+            },
+            {
+              "via": "variable",
+              "name": "XDG_CONFIG_HOME",
+              "argument": "<dir>",
+              "moves": [
+                "saves",
+                "savestates",
+                "configuration",
+                "firmware"
+              ]
+            }
+          ],
+          "granularity": {
+            "value": "per-game-files",
+            "mode": "folder+file",
+            "readings": [
+              {
+                "key": "MemoryCards",
+                "value": "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards",
+                "options_file": "/home/deck/.var/app/net.retrodeck.retrodeck/config/PCSX2/inis/PCSX2.ini"
+              },
+              {
+                "key": "Slot1_Enable",
+                "value": "true",
+                "options_file": "/home/deck/.var/app/net.retrodeck.retrodeck/config/PCSX2/inis/PCSX2.ini"
+              },
+              {
+                "key": "Slot1_Filename",
+                "value": "Mcd001.ps2",
+                "options_file": "/home/deck/.var/app/net.retrodeck.retrodeck/config/PCSX2/inis/PCSX2.ini"
+              },
+              {
+                "key": "Slot2_Enable",
+                "value": "true",
+                "options_file": "/home/deck/.var/app/net.retrodeck.retrodeck/config/PCSX2/inis/PCSX2.ini"
+              },
+              {
+                "key": "Slot2_Filename",
+                "value": "Mcd002.ps2",
+                "options_file": "/home/deck/.var/app/net.retrodeck.retrodeck/config/PCSX2/inis/PCSX2.ini"
+              }
+            ],
+            "alternatives": []
+          }
+        }
+      }
+    },
+    {
+      "name": "pcsx2-two-folder-cards-state-no-unit",
+      "rationale": "Both slots hold folder cards, Mcd001.ps2 and Mcd002.ps2: a game saves to whichever it chooses, so no one card's directories are stated as the game's.",
+      "input": {
+        "home": "/home/deck",
+        "files": {
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retrodeck/retrodeck.json": "{\"paths\": {\"rd_home_path\": \"/mnt/sd/retrodeck\", \"saves_path\": \"/mnt/sd/retrodeck/saves\"}}",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/retroarch/retroarch.cfg": "",
+          "/var/lib/flatpak/app/net.retrodeck.retrodeck/current/active/files/retrodeck/components/es-de/share/es-de/resources/systems/linux/es_systems.xml": "<?xml version=\"1.0\"?>\n<systemList>\n  <system>\n    <name>ps2</name>\n    <fullname>Sony PlayStation 2</fullname>\n    <path>%ROMPATH%/ps2</path>\n    <extension>.iso .ISO .bin .BIN .chd .CHD</extension>\n    <command label=\"PCSX2 (Standalone)\">%EMULATOR_PCSX2% -batch %ROM%</command>\n    <platform>ps2</platform>\n  </system>\n</systemList>\n",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/PCSX2/inis/PCSX2.ini": "[Folders]\nMemoryCards = /mnt/sd/retrodeck/saves/ps2/pcsx2/memcards\n[MemoryCards]\nSlot1_Enable = true\nSlot1_Filename = Mcd001.ps2\nSlot2_Enable = true\nSlot2_Filename = Mcd002.ps2\n",
+          "/mnt/sd/retrodeck/roms/ps2/Game.iso": "disc",
+          "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards/Mcd001.ps2/_pcsx2_superblock": "superblock",
+          "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards/Mcd001.ps2/BASLUS-20152AC04/data": "save"
+        },
+        "dirs": [
+          "/mnt/sd/retrodeck/saves",
+          "/home/deck/.var/app/net.retrodeck.retrodeck/config/ROMs",
+          "/mnt/sd/retrodeck/bios",
+          "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards/Mcd001.ps2",
+          "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards/Mcd002.ps2"
+        ],
+        "entry_savefile_query": {
+          "system": "ps2",
+          "content_path": "/mnt/sd/retrodeck/roms/ps2/Game.iso"
+        },
+        "ps2_discs": {
+          "/mnt/sd/retrodeck/roms/ps2/Game.iso": {
+            "disc_type": "ps2",
+            "boot": "cdrom0:\\SLUS_201.52;1"
+          }
+        },
+        "pcsx2_superblocks": {
+          "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards/Mcd001.ps2/_pcsx2_superblock": "formatted"
+        }
+      },
+      "expected": {
+        "installations": [
+          {
+            "kind": "retrodeck",
+            "label": "RetroDECK",
+            "kinds": [
+              "retrodeck"
+            ],
+            "root": "/mnt/sd/retrodeck",
+            "health": []
+          }
+        ],
+        "entry_savefile_location": {
+          "dir": "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards/Mcd001.ps2",
+          "root_kind": "emulator_directory",
+          "needs": [],
+          "fallback_dir": null,
+          "physical_dir": null,
+          "file_set": {
+            "state": "declared",
+            "files": [],
+            "complete": false,
+            "groups": [
+              {
+                "dir": "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards/Mcd001.ps2",
+                "files": null,
+                "granularity": "per-game-files",
+                "role": "memory-card",
+                "size_fixed": false,
+                "unit": null
+              },
+              {
+                "dir": "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards/Mcd002.ps2",
+                "files": null,
+                "granularity": "per-game-files",
+                "role": "memory-card",
+                "size_fixed": false,
+                "unit": null
+              }
+            ]
+          },
+          "caveats": [
+            {
+              "code": "file-names-unestablished",
+              "data": {
+                "token": "PCSX2",
+                "dir": "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards/Mcd001.ps2",
+                "role": "memory-card",
+                "citation": "FileMcd_SetType, MemoryCardFile.cpp:584-604 at v2.8.2 — a directory at the card's full path is MemoryCardType::Folder (its filtering always on: SetFiltering(true), MemoryCardFile.cpp:614, and FileMcd_ReIndex passing true, :826)"
+              }
+            },
+            {
+              "code": "file-names-unestablished",
+              "data": {
+                "token": "PCSX2",
+                "dir": "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards/Mcd002.ps2",
+                "role": "memory-card",
+                "citation": "FileMcd_SetType, MemoryCardFile.cpp:584-604 at v2.8.2 — a directory at the card's full path is MemoryCardType::Folder (its filtering always on: SetFiltering(true), MemoryCardFile.cpp:614, and FileMcd_ReIndex passing true, :826)"
+              }
+            }
+          ],
+          "redirects": [
+            {
+              "via": "flag",
+              "name": "-datapath",
+              "argument": "<dir>",
+              "moves": [
+                "saves",
+                "savestates",
+                "configuration",
+                "firmware"
+              ]
+            },
+            {
+              "via": "variable",
+              "name": "XDG_CONFIG_HOME",
+              "argument": "<dir>",
+              "moves": [
+                "saves",
+                "savestates",
+                "configuration",
+                "firmware"
+              ]
+            }
+          ],
+          "granularity": {
+            "value": "per-game-files",
+            "mode": "folder+folder",
+            "readings": [
+              {
+                "key": "MemoryCards",
+                "value": "/mnt/sd/retrodeck/saves/ps2/pcsx2/memcards",
+                "options_file": "/home/deck/.var/app/net.retrodeck.retrodeck/config/PCSX2/inis/PCSX2.ini"
+              },
+              {
+                "key": "Slot1_Enable",
+                "value": "true",
+                "options_file": "/home/deck/.var/app/net.retrodeck.retrodeck/config/PCSX2/inis/PCSX2.ini"
+              },
+              {
+                "key": "Slot1_Filename",
+                "value": "Mcd001.ps2",
+                "options_file": "/home/deck/.var/app/net.retrodeck.retrodeck/config/PCSX2/inis/PCSX2.ini"
+              },
+              {
+                "key": "Slot2_Enable",
+                "value": "true",
+                "options_file": "/home/deck/.var/app/net.retrodeck.retrodeck/config/PCSX2/inis/PCSX2.ini"
+              },
+              {
+                "key": "Slot2_Filename",
+                "value": "Mcd002.ps2",
+                "options_file": "/home/deck/.var/app/net.retrodeck.retrodeck/config/PCSX2/inis/PCSX2.ini"
+              }
+            ],
+            "alternatives": []
+          }
+        }
+      }
+    }
+  ]
+}

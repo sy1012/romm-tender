@@ -95,7 +95,7 @@ from dataclasses import dataclass, field
 from types import MappingProxyType
 from typing import BinaryIO, Callable, Iterable, Literal, Mapping, NamedTuple, Protocol, cast, runtime_checkable
 
-from . import dolphin_disc, eden, lha, n3ds_rom, ps2_bios, ps3_file, ps3_iso, ps3_title, psp_disc, psx_chd, psx_disc, psx_pbp, squashfs, switch_title, whdload, wua
+from . import dolphin_disc, eden, lha, n3ds_rom, ps2_bios, ps2_disc, ps3_file, ps3_iso, ps3_title, psp_disc, psx_chd, psx_disc, psx_pbp, squashfs, switch_title, whdload, wua
 from .content_path import archive_delimiter
 
 try:
@@ -305,6 +305,50 @@ PSP_DISC_STATUSES: tuple[PspDiscStatus, ...] = (
     PSP_DISC_FORMAT_NOT_READ,
     PSP_DISC_NOT_A_DISC,
 )
+
+# Reading the boot line PCSX2 names a PS2 disc by (atlas.ps2_disc) fails the
+# way a plain read fails, and in two ways that are findings about the bytes:
+# "format-not-read" is a file PCSX2 opens through a container reader — a CHD,
+# a CSO or ZSO, a gzipped image — or one whose suffix is no disc PCSX2 opens;
+# "not-a-disc" a flat image that holds no layout PCSX2 detects, no primary
+# volume descriptor, no SYSTEM.CNF or no BOOT2/BOOT line in it. "missing" is
+# no regular file there once links are followed.
+Ps2DiscStatus = Literal["ok", "missing", "unreadable", "format-not-read", "not-a-disc"]
+PS2_DISC_OK: Ps2DiscStatus = "ok"
+PS2_DISC_MISSING: Ps2DiscStatus = "missing"
+PS2_DISC_UNREADABLE: Ps2DiscStatus = "unreadable"
+PS2_DISC_FORMAT_NOT_READ: Ps2DiscStatus = "format-not-read"
+PS2_DISC_NOT_A_DISC: Ps2DiscStatus = "not-a-disc"
+PS2_DISC_STATUSES: tuple[Ps2DiscStatus, ...] = (
+    PS2_DISC_OK,
+    PS2_DISC_MISSING,
+    PS2_DISC_UNREADABLE,
+    PS2_DISC_FORMAT_NOT_READ,
+    PS2_DISC_NOT_A_DISC,
+)
+
+# Reading a PCSX2 folder memory card's _pcsx2_superblock: "formatted" where
+# the file holds a whole superblock (0x2000 bytes) whose byte 0x16 is 0x6F,
+# the test FolderMemoryCard::IsFormatted makes before it indexes the card
+# (MemoryCardFolder.cpp:133-137, :232-275 at PCSX2 v2.8.2); "unformatted"
+# where the file is shorter or that byte differs; "missing" where no regular
+# file is there once links are followed; "unreadable" what it means on a read.
+Pcsx2SuperblockStatus = Literal["formatted", "unformatted", "missing", "unreadable"]
+PCSX2_SUPERBLOCK_FORMATTED: Pcsx2SuperblockStatus = "formatted"
+PCSX2_SUPERBLOCK_UNFORMATTED: Pcsx2SuperblockStatus = "unformatted"
+PCSX2_SUPERBLOCK_MISSING: Pcsx2SuperblockStatus = "missing"
+PCSX2_SUPERBLOCK_UNREADABLE: Pcsx2SuperblockStatus = "unreadable"
+PCSX2_SUPERBLOCK_STATUSES: tuple[Pcsx2SuperblockStatus, ...] = (
+    PCSX2_SUPERBLOCK_FORMATTED,
+    PCSX2_SUPERBLOCK_UNFORMATTED,
+    PCSX2_SUPERBLOCK_MISSING,
+    PCSX2_SUPERBLOCK_UNREADABLE,
+)
+# The superblock FolderMemoryCard reads whole (m_superBlock.raw[BlockSize],
+# MemoryCardFolder.h:231-255), and the byte and value it tests.
+PCSX2_SUPERBLOCK_SIZE = 0x2000
+PCSX2_SUPERBLOCK_MARK_AT = 0x16
+PCSX2_SUPERBLOCK_MARK = 0x6F
 
 # Reading what Azahar reads of a 3DS image (atlas.n3ds_rom) fails the way a
 # plain read fails, and in three ways that are findings about the bytes:
@@ -629,6 +673,22 @@ class SwitchPackageResult:
             raise ValueError(
                 f"SwitchPackageResult: names must be set exactly when status is 'ok' (got {self.status!r})"
             )
+
+
+@dataclass(frozen=True, slots=True)
+class Ps2DiscResult:
+    """One read of the boot line PCSX2 names a PS2 disc by — ``facts`` is set exactly when ``status`` is ok.
+
+    ``missing`` / ``unreadable`` mean what they mean on :class:`ReadResult`;
+    the facts are :class:`atlas.ps2_disc.Ps2DiscFacts`.
+    """
+
+    status: Ps2DiscStatus
+    facts: ps2_disc.Ps2DiscFacts | None = None
+
+    def __post_init__(self) -> None:
+        if (self.facts is None) == (self.status == PS2_DISC_OK):
+            raise ValueError(f"Ps2DiscResult: facts must be set exactly when status is 'ok' (got {self.status!r})")
 
 
 @dataclass(frozen=True, slots=True)
@@ -1517,6 +1577,10 @@ class Machine(Protocol):
 
     def read_psp_disc(self, path: str) -> PspDiscResult: ...
 
+    def read_ps2_disc(self, path: str) -> Ps2DiscResult: ...
+
+    def read_pcsx2_superblock(self, path: str) -> Pcsx2SuperblockStatus: ...
+
     def read_psp_param_sfo(self, path: str) -> PspParamSfoResult: ...
 
     def read_n3ds_rom(self, path: str) -> N3dsRomResult: ...
@@ -2049,6 +2113,64 @@ class RealMachine:
             return EdenProfilesResult(EDEN_PROFILES_OK, eden.parse_profiles(data))
         except eden.ProfilesUnread:
             return EdenProfilesResult(EDEN_PROFILES_SHORT)
+
+    def read_ps2_disc(self, path: str) -> Ps2DiscResult:
+        """The boot line PCSX2 names the PS2 disc image at *path* by — a status, and the facts where it was read.
+
+        A regular file once links are followed, checked before opening, as for
+        :meth:`read_psp_disc`. The reader is :mod:`atlas.ps2_disc`, which reads
+        the volume descriptors, the root directory and ``SYSTEM.CNF`` under its
+        own bounds; a suffix PCSX2 opens through a container reader is
+        ``format-not-read`` before anything is opened.
+        """
+        if ps2_disc.suffix_read(path) is not True:
+            return Ps2DiscResult(PS2_DISC_FORMAT_NOT_READ)
+        try:
+            st = os.stat(path)
+        except (FileNotFoundError, NotADirectoryError):
+            return Ps2DiscResult(PS2_DISC_MISSING)
+        except OSError:
+            return Ps2DiscResult(PS2_DISC_UNREADABLE)
+        if not _stat.S_ISREG(st.st_mode):
+            return Ps2DiscResult(PS2_DISC_MISSING)
+        try:
+            with open(path, "rb") as f:
+                facts = ps2_disc.read_facts(f, st.st_size, path)
+        except (FileNotFoundError, NotADirectoryError):
+            return Ps2DiscResult(PS2_DISC_MISSING)
+        except ps2_disc.Ps2DiscFormatNotRead:
+            return Ps2DiscResult(PS2_DISC_FORMAT_NOT_READ)
+        except ps2_disc.Ps2DiscUnread:
+            return Ps2DiscResult(PS2_DISC_NOT_A_DISC)
+        except OSError:
+            return Ps2DiscResult(PS2_DISC_UNREADABLE)
+        return Ps2DiscResult(PS2_DISC_OK, facts)
+
+    def read_pcsx2_superblock(self, path: str) -> Pcsx2SuperblockStatus:
+        """Whether the ``_pcsx2_superblock`` at *path* is one PCSX2 indexes its folder card behind.
+
+        ``LoadMemoryCardData`` freads the whole superblock and indexes the card
+        only where that read succeeds and ``IsFormatted`` holds
+        (MemoryCardFolder.cpp:232-275, :133-137 at v2.8.2).
+        """
+        try:
+            st = os.stat(path)
+        except (FileNotFoundError, NotADirectoryError):
+            return PCSX2_SUPERBLOCK_MISSING
+        except OSError:
+            return PCSX2_SUPERBLOCK_UNREADABLE
+        if not _stat.S_ISREG(st.st_mode):
+            return PCSX2_SUPERBLOCK_MISSING
+        try:
+            with open(path, "rb") as f:
+                head = f.read(PCSX2_SUPERBLOCK_SIZE)
+        except (FileNotFoundError, NotADirectoryError):
+            return PCSX2_SUPERBLOCK_MISSING
+        except OSError:
+            return PCSX2_SUPERBLOCK_UNREADABLE
+        if len(head) == PCSX2_SUPERBLOCK_SIZE and head[PCSX2_SUPERBLOCK_MARK_AT] == PCSX2_SUPERBLOCK_MARK:
+            return PCSX2_SUPERBLOCK_FORMATTED
+        return PCSX2_SUPERBLOCK_UNFORMATTED
 
     def read_psp_disc(self, path: str) -> PspDiscResult:
         """What PPSSPP reads of the PSP disc image at *path* — a status, and the facts where it was read.
@@ -3398,6 +3520,59 @@ def _validate_fixture_psp_discs(
     return validated
 
 
+_FIXTURE_PS2_DISC_FIELDS = ("disc_type", "boot")
+_FIXTURE_PCSX2_SUPERBLOCK_STATES = (PCSX2_SUPERBLOCK_FORMATTED, PCSX2_SUPERBLOCK_UNFORMATTED)
+
+
+def _validate_fixture_ps2_discs(
+    declared: Mapping[str, object] | None,
+    files: Mapping[str, tuple[ReadStatus, str | None]],
+) -> dict[str, ps2_disc.Ps2DiscFacts | Ps2DiscStatus]:
+    """The declared boot line of each PS2 disc image — or ``format-not-read`` / ``not-a-disc``.
+
+    The facts describe a file's bytes, so the path must be a declared file
+    whose bytes can be read, as for ``psp_discs``. ``boot`` is the value of
+    the ``BOOT2`` (``disc_type`` ``ps2``) or ``BOOT`` (``ps1``) line, as the
+    disc's ``SYSTEM.CNF`` spells it.
+    """
+    validated: dict[str, ps2_disc.Ps2DiscFacts | Ps2DiscStatus] = {}
+    for path, spec in (declared or {}).items():
+        _declared_bytes("ps2 disc", path, files)
+        if spec in (PS2_DISC_FORMAT_NOT_READ, PS2_DISC_NOT_A_DISC):
+            validated[path] = cast(Ps2DiscStatus, spec)
+            continue
+        if not isinstance(spec, Mapping) or set(cast("Mapping[str, object]", spec)) != set(_FIXTURE_PS2_DISC_FIELDS):
+            raise ValueError(
+                f"ps2 disc {path!r}: expected 'format-not-read', 'not-a-disc' or an object with exactly "
+                f"{', '.join(_FIXTURE_PS2_DISC_FIELDS)}, got {spec!r}"
+            )
+        fields = cast("Mapping[str, object]", spec)
+        try:
+            validated[path] = ps2_disc.Ps2DiscFacts(
+                disc_type=cast("ps2_disc.Ps2DiscType", fields["disc_type"]),
+                boot=cast(str, fields["boot"]),
+            )
+        except (TypeError, ValueError) as error:
+            raise ValueError(f"ps2 disc {path!r}: {error}") from error
+    return validated
+
+
+def _validate_fixture_pcsx2_superblocks(
+    declared: Mapping[str, object] | None,
+    files: Mapping[str, tuple[ReadStatus, str | None]],
+) -> dict[str, Pcsx2SuperblockStatus]:
+    """Whether each declared ``_pcsx2_superblock`` is ``formatted`` or ``unformatted`` — its bytes' verdict."""
+    validated: dict[str, Pcsx2SuperblockStatus] = {}
+    for path, spec in (declared or {}).items():
+        _declared_bytes("pcsx2 superblock", path, files)
+        if spec not in _FIXTURE_PCSX2_SUPERBLOCK_STATES:
+            raise ValueError(
+                f"pcsx2 superblock {path!r}: expected one of {list(_FIXTURE_PCSX2_SUPERBLOCK_STATES)}, got {spec!r}"
+            )
+        validated[path] = cast(Pcsx2SuperblockStatus, spec)
+    return validated
+
+
 def _validate_fixture_psp_param_sfos(
     declared: Mapping[str, object] | None,
     files: Mapping[str, tuple[ReadStatus, str | None]],
@@ -4085,6 +4260,8 @@ class FixtureMachine:
         eden_profiles: Mapping[str, object] | None = None,
         psp_discs: Mapping[str, object] | None = None,
         psp_param_sfos: Mapping[str, object] | None = None,
+        ps2_discs: Mapping[str, object] | None = None,
+        pcsx2_superblocks: Mapping[str, object] | None = None,
         n3ds_roms: Mapping[str, object] | None = None,
         wua_archives: Mapping[str, object] | None = None,
         ps3_titles: Mapping[str, object] | None = None,
@@ -4105,6 +4282,8 @@ class FixtureMachine:
         self._eden_profiles = _validate_fixture_eden_profiles(eden_profiles, self._files)
         self._psp_discs = _validate_fixture_psp_discs(psp_discs, self._files)
         self._psp_param_sfos = _validate_fixture_psp_param_sfos(psp_param_sfos, self._files)
+        self._ps2_discs = _validate_fixture_ps2_discs(ps2_discs, self._files)
+        self._pcsx2_superblocks = _validate_fixture_pcsx2_superblocks(pcsx2_superblocks, self._files)
         self._n3ds_roms = _validate_fixture_n3ds_roms(n3ds_roms, self._files)
         self._wua_archives = _validate_fixture_wua_archives(wua_archives, self._files)
         self._ps3_titles = _validate_fixture_ps3_titles(ps3_titles, self._files)
@@ -4380,6 +4559,51 @@ class FixtureMachine:
         if resolved in self._files:
             return EdenProfilesResult(EDEN_PROFILES_UNREADABLE)
         return EdenProfilesResult(EDEN_PROFILES_MISSING)
+
+    def read_ps2_disc(self, path: str) -> Ps2DiscResult:
+        """The modeled read of the boot line PCSX2 names a PS2 disc by — the facts declared, RealMachine's outcomes.
+
+        A suffix :mod:`atlas.ps2_disc` does not read answers ``format-not-read``
+        before anything else, as the real read does. A path declared in
+        ``ps2_discs`` answers its facts, ``format-not-read`` or ``not-a-disc``;
+        a declared file with no entry there answers ``unreadable``, so a vector
+        that forgot the key cannot prove a disc nobody modeled. A directory, a
+        dead link and nothing at all answer ``missing``.
+        """
+        if ps2_disc.suffix_read(path) is not True:
+            return Ps2DiscResult(PS2_DISC_FORMAT_NOT_READ)
+        if self._is_inaccessible(path):
+            return Ps2DiscResult(PS2_DISC_UNREADABLE)
+        resolved = self._resolve(path).path
+        if resolved is None or resolved in self._dirs:
+            return Ps2DiscResult(PS2_DISC_MISSING)
+        declared = self._ps2_discs.get(resolved)
+        if isinstance(declared, ps2_disc.Ps2DiscFacts):
+            return Ps2DiscResult(PS2_DISC_OK, declared)
+        if declared is not None:
+            return Ps2DiscResult(declared)
+        if resolved in self._files:
+            return Ps2DiscResult(PS2_DISC_UNREADABLE)
+        return Ps2DiscResult(PS2_DISC_MISSING)
+
+    def read_pcsx2_superblock(self, path: str) -> Pcsx2SuperblockStatus:
+        """The modeled verdict on a ``_pcsx2_superblock`` — the one declared, RealMachine's outcomes.
+
+        A path declared in ``pcsx2_superblocks`` answers its verdict; a declared
+        file with no entry there answers ``unreadable``. A directory, a dead
+        link and nothing at all answer ``missing``.
+        """
+        if self._is_inaccessible(path):
+            return PCSX2_SUPERBLOCK_UNREADABLE
+        resolved = self._resolve(path).path
+        if resolved is None or resolved in self._dirs:
+            return PCSX2_SUPERBLOCK_MISSING
+        declared = self._pcsx2_superblocks.get(resolved)
+        if declared is not None:
+            return declared
+        if resolved in self._files:
+            return PCSX2_SUPERBLOCK_UNREADABLE
+        return PCSX2_SUPERBLOCK_MISSING
 
     def read_psp_disc(self, path: str) -> PspDiscResult:
         """The modeled read of what PPSSPP reads of a PSP disc image — the facts declared, RealMachine's outcomes.

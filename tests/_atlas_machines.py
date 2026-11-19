@@ -39,6 +39,8 @@ def fixture_machine(inp: dict[str, Any]) -> FixtureMachine:
         n3ds_roms=inp.get("n3ds_roms"),
         ps3_titles=inp.get("ps3_titles"),
         wua_archives=inp.get("wua_archives"),
+        ps2_discs=inp.get("ps2_discs"),
+        pcsx2_superblocks=inp.get("pcsx2_superblocks"),
         disc_identities=inp.get("disc_identities"),
         archive_texts=inp.get("archive_texts"),
         archives=inp.get("archives"),
