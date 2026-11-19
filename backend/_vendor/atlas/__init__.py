@@ -65,7 +65,7 @@ from __future__ import annotations
 # tests/test_version.py holds it equal to pyproject — CI's package job holds
 # dist-info to pyproject in a clean venv — so drift is a red test, not a
 # silent fork.
-__version__ = "0.34.0+tender.8"  # x-release-please-version
+__version__ = "0.34.0+tender.9"  # x-release-please-version
 
 # --- The two entry points, and the aggregate over them -----------------------
 from .detect import detect
@@ -763,6 +763,7 @@ from .placement import (
     CAVEAT_ACTIVE_PROFILE_UNESTABLISHED,
     CAVEAT_PSN_SAVE_PREFIX_MAY_DIFFER,
     CAVEAT_PS3_SAVE_PREFIX_MAY_DIFFER,
+    CAVEAT_PS2_SAVE_PREFIX_MAY_DIFFER,
     KEYINGS,
     SAVE_ID_SPELLING_GAME_CODE,
     SAVE_ID_SPELLING_PSP_GAME_ID,
@@ -1671,6 +1672,7 @@ __all__ = [
     "CAVEAT_ACTIVE_PROFILE_UNESTABLISHED",
     "CAVEAT_PSN_SAVE_PREFIX_MAY_DIFFER",
     "CAVEAT_PS3_SAVE_PREFIX_MAY_DIFFER",
+    "CAVEAT_PS2_SAVE_PREFIX_MAY_DIFFER",
     "CAVEAT_SOFT_PATCHING_APPLIES",
     "CAVEAT_SORTED_DIR_MISSING",
     "CAVEAT_SORTED_DIR_UNCREATABLE",

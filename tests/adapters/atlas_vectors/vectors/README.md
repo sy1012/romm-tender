@@ -210,6 +210,19 @@ archive's order; a folder Cemu does not read as a title is no fact and is left o
 `"not-an-archive"` (a footer whose structure Cemu's reader refuses). The same rules as `switch_packages` for a declared
 file with no entry, an `unreadable` one and a missing one.
 
+**`ps2_discs`** — the path of a PS2 disc image `files` declares → the boot line PCSX2 names it by:
+`{"disc_type": "ps2" | "ps1", "boot": …}`, where `boot` is the value of the `SYSTEM.CNF` line as the disc writes it —
+`BOOT2` for `ps2` (`cdrom0:\SLUS_201.52;1`), `BOOT` for `ps1` — which the resolver spells as a serial the way
+`ExecutablePathToSerial` does. Or one of two states: `"format-not-read"` (a CHD, CSO, ZSO or gzipped image, which PCSX2
+opens through a container reader) and `"not-a-disc"` (a flat image with no layout PCSX2 detects, no primary volume
+descriptor, no `SYSTEM.CNF` or no boot line). A path whose suffix is not `.iso`, `.bin`, `.img` or `.mdf` answers
+`format-not-read` whatever is declared, as the real read does. The same rules as `switch_packages` for a declared file
+with no entry, an `unreadable` one and a missing one.
+
+**`pcsx2_superblocks`** — the path of a PCSX2 folder card's `_pcsx2_superblock` `files` declares → `"formatted"` (a
+whole 0x2000-byte superblock whose byte 0x16 is 0x6F, the test PCSX2 indexes the card behind) or `"unformatted"`. A
+declared file with no entry reads as unreadable; no file there is missing.
+
 **`disc_identities`** — the path of a PlayStation disc image `files` declares (a `.cue`, `.bin`, `.img`, `.iso`, `.chd`
 or `.pbp`) → what reading its first data track yields:
 `{"license": …, "system_cnf": …, "boot_found": …, "edc_valid": …}`, where `license` is the start of sector 4's user

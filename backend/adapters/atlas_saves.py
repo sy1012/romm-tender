@@ -48,6 +48,7 @@ from typing import TYPE_CHECKING, Any
 from _vendor.atlas import (
     CAVEAT_ACTIVE_PROFILE_UNESTABLISHED,
     CAVEAT_FILE_MEMBERSHIP_BY_HEADER,
+    CAVEAT_PS2_SAVE_PREFIX_MAY_DIFFER,
     CAVEAT_PS3_SAVE_PREFIX_MAY_DIFFER,
     CAVEAT_PSN_SAVE_PREFIX_MAY_DIFFER,
     CAVEAT_REDIRECT_OUTRANKED,
@@ -105,7 +106,8 @@ if TYPE_CHECKING:
 # the answer is a hole too. ``psn-save-prefix-may-differ`` says a PSN release's
 # game may save under its disc release's id rather than its own, and
 # ``ps3-save-prefix-may-differ`` that a PS3 game may name its folders under
-# another title's id; for both the unit is
+# another title's id, and ``ps2-save-prefix-may-differ`` the same of a PS2 game's
+# saves on a PCSX2 folder card; for each the unit is
 # still the folders under the id the answer names, so a save under another id
 # is simply not this unit's — Tender neither finds it nor touches it, and a zip
 # laid out under another id is refused by the unpack. The note rides the
@@ -118,6 +120,7 @@ _NOTES_THAT_CHANGE_NOTHING = frozenset(
         CAVEAT_ACTIVE_PROFILE_UNESTABLISHED,
         CAVEAT_PSN_SAVE_PREFIX_MAY_DIFFER,
         CAVEAT_PS3_SAVE_PREFIX_MAY_DIFFER,
+        CAVEAT_PS2_SAVE_PREFIX_MAY_DIFFER,
     }
 )
 

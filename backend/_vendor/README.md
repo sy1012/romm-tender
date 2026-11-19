@@ -52,12 +52,12 @@ The [emu-atlas](https://github.com/danielcopper/emu-atlas) resolver — the conf
 extracted from this plugin.
 
 - **Upstream:** <https://github.com/danielcopper/emu-atlas>, through the fork <https://github.com/sy1012/emu-atlas>
-- **Version:** 0.34.0+tender.8 — the fork's branch `tender` at commit `e381feb580eabf3e5c7cfa7e26b710e0236539fb`, which
+- **Version:** 0.34.0+tender.9 — the fork's branch `tender` at commit `a97fb7d5a2d1ea2d0dfd853480edc54c87d3bdfe`, which
   is upstream's release `v0.34.0` (commit `d73f9f9`) plus the Dolphin disc reading, the save-unit statement
   (`FileGroup.unit`), the standalone Eden AppImage installation, its extra-content folders, PPSSPP's per-game save
-  folders, Azahar's per-title save and extdata folders, RPCS3's per-game save folders and its package installer, and
-  Cemu's per-title save folders. The fork publishes no release, so the wheel
-  `emu_atlas-0.34.0+tender.8-py3-none-any.whl` and the vectors tarball are built here from that commit
+  folders, Azahar's per-title save and extdata folders, RPCS3's per-game save folders and its package installer, Cemu's
+  per-title save folders and PCSX2's per-game folder-card saves. The fork publishes no release, so the wheel
+  `emu_atlas-0.34.0+tender.9-py3-none-any.whl` and the vectors tarball are built here from that commit
   (`uv build
   --wheel`; the tarball sorted, owner and mtime zeroed) and `atlas.SHA256SUMS` is the release-shaped
   manifest written over them — the same lines upstream's release manifest carries, so the gate reads it the same way.
