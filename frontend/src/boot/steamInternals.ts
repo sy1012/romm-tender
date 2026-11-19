@@ -130,7 +130,6 @@ export const STEAM_INTERNALS: readonly SteamInternal[] = [
   { path: "SteamClient.Apps.RunGame", asked: "call", ...LAUNCH },
   { path: "SteamClient.Apps.RegisterForGameActionStart", asked: "call", ...LAUNCH },
   { path: "SteamClient.Apps.CancelGameAction", asked: "call", ...LAUNCH },
-  { path: "SteamClient.Apps.RegisterForAppOverviewChanges", asked: "call", ...LIBRARY },
   { path: "SteamClient.GameSessions.RegisterForAppLifetimeNotifications", asked: "call", ...SESSIONS },
   { path: "SteamClient.System.GetSystemInfo", asked: "call", ...DEVICE_NAME },
   { path: "SteamClient.User.StartRestart", asked: "call", ...cost("restart") },

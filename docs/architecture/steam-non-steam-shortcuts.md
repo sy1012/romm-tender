@@ -509,18 +509,19 @@ used.
 `SteamClient.Apps.RegisterForAppOverviewChanges`, and `UpdateAppOverview` rebuilds each overview a **full** update names
 from Steam's own data (`InitFromProto`), `per_client_data` included — read in Steam's `sp.js`. On the user's Deck every
 Tender game read as installed again after a suspend and resume, which fits Steam sending its overviews again then.
-`rewriteInstallStateOnOverviewChanges` (`frontend/src/utils/installState.ts`) therefore registers a listener of its own
-there, once per load, and one second after the first change of a burst writes again the state the last
-`applyInstallState` read, from memory and without a call to the backend; `writeInstallState` skips an entry that already
-has the shape, so the frequent partial updates cost a lookup per shortcut and no write. Steam answers the registration
-with nothing to take it back by, so it lasts as long as the JavaScript context, as the launch interceptor's does.
+`keepInstallStateWritten` (`frontend/src/utils/installState.ts`) therefore checks every 30 seconds and writes again the
+state the last `applyInstallState` read, from memory and without a call to the backend; `writeInstallState` skips an
+entry that already has the shape, so a check normally writes nothing. Started once per load, it lasts as long as the
+JavaScript context.
 
-Roads not taken: `SteamClient.System.RegisterForOnResumeFromSuspend`, which `@decky/ui` types, is spelled nowhere in
-Steam's current client JavaScript and was found never to fire on SteamOS
-([save-file sync](save-file-sync-architecture.md), "Suspend exclusion via the monotonic clock"); Steam's own resume
-notice (`SleepManager.NotifyResumeFromSuspend`) is reached only through a webpack module, and a resume handler would
-still guess how long after the resume Steam's update arrives — the overview change is the write itself. That a resume
-sends the full update is inferred from the symptom, not measured; the listener does not depend on it.
+Roads not taken: **a listener of Tender's own on `RegisterForAppOverviewChanges`**, which writes again the moment Steam
+does — registered on a Deck, it took that registration over from the appStore: the library page failed to render and the
+start-up check found Steam's overviews gone (its "Steam collections" feature reads one). Tender registers for nothing
+there. `SteamClient.System.RegisterForOnResumeFromSuspend`, which `@decky/ui` types, is spelled nowhere in Steam's
+current client JavaScript and was found never to fire on SteamOS ([save-file sync](save-file-sync-architecture.md),
+"Suspend exclusion via the monotonic clock"); Steam's own resume notice (`SleepManager.NotifyResumeFromSuspend`) is
+reached only through a webpack module. That a resume sends the full update is inferred from the symptom, not measured;
+the check does not depend on it.
 
 ## VDF Format Notes
 

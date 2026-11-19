@@ -70,7 +70,7 @@ import {
   saveSyncedGamesCollection,
 } from "./utils/collections";
 import { applyLibraryHiding } from "./utils/libraryHiding";
-import { applyInstallState, rewriteInstallStateOnOverviewChanges } from "./utils/installState";
+import { applyInstallState, keepInstallStateWritten } from "./utils/installState";
 import { setMigrationStatus } from "./utils/migrationStore";
 import { fetchSettingsResetState } from "./utils/settingsResetStore";
 import { fetchQamEntryPositionState } from "./utils/qamEntryPositionStore";
@@ -475,7 +475,7 @@ const tender = definePanel(() => {
   disownStrandedPruneLeases();
   registerGameDetailPatch();
   registerLaunchInterceptor(() => launchPromptsForThisStart(gamepadLaunchPrompts));
-  rewriteInstallStateOnOverviewChanges();
+  keepInstallStateWritten();
 
   // Load metadata cache, register store patches, and populate RomM app ID set.
   // Retries with backoff if the backend isn't ready yet (e.g. boot without network).

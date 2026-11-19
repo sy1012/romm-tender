@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import * as backend from "../api/backend";
-import { applyInstallState, rewriteInstallStateOnOverviewChanges } from "./installState";
+import { applyInstallState, keepInstallStateWritten } from "./installState";
 
 vi.mock("../api/backend", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../api/backend")>()),
@@ -116,9 +116,8 @@ describe("applyInstallState", () => {
   });
 });
 
-describe("rewriteInstallStateOnOverviewChanges", () => {
+describe("keepInstallStateWritten", () => {
   let overviews: Map<number, SteamAppOverview>;
-  let overviewChanged: (data: ArrayBuffer) => void;
 
   // What Steam's full overview update does to a shortcut: a new overview, its
   // entry for this machine installed again.
@@ -130,13 +129,6 @@ describe("rewriteInstallStateOnOverviewChanges", () => {
     vi.useFakeTimers();
     overviews = new Map([101, 102].map((id) => [id, overview(id)]));
     vi.stubGlobal("appStore", { GetAppOverviewByAppID: (id: number) => overviews.get(id) ?? null });
-    vi.stubGlobal("SteamClient", {
-      Apps: {
-        RegisterForAppOverviewChanges: vi.fn((callback: (data: ArrayBuffer) => void) => {
-          overviewChanged = callback;
-        }),
-      },
-    });
     vi.mocked(backend.getInstalledAppIds).mockResolvedValue([101]);
     vi.mocked(backend.getAppIdRomIdMap).mockResolvedValue({ "101": 1, "102": 2 });
   });
@@ -147,15 +139,13 @@ describe("rewriteInstallStateOnOverviewChanges", () => {
     vi.clearAllMocks();
   });
 
-  it("writes the last install state again after Steam rebuilds its overviews, without asking the backend", async () => {
-    rewriteInstallStateOnOverviewChanges();
+  it("writes the last install state again once Steam has rebuilt an overview, without asking the backend", async () => {
+    keepInstallStateWritten();
     await applyInstallState();
     vi.mocked(backend.getInstalledAppIds).mockClear();
     steamRebuilds(102);
 
-    overviewChanged(new ArrayBuffer(8));
-    overviewChanged(new ArrayBuffer(8));
-    await vi.advanceTimersByTimeAsync(1000);
+    await vi.advanceTimersByTimeAsync(30_000);
 
     expect(overviews.get(102)!.per_client_data![0]!.installed).toBeUndefined();
     expect(overviews.get(102)!.per_client_data![0]!.display_status).toBe(9);
@@ -163,34 +153,13 @@ describe("rewriteInstallStateOnOverviewChanges", () => {
     expect(backend.getInstalledAppIds).not.toHaveBeenCalled();
   });
 
-  it("writes on a steady stream of changes rather than waiting for them to stop", async () => {
-    rewriteInstallStateOnOverviewChanges();
-    await applyInstallState();
-    steamRebuilds(102);
-
-    for (let i = 0; i < 5; i++) {
-      overviewChanged(new ArrayBuffer(8));
-      await vi.advanceTimersByTimeAsync(400);
-    }
-
-    expect(overviews.get(102)!.per_client_data![0]!.display_status).toBe(9);
-  });
-
   it("writes nothing before an install state has been read", async () => {
     vi.resetModules();
     const fresh = await import("./installState");
-    fresh.rewriteInstallStateOnOverviewChanges();
+    fresh.keepInstallStateWritten();
 
-    overviewChanged(new ArrayBuffer(8));
-    await vi.advanceTimersByTimeAsync(1000);
+    await vi.advanceTimersByTimeAsync(30_000);
 
     expect(overviews.get(102)!.per_client_data![0]).toEqual(thisMachine());
-  });
-
-  it("logs, and does not throw, where Steam cannot be asked", async () => {
-    vi.stubGlobal("SteamClient", { Apps: {} });
-
-    expect(() => rewriteInstallStateOnOverviewChanges()).not.toThrow();
-    expect(backend.logWarn).toHaveBeenCalledWith(expect.stringContaining("overview changes could not be followed"));
   });
 });

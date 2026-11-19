@@ -156,12 +156,12 @@ const createOrUpdateRomMCollections = vi.fn().mockResolvedValue([]);
 const removeStaleCollections = vi.fn().mockResolvedValue(undefined);
 const saveSyncedGamesCollection = vi.fn().mockResolvedValue([]);
 const adoptLegacyCollections = vi.fn().mockResolvedValue([]);
-const rewriteInstallStateOnOverviewChanges = vi.fn();
+const keepInstallStateWritten = vi.fn();
 const applyLibraryHiding = vi.fn().mockResolvedValue(true);
 const applyInstallState = vi.fn().mockResolvedValue(undefined);
 vi.mock("./utils/installState", () => ({
   applyInstallState: (...args: unknown[]) => applyInstallState(...args),
-  rewriteInstallStateOnOverviewChanges: () => rewriteInstallStateOnOverviewChanges(),
+  keepInstallStateWritten: () => keepInstallStateWritten(),
 }));
 vi.mock("./utils/libraryHiding", () => ({
   applyLibraryHiding: (...args: unknown[]) => applyLibraryHiding(...args),
@@ -976,12 +976,12 @@ describe("index.tsx — install state follows downloads and deletions", () => {
     await vi.waitFor(() => expect(applyInstallState).toHaveBeenCalledWith({ tenderAppIds: [100] }));
   });
 
-  it("follows Steam's overview changes from start-up, so a rebuild after a resume is written over", async () => {
-    rewriteInstallStateOnOverviewChanges.mockClear();
+  it("keeps the install state written from start-up, so a rebuild after a resume is written over", async () => {
+    keepInstallStateWritten.mockClear();
 
     panelFactory();
 
-    expect(rewriteInstallStateOnOverviewChanges).toHaveBeenCalledTimes(1);
+    expect(keepInstallStateWritten).toHaveBeenCalledTimes(1);
   });
 
   it("adopts an earlier version's collections at start-up and says which kept their old name", async () => {

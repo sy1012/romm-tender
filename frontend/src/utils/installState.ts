@@ -4,11 +4,11 @@
  * not downloaded as not installed. Steam marks every shortcut installed, and
  * rebuilds its overviews on every mount and whenever it sends them again, so
  * this runs on each load, again whenever what is on disk changes, and again
- * after Steam changes its overviews (docs/architecture/steam-non-steam-shortcuts.md,
+ * whenever Steam has put them back (docs/architecture/steam-non-steam-shortcuts.md,
  * "Install state").
  */
 
-import { debugLog, getAppIdRomIdMap, getInstalledAppIds, logWarn } from "../api/backend";
+import { debugLog, getAppIdRomIdMap, getInstalledAppIds } from "../api/backend";
 import { detach } from "./detach";
 import { overviewFor, writeInstallState } from "./steamOverview";
 
@@ -16,9 +16,10 @@ import { overviewFor, writeInstallState } from "./steamOverview";
 // not hold the shortcuts yet on a cold boot.
 const DELAYS = [0, 1000, 3000, 5000];
 
-// How long after Steam changes its overviews the last state is written again;
-// a change that arrives meanwhile is covered by the same write.
-const REWRITE_DELAY_MS = 1000;
+// How often the last state is checked against Steam's overviews. A poll, never a
+// listener on Steam's overview changes — why is
+// docs/architecture/steam-non-steam-shortcuts.md, "Install state".
+const KEEP_WRITTEN_MS = 30_000;
 
 let lastApplied: { installed: ReadonlySet<number>; appIds: readonly number[] } | null = null;
 
@@ -62,27 +63,14 @@ function rewriteLastApplied(): void {
 }
 
 /**
- * Write the last install state again shortly after every change Steam makes to
- * its overviews: a full update — which Steam sends again after a resume from
- * suspend — rebuilds each overview from Steam's own data and puts every
- * shortcut back to installed. The state written is the one the last
- * {@link applyInstallState} read, so a burst of changes costs no call to the
- * backend. Registered once per load: Steam answers the registration with
- * nothing to take it back by, so it lasts as long as the JavaScript context.
+ * Check the last install state every {@link KEEP_WRITTEN_MS} and write again
+ * any shortcut Steam put back to installed: Steam rebuilds its overviews from
+ * its own data on some updates — after a resume from suspend among them — and
+ * every shortcut reads as installed again. The state is the one the last
+ * {@link applyInstallState} read, so a check costs no call to the backend, and
+ * an entry that already has the shape is skipped, so a check normally writes
+ * nothing. Started once per load; it lasts as long as the JavaScript context.
  */
-export function rewriteInstallStateOnOverviewChanges(): void {
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  try {
-    SteamClient.Apps.RegisterForAppOverviewChanges(() => {
-      if (timer !== undefined) return;
-      timer = setTimeout(() => {
-        timer = undefined;
-        rewriteLastApplied();
-      }, REWRITE_DELAY_MS);
-    });
-  } catch (e) {
-    logWarn(
-      `Steam's overview changes could not be followed, so a game's install state may read as installed until the next sync: ${e}`,
-    );
-  }
+export function keepInstallStateWritten(): void {
+  setInterval(rewriteLastApplied, KEEP_WRITTEN_MS);
 }
