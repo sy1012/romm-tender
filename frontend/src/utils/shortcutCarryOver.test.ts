@@ -73,6 +73,7 @@ beforeEach(() => {
   collections = [];
   hidden = new Set();
   vi.stubGlobal("collectionStore", {
+    m_mapCollectionsFromStorage: new Map(),
     get userCollections() {
       return collections;
     },
@@ -154,6 +155,7 @@ describe("carryOverShortcutState (#2645)", () => {
 
   it("carries the collections and the artwork where Steam offers no Hidden", async () => {
     vi.stubGlobal("collectionStore", {
+      m_mapCollectionsFromStorage: new Map(),
       get userCollections() {
         return collections;
       },

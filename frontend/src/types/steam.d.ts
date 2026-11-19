@@ -110,6 +110,8 @@ declare var collectionStore: {
   // collection is built, so reads must guard.
   deckDesktopApps?: { apps: Map<number, any> };
   userCollections: SteamCollection[];
+  /** Steam's collections as loaded from storage; absent until that load, and read before `userCollections` for that reason. */
+  m_mapCollectionsFromStorage: unknown;
   NewUnsavedCollection(tag: string, filter?: unknown, overviews?: SteamAppOverview[]): SteamCollection;
   // Steam's Hidden, asked for and set apart from the user collections. Optional,
   // because neither call has been measured on a device.

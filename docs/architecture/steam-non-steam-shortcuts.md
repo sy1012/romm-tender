@@ -602,12 +602,17 @@ collections only where their names differ; that is the cost of plain names, whic
 **Collections an earlier version made are adopted once per load.** Those versions named this host's collections
 `RomM: <platform> (<hostname>)` and `RomM: [<key>] (<hostname>)`, the host compared without regard to case. The first
 collection write of a load, or the start-up pass before it (`adoptLegacyCollections`), records every unrecorded one as
-Tender's and renames it to its plain key (`displayName` set, then `Save()`, as Steam's own rename dialog does — read in
-`sp.js`, not measured on a device) where no other collection holds that name; where one does, it keeps its old name, is
-still recorded and updated by id, and the start-up toast names it (`keptOldNameMessage`). `RomM (<hostname>)` is
-recorded under its own name. Another host's collections, and the unsuffixed `RomM: <platform>` names of the oldest
-versions, are not adopted and are no longer Tender's to delete. Every collection write waits for the adoption, so no
-plain-named collection is made beside the one it was about to rename.
+Tender's and renames it to its plain key (`displayName` set, then `Save()`, as Steam's own rename dialog does — measured
+on a Deck: the renamed collections kept their games) where no other collection holds that name; where one does, it keeps
+its old name, is still recorded and updated by id, and the start-up toast names it (`keptOldNameMessage`).
+`RomM (<hostname>)` is recorded under its own name. Another host's collections, and the unsuffixed `RomM: <platform>`
+names of the oldest versions, are not adopted and are no longer Tender's to delete. Every collection write waits for the
+adoption, so no plain-named collection is made beside the one it was about to rename. The adoption itself waits until
+Steam has loaded its collections — `collectionStore.m_mapCollectionsFromStorage` exists — before it reads
+`userCollections`: that list is a MobX computed over the map, and read before the load it throws inside Steam's own
+reaction and the library page fails to render for the rest of the session (seen on a Deck when the adoption ran at panel
+load). It polls each second for up to a minute; a store that has not loaded by then fails the adoption, which the next
+collection write starts again.
 
 `<platform>` is the `name` RomM's platform listing gives the platform, never the `custom_name` a user set in RomM, for
 every platform the run's listing names, its sync on in Tender or not: the fetcher records each listed platform's name

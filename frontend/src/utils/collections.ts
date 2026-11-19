@@ -67,6 +67,26 @@ function legacyRecordFor(displayName: string, hostname: string): Omit<TenderColl
   return bracketed ? { kind: "collection", key: bracketed[1]! } : { kind: "platform", key: match[1]! };
 }
 
+// How long, and how often, start-up waits for Steam to load its collections.
+const STORE_LOAD_POLL_MS = 1000;
+const STORE_LOAD_TIMEOUT_MS = 60_000;
+
+/**
+ * Resolve once Steam has loaded its collections from storage. Steam's
+ * `userCollections` is a MobX computed over `m_mapCollectionsFromStorage`, which
+ * does not exist until that load: read before it, the computed throws inside
+ * Steam's own reaction and the library page fails to render for the rest of the
+ * session (seen on a Deck at panel load). So the map is checked, never the
+ * computed, and a store that does not load in time rejects.
+ */
+async function collectionStoreLoaded(): Promise<void> {
+  for (let waited = 0; ; waited += STORE_LOAD_POLL_MS) {
+    if (collectionStore.m_mapCollectionsFromStorage !== undefined) return;
+    if (waited >= STORE_LOAD_TIMEOUT_MS) throw new Error("Steam has not loaded its collections");
+    await new Promise((resolve) => setTimeout(resolve, STORE_LOAD_POLL_MS));
+  }
+}
+
 /**
  * Record this host's collections an earlier version named after the host, and
  * give each its plain name where no other collection holds it. Answers the old
@@ -74,6 +94,7 @@ function legacyRecordFor(displayName: string, hostname: string): Omit<TenderColl
  */
 async function adoptHostScopedCollections(): Promise<string[]> {
   if (typeof collectionStore === "undefined") return [];
+  await collectionStoreLoaded();
   const hostname = await getHostname();
   const records = await tenderCollectionRecords();
   const recordedIds = new Set(records.map((record) => record.id));

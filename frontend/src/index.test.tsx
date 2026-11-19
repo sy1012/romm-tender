@@ -1784,7 +1784,7 @@ describe("index.tsx — sync_complete registers RomM appIds (#1205)", () => {
       prune_lease_token: null,
     });
     // Empty collectionStore so the detached stale-cleanup is a no-op here.
-    vi.stubGlobal("collectionStore", { userCollections: [] });
+    vi.stubGlobal("collectionStore", { m_mapCollectionsFromStorage: new Map(), userCollections: [] });
   });
 
   it("registers every platform and RomM-collection appId from the payload", async () => {
@@ -2504,7 +2504,7 @@ describe("index.tsx — sync_complete toast shows the true delta (#744)", () => 
     vi.mocked(getAllPlaytime).mockResolvedValue({ playtime: {} });
     vi.mocked(getAppIdRomIdMap).mockResolvedValue({});
     // No RomM collections so the stale-cleanup detach is a no-op for these tests.
-    vi.stubGlobal("collectionStore", { userCollections: [] });
+    vi.stubGlobal("collectionStore", { m_mapCollectionsFromStorage: new Map(), userCollections: [] });
     resetSyncDelta();
   });
 

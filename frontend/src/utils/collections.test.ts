@@ -74,6 +74,7 @@ beforeEach(() => {
   userCollections = [];
   vi.stubGlobal("SteamClient", { System: { GetSystemInfo: vi.fn().mockResolvedValue({ sHostname: "test" }) } });
   vi.stubGlobal("collectionStore", {
+    m_mapCollectionsFromStorage: new Map(),
     get userCollections() {
       return userCollections;
     },
@@ -299,6 +300,28 @@ describe("removing Tender's collections", () => {
 });
 
 describe("collections an earlier version named after the host", () => {
+  it("are not read until Steam has loaded its collections, whose list throws before that", async () => {
+    vi.useFakeTimers();
+    const store: { m_mapCollectionsFromStorage?: Map<string, unknown>; userCollections: FakeCollection[] } = {
+      get userCollections(): FakeCollection[] {
+        if (!this.m_mapCollectionsFromStorage)
+          throw new TypeError("Cannot read properties of undefined (reading 'values')");
+        return [fakeCollection("RomM: N64 (test)", "uc-n64")];
+      },
+    };
+    vi.stubGlobal("collectionStore", store);
+    const { adoptLegacyCollections } = await load();
+
+    const adopted = adoptLegacyCollections();
+    await vi.advanceTimersByTimeAsync(3000);
+    store.m_mapCollectionsFromStorage = new Map();
+    await vi.advanceTimersByTimeAsync(1000);
+
+    expect(await adopted).toEqual([]);
+    expect(stored).toEqual([{ id: "uc-n64", kind: "platform", key: "N64" }]);
+    vi.useRealTimers();
+  });
+
   it("are renamed to their plain key and recorded, and another host's are left alone", async () => {
     const platform = fakeCollection("RomM: Game Boy Advance (test)", "uc-gba");
     const collection = fakeCollection("ROMM: [Faves] (TEST)", "uc-faves");

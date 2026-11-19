@@ -112,7 +112,7 @@ vi.stubGlobal("SteamClient", {
   },
 });
 vi.stubGlobal("appStore", { GetAppOverviewByAppID: vi.fn() });
-vi.stubGlobal("collectionStore", { userCollections: [] });
+vi.stubGlobal("collectionStore", { m_mapCollectionsFromStorage: new Map(), userCollections: [] });
 
 // api/host — the panel's end of the backend's WebSocket. `endpoint` returns a
 // vi.fn that resolves to undefined by default; tests opt into specific behavior

@@ -193,6 +193,7 @@ export const STEAM_INTERNALS: readonly SteamInternal[] = [
     asked: liveState("Steam fills the collection after it starts, so it can be empty or absent at first"),
     ...cost("shortcuts", "cleanup"),
   },
+  { path: "collectionStore.m_mapCollectionsFromStorage", asked: "read", ...COLLECTIONS },
   { path: "collectionStore.userCollections", asked: "read", ...COLLECTIONS },
   { path: "collectionStore.NewUnsavedCollection", asked: "call", ...COLLECTIONS },
   { path: "collectionStore.BIsHidden", asked: "call", ...HIDDEN },
