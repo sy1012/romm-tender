@@ -487,6 +487,24 @@ async def test_save_steam_library_hiding_rejects_invalid(harness):
     assert harness.endpoints.get_settings()["steam_hidden_by_tender"] == []
 
 
+async def test_save_steam_collections_persists(harness):
+    """save_steam_collections stores the records and get_settings reports them back."""
+    assert harness.endpoints.get_settings()["steam_collections_by_tender"] == []
+
+    records = [{"id": "uc-1", "kind": "platform", "key": "Game Boy Advance"}]
+    result = harness.endpoints.save_steam_collections(records)
+    assert result == {"success": True}
+    assert harness.endpoints.get_settings()["steam_collections_by_tender"] == records
+
+
+async def test_save_steam_collections_rejects_invalid(harness):
+    """A record that is not ``{id, kind, key}`` is answered with the failure shape and changes nothing."""
+    result = harness.endpoints.save_steam_collections([{"id": "uc-1"}])
+    assert result["success"] is False
+    assert result["reason"] == "invalid_value"
+    assert harness.endpoints.get_settings()["steam_collections_by_tender"] == []
+
+
 async def test_set_qam_entry_position_rejects_invalid(harness):
     """An unknown position is answered with the failure shape and changes nothing."""
     result = harness.endpoints.set_qam_entry_position("first")

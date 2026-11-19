@@ -77,3 +77,17 @@ export async function applyLibraryHiding(
   }
   return true;
 }
+
+/**
+ * Record *toAppId* as hidden by Tender when *fromAppId*, whose Hidden it is
+ * about to take over, is: a shortcut the sync converges onto then comes back
+ * when the setting is switched off, as the one it replaces would have. True when
+ * nothing needed recording or the record was stored.
+ */
+export async function recordCarriedOverHide(fromAppId: number, toAppId: number): Promise<boolean> {
+  const settings = await getSettings();
+  const stored = settings.steam_hidden_by_tender ?? [];
+  if (!stored.includes(fromAppId) || stored.includes(toAppId)) return true;
+  const result = await saveSteamLibraryHiding(settings.steam_library_hidden ?? false, [...stored, toAppId]);
+  return result.success;
+}

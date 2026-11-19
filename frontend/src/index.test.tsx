@@ -150,16 +150,18 @@ vi.mock("./utils/syncManager", () => ({
 }));
 
 // Observe the collection create/update + stale-cleanup calls fired by
-// onSyncComplete. getHostname resolves a fixed hostname so the machine-scoped
-// `RomM: <platform> (steamdeck)` suffix is deterministic.
-const createOrUpdateCollections = vi.fn().mockResolvedValue(undefined);
-const createOrUpdateRomMCollections = vi.fn().mockResolvedValue(undefined);
-const clearPlatformCollection = vi.fn().mockResolvedValue(undefined);
-const saveSyncedGamesCollection = vi.fn().mockResolvedValue(undefined);
+// onSyncComplete; each write answers the names another collection holds.
+const createOrUpdateCollections = vi.fn().mockResolvedValue([]);
+const createOrUpdateRomMCollections = vi.fn().mockResolvedValue([]);
+const removeStaleCollections = vi.fn().mockResolvedValue(undefined);
+const saveSyncedGamesCollection = vi.fn().mockResolvedValue([]);
+const adoptLegacyCollections = vi.fn().mockResolvedValue([]);
+const rewriteInstallStateOnOverviewChanges = vi.fn();
 const applyLibraryHiding = vi.fn().mockResolvedValue(true);
 const applyInstallState = vi.fn().mockResolvedValue(undefined);
 vi.mock("./utils/installState", () => ({
   applyInstallState: (...args: unknown[]) => applyInstallState(...args),
+  rewriteInstallStateOnOverviewChanges: () => rewriteInstallStateOnOverviewChanges(),
 }));
 vi.mock("./utils/libraryHiding", () => ({
   applyLibraryHiding: (...args: unknown[]) => applyLibraryHiding(...args),
@@ -168,8 +170,10 @@ vi.mock("./utils/collections", () => ({
   saveSyncedGamesCollection: (...args: unknown[]) => saveSyncedGamesCollection(...args),
   createOrUpdateCollections: (...args: unknown[]) => createOrUpdateCollections(...args),
   createOrUpdateRomMCollections: (...args: unknown[]) => createOrUpdateRomMCollections(...args),
-  clearPlatformCollection: (...args: unknown[]) => clearPlatformCollection(...args),
-  getHostname: vi.fn().mockResolvedValue("steamdeck"),
+  removeStaleCollections: (...args: unknown[]) => removeStaleCollections(...args),
+  adoptLegacyCollections: () => adoptLegacyCollections(),
+  nameTakenMessage: (names: string[]) => `taken: ${names.map((name) => `"${name}"`).join(", ")}`,
+  keptOldNameMessage: (names: string[]) => `kept: ${names.map((name) => `"${name}"`).join(", ")}`,
 }));
 
 // Observe the launch-options confirm-poll.
@@ -970,6 +974,34 @@ describe("index.tsx — install state follows downloads and deletions", () => {
     panelFactory();
 
     await vi.waitFor(() => expect(applyInstallState).toHaveBeenCalledWith({ tenderAppIds: [100] }));
+  });
+
+  it("follows Steam's overview changes from start-up, so a rebuild after a resume is written over", async () => {
+    rewriteInstallStateOnOverviewChanges.mockClear();
+
+    panelFactory();
+
+    expect(rewriteInstallStateOnOverviewChanges).toHaveBeenCalledTimes(1);
+  });
+
+  it("adopts an earlier version's collections at start-up and says which kept their old name", async () => {
+    vi.mocked(toaster.toast).mockClear();
+    adoptLegacyCollections.mockResolvedValueOnce(["RomM: N64 (steamdeck)"]);
+
+    panelFactory();
+
+    await vi.waitFor(() =>
+      expect(toaster.toast).toHaveBeenCalledWith(expect.objectContaining({ body: 'kept: "RomM: N64 (steamdeck)"' })),
+    );
+  });
+
+  it("logs, rather than drops, an adoption that failed", async () => {
+    logError.mockClear();
+    adoptLegacyCollections.mockRejectedValueOnce(new Error("no settings"));
+
+    panelFactory();
+
+    await vi.waitFor(() => expect(logError).toHaveBeenCalledWith(expect.stringContaining("no settings")));
   });
 
   it("tells Steam again once a download completes", async () => {
@@ -2229,21 +2261,8 @@ describe("index.tsx — the toast that a newer release is out, at panel load", (
 });
 
 describe("index.tsx — sync_complete stale-collection cleanup (#1040)", () => {
-  // A SNES platform collection and a [Faves] RomM smart-collection, both
-  // machine-scoped to "steamdeck" (the getHostname mock). Delete is a vi.fn so
-  // the smart-collection delete is observable; the platform collection is
-  // removed via the mocked clearPlatformCollection, so only its presence in
-  // userCollections matters for the stale filter.
-  function seedCollections(): {
-    snes: { Delete: ReturnType<typeof vi.fn> };
-    faves: { Delete: ReturnType<typeof vi.fn> };
-  } {
-    const snes = { id: "snes-id", displayName: "RomM: Super Nintendo (steamdeck)", Delete: vi.fn() };
-    const faves = { id: "faves-id", displayName: "RomM: [Faves] (steamdeck)", Delete: vi.fn() };
-    vi.stubGlobal("collectionStore", { userCollections: [snes, faves] });
-    return { snes, faves };
-  }
-
+  // Which collections are stale, and that only recorded ones are deleted, is
+  // collections.test.ts's; here, when the cleanup runs and what it is told.
   type SyncCompletePayload = {
     platform_app_ids: Record<string, number[]>;
     romm_collection_app_ids?: Record<string, number[]>;
@@ -2260,7 +2279,8 @@ describe("index.tsx — sync_complete stale-collection cleanup (#1040)", () => {
   beforeEach(() => {
     createOrUpdateCollections.mockClear();
     createOrUpdateRomMCollections.mockClear();
-    clearPlatformCollection.mockClear();
+    removeStaleCollections.mockClear();
+    saveSyncedGamesCollection.mockClear();
     vi.mocked(applyAllPlaytime).mockClear();
     vi.mocked(applyAllPlaytime).mockResolvedValue(undefined);
     vi.mocked(toaster.toast).mockClear();
@@ -2271,184 +2291,68 @@ describe("index.tsx — sync_complete stale-collection cleanup (#1040)", () => {
     vi.mocked(getAppIdRomIdMap).mockResolvedValue({});
   });
 
-  it("runs the stale cleanup on a completed (non-cancelled) sync", async () => {
-    const { faves } = seedCollections();
-    panelFactory();
-
-    // Only "Nintendo 64" is active — SNES and [Faves] are stale and removed.
-    emitSyncComplete({ platform_app_ids: { "Nintendo 64": [1] }, total_games: 1 });
-    await flush();
-
-    expect(clearPlatformCollection).toHaveBeenCalledWith("Super Nintendo", expect.any(AbortSignal));
-    expect(faves.Delete).toHaveBeenCalledTimes(1);
-  });
-
-  it("keeps a case-variant ACTIVE RomM collection (does not delete it) (#1569)", async () => {
-    const { snes, faves } = seedCollections();
-    panelFactory();
-
-    // The live collection is "[Faves]"; the active map keys it as "faves" (the
-    // run finalizer's folded-first-seen casing). Case-insensitive identity → it is
-    // ACTIVE and must survive. SNES has no active platform → still stale.
-    emitSyncComplete({
-      platform_app_ids: { "Nintendo 64": [1] },
-      romm_collection_app_ids: { faves: [1] },
-      total_games: 1,
-    });
-    await flush();
-
-    expect(faves.Delete).not.toHaveBeenCalled();
-    // Non-vacuous: the stale SNES platform IS still cleaned, so cleanup ran.
-    expect(clearPlatformCollection).toHaveBeenCalledWith("Super Nintendo", expect.any(AbortSignal));
-    expect(snes.Delete).not.toHaveBeenCalled(); // platform delete routes via clearPlatformCollection
-  });
-
-  it("keeps a case-variant ACTIVE platform collection (does not clear it) (#1569)", async () => {
-    const { faves } = seedCollections();
-    panelFactory();
-
-    // Live "RomM: Super Nintendo (steamdeck)"; active map keys it "super nintendo".
-    // Case-insensitive → ACTIVE, must not be cleared. [Faves] has no active RomM
-    // entry → stale and removed (non-vacuous: cleanup ran).
-    emitSyncComplete({
-      platform_app_ids: { "super nintendo": [1] },
-      total_games: 1,
-    });
-    await flush();
-
-    expect(clearPlatformCollection).not.toHaveBeenCalled();
-    expect(faves.Delete).toHaveBeenCalledTimes(1);
-  });
-
-  it("sweeps a stale RomM collection whose prefix is a case variant of ours (#2131)", async () => {
-    const shouted = { id: "shouted-id", displayName: "ROMM: [Faves] (steamdeck)", Delete: vi.fn() };
-    vi.stubGlobal("collectionStore", { userCollections: [shouted] });
-    panelFactory();
-
-    emitSyncComplete({ platform_app_ids: { "Nintendo 64": [1] }, total_games: 1 });
-    await flush();
-
-    expect(shouted.Delete).toHaveBeenCalledTimes(1);
-  });
-
-  it("sweeps a stale RomM collection whose host suffix is a case variant of ours (#2131)", async () => {
-    const shouted = { id: "shouted-id", displayName: "RomM: [Faves] (STEAMDECK)", Delete: vi.fn() };
-    vi.stubGlobal("collectionStore", { userCollections: [shouted] });
-    panelFactory();
-
-    emitSyncComplete({ platform_app_ids: { "Nintendo 64": [1] }, total_games: 1 });
-    await flush();
-
-    expect(shouted.Delete).toHaveBeenCalledTimes(1);
-  });
-
-  it("spares a case variant of our prefix that carries another host's suffix (#2131)", async () => {
-    const theirs = { id: "theirs-id", displayName: "ROMM: [Faves] (othermachine)", Delete: vi.fn() };
-    const ours = { id: "ours-id", displayName: "ROMM: [Gone] (STEAMDECK)", Delete: vi.fn() };
-    vi.stubGlobal("collectionStore", { userCollections: [theirs, ours] });
-    panelFactory();
-
-    emitSyncComplete({ platform_app_ids: { "Nintendo 64": [1] }, total_games: 1 });
-    await flush();
-
-    expect(theirs.Delete).not.toHaveBeenCalled();
-    // Non-vacuous: the cleanup ran and swept this host's case variant.
-    expect(ours.Delete).toHaveBeenCalledTimes(1);
-  });
-
-  it("clears a stale platform collection whose prefix and host suffix are case variants of ours (#2131)", async () => {
-    const shouted = { id: "shouted-id", displayName: "ROMM: Super Nintendo (STEAMDECK)", Delete: vi.fn() };
-    vi.stubGlobal("collectionStore", { userCollections: [shouted] });
-    panelFactory();
-
-    emitSyncComplete({ platform_app_ids: { "Nintendo 64": [1] }, total_games: 1 });
-    await flush();
-
-    expect(clearPlatformCollection).toHaveBeenCalledWith("Super Nintendo", expect.any(AbortSignal));
-  });
-
-  it("keeps an active RomM collection whose name differs from the active key only by case folding (#2131)", async () => {
-    const strasse = { id: "strasse-id", displayName: "RomM: [STRASSE] (steamdeck)", Delete: vi.fn() };
-    const gone = { id: "gone-id", displayName: "RomM: [Gone] (steamdeck)", Delete: vi.fn() };
-    vi.stubGlobal("collectionStore", { userCollections: [strasse, gone] });
+  it("runs the stale cleanup on a completed (non-cancelled) sync, with the run's keys", async () => {
     panelFactory();
 
     emitSyncComplete({
       platform_app_ids: { "Nintendo 64": [1] },
-      romm_collection_app_ids: { Straße: [1] },
+      romm_collection_app_ids: { Faves: [1] },
       total_games: 1,
     });
     await flush();
 
-    expect(strasse.Delete).not.toHaveBeenCalled();
-    // Non-vacuous: the cleanup ran and still sweeps a collection with no key.
-    expect(gone.Delete).toHaveBeenCalledTimes(1);
-  });
-
-  it("keeps an active platform collection whose name differs from the active key only by case folding (#2131)", async () => {
-    const strasse = { id: "strasse-id", displayName: "RomM: STRASSE (steamdeck)", Delete: vi.fn() };
-    const gone = { id: "gone-id", displayName: "RomM: Super Nintendo (steamdeck)", Delete: vi.fn() };
-    vi.stubGlobal("collectionStore", { userCollections: [strasse, gone] });
-    panelFactory();
-
-    emitSyncComplete({ platform_app_ids: { Straße: [1] }, total_games: 1 });
-    await flush();
-
-    expect(clearPlatformCollection).not.toHaveBeenCalledWith("STRASSE", expect.any(AbortSignal));
-    // Non-vacuous: the cleanup ran and still clears a platform with no key.
-    expect(clearPlatformCollection).toHaveBeenCalledWith("Super Nintendo", expect.any(AbortSignal));
-    expect(clearPlatformCollection).toHaveBeenCalledTimes(1);
-  });
-
-  it("removes a RomM collection whose key lost its label and keeps the bare-named one", async () => {
-    // Steam still holds a standard collection under a "(Standard)"-labelled
-    // name, and the active set keys it by its bare name "Kids".
-    const oldName = { id: "old-id", displayName: "RomM: [Kids (Standard)] (steamdeck)", Delete: vi.fn() };
-    const newName = { id: "new-id", displayName: "RomM: [Kids] (steamdeck)", Delete: vi.fn() };
-    vi.stubGlobal("collectionStore", { userCollections: [oldName, newName] });
-    panelFactory();
-
-    emitSyncComplete({
-      platform_app_ids: {},
-      romm_collection_app_ids: { Kids: [1] },
-      total_games: 1,
-    });
-    await flush();
-
-    expect(createOrUpdateRomMCollections).toHaveBeenCalledWith({ Kids: [1] }, undefined, expect.any(AbortSignal));
-    expect(oldName.Delete).toHaveBeenCalledTimes(1);
-    expect(newName.Delete).not.toHaveBeenCalled();
+    expect(removeStaleCollections).toHaveBeenCalledWith(["Nintendo 64"], ["Faves"], expect.any(AbortSignal));
   });
 
   it("skips the stale cleanup on a cancelled sync with a partial map (regression)", async () => {
-    const { snes, faves } = seedCollections();
     panelFactory();
 
-    // Cancel reached only "Nintendo 64"; SNES + [Faves] must SURVIVE.
     emitSyncComplete({ platform_app_ids: { "Nintendo 64": [1] }, total_games: 1, cancelled: true });
     await flush();
 
-    expect(clearPlatformCollection).not.toHaveBeenCalled();
-    expect(snes.Delete).not.toHaveBeenCalled();
-    expect(faves.Delete).not.toHaveBeenCalled();
+    expect(removeStaleCollections).not.toHaveBeenCalled();
   });
 
   it("skips the stale cleanup on an early cancel with an empty map (full-wipe case)", async () => {
-    const { snes, faves } = seedCollections();
     panelFactory();
 
-    // Cancel fired before unit 1 — the map is empty. Treating it as the active
-    // set would wipe EVERY RomM collection; nothing must be deleted.
     emitSyncComplete({ platform_app_ids: {}, total_games: 0, cancelled: true });
     await flush();
 
-    expect(clearPlatformCollection).not.toHaveBeenCalled();
-    expect(snes.Delete).not.toHaveBeenCalled();
-    expect(faves.Delete).not.toHaveBeenCalled();
+    expect(removeStaleCollections).not.toHaveBeenCalled();
+  });
+
+  it("says which collections it left alone because another collection holds the name", async () => {
+    createOrUpdateCollections.mockResolvedValueOnce(["Game Boy Advance"]);
+    createOrUpdateRomMCollections.mockResolvedValueOnce(["Faves"]);
+    panelFactory();
+
+    emitSyncComplete({
+      platform_app_ids: { "Game Boy Advance": [1] },
+      romm_collection_app_ids: { Faves: [1] },
+      total_games: 1,
+    });
+    await flush();
+
+    expect(toaster.toast).toHaveBeenCalledWith(
+      expect.objectContaining({ body: expect.stringContaining('"Game Boy Advance", "Faves"') }),
+    );
+  });
+
+  it("says so when another collection holds the synced-games collection's name", async () => {
+    vi.mocked(getAppIdRomIdMap).mockResolvedValue({ "100": 1 });
+    saveSyncedGamesCollection.mockResolvedValueOnce(["RomM (steamdeck)"]);
+    panelFactory();
+
+    emitSyncComplete({ platform_app_ids: {}, total_games: 1 });
+    await flush();
+
+    expect(toaster.toast).toHaveBeenCalledWith(
+      expect.objectContaining({ body: expect.stringContaining('"RomM (steamdeck)"') }),
+    );
   });
 
   it("still fires the cancelled toast and re-applies playtime on a cancelled sync", async () => {
-    seedCollections();
     panelFactory();
     // The factory's own init runs one initial playtime apply; clear it so the
     // assertion counts only the apply triggered by sync_complete.
@@ -2464,7 +2368,6 @@ describe("index.tsx — sync_complete stale-collection cleanup (#1040)", () => {
   });
 
   it("still creates/updates the reached platforms' collections on a cancelled sync", async () => {
-    seedCollections();
     panelFactory();
 
     emitSyncComplete({ platform_app_ids: { "Nintendo 64": [1] }, total_games: 1, cancelled: true });

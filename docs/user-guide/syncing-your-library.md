@@ -11,7 +11,7 @@ games appear in the Steam Library with cover art, metadata, and organized into c
 4. If you have a SteamGridDB API key configured, every game gets its icon, wide grid image and logo in the background
    after the sync, and its hero banner the first time its page is opened (see [Artwork](#artwork))
 5. Metadata (description, developer, genres, release date) is cached and displayed in Tender's custom game detail panel
-6. Steam collections are created per platform (e.g. "RomM: Game Boy Advance (steamdeck)")
+6. Steam collections are created per platform, named after it (e.g. "Game Boy Advance")
 
 ## Starting a Sync
 
@@ -360,14 +360,24 @@ apart from any an enabled collection still holds, and turning it back on brings 
 ## Collections
 
 Tender automatically creates Steam collections for each synced platform, named by the platform's name in RomM — a custom
-name you gave the platform in RomM does not change it. Collection names include your machine's hostname to avoid
-conflicts if you run Tender on multiple devices:
+name you gave the platform in RomM does not change it:
 
-- `RomM: Nintendo 64 (steamdeck)`
-- `RomM: Game Boy Advance (steamdeck)`
-- `RomM: PlayStation (htpc)`
+- `Nintendo 64`
+- `Game Boy Advance`
+- `PlayStation`
 
-Collections appear in Steam's library sidebar and can be used to browse games by platform.
+Steam shows collection names in capitals. Collections appear in Steam's library sidebar and can be used to browse games
+by platform.
+
+Tender remembers which collections it made and only ever changes or removes those. You can rename one of them in Steam
+and Tender keeps filling it under your name. If you already have a collection with the name Tender would use — one you
+made yourself, or one another device made — Tender leaves it alone, puts no games in it, and says so in a notification
+after the sync. Rename or delete yours, and the next sync makes Tender's.
+
+If you used an earlier version, your collections were named like `RomM: Game Boy Advance (steamdeck)`. The first time
+the new version starts, it renames this device's ones to the plain name. One whose plain name another collection already
+has keeps its old name, and a notification says which; Tender still keeps it up to date. Collections another device
+named after itself are left as they are.
 
 ### Syncing RomM collections
 
@@ -388,8 +398,8 @@ Each kind row other than Favorites says how many of its collections are on, for 
 
 **Turning a collection on adds all of its games to Steam at the next sync — including games on platforms you have not
 synced.** A collection is not limited to the platforms you switched on under Platforms: every game in it is added, and
-the games are grouped in a Steam collection named after it, `RomM: [<name>] (<device>)`. Each kind's pane says this in
-its first sentence. What **Distinguish collection types in Steam names** adds to the name is under
+the games are grouped in a Steam collection named after it. Each kind's pane says this in its first sentence. What
+**Distinguish collection types in Steam names** adds to the name is under
 [Collections that share a name](#collections-that-share-a-name).
 
 The table has these columns:
@@ -444,13 +454,17 @@ sync, so it sits with the other set-and-forget preferences rather than on this t
 Tender also keeps one collection holding every game it synced, named `RomM (<device>)`. Unlike the platform and RomM
 collections it is never renamed or removed by a sync, so it is the one to build a library tab on.
 
-To keep RomM games out of **All Games** and your other library views, switch on **Hide synced games from Steam's
-library** on the **Settings** page under **Steam Library**. It applies at once, and every sync hides newly synced games
-too. Hidden games still launch, and they still show in Steam's **Hidden** collection.
+**The recommended way** to give RomM games their own place is the [TabMaster](https://github.com/Tormak9970/TabMaster)
+plugin for Decky Loader, which Tender runs alongside, with the games left visible: build tabs from **Collection**
+filters — one on `RomM (<device>)` for every synced game, or on the platform collections — and, to keep them out of a
+tab of your Steam games, exclude that collection there.
 
-To browse them, give them a tab of their own with the [TabMaster](https://github.com/Tormak9970/TabMaster) plugin for
-Decky Loader, which Tender runs alongside: add a tab with a **Collection** filter on `RomM (<device>)` and turn on its
-option to include hidden games.
+Tender can also hide them: **Hide synced games from Steam's library** on the **Settings** page under **Steam Library**
+keeps RomM games out of **All Games** and your other library views. It applies at once, and every sync hides newly
+synced games too. Hidden games still launch, and they still show in Steam's **Hidden** collection, and a TabMaster tab
+can show them with its option to include hidden games. But Steam also leaves hidden games out of **Recent games** and
+out of the collections' own views in its library, so a game you just played does not come up there, and opening a
+platform's collection shows none of its games — which is why the filters above are the better choice.
 
 Switching the setting off unhides only the games Tender hid. A game you hid yourself stays hidden.
 
@@ -486,20 +500,19 @@ called the same thing, or (on a shared server) another account's public collecti
   name and merge too — Steam itself treats collection names case-insensitively.
 - **On** — hand-picked collections (**Collections** and **Favorites**) keep their plain name, and every other kind gets
   its **type** added to the Steam name: `(Smart)`, `(Franchise)` or `(IGDB Collection)`. A hand-picked collection, a
-  franchise and an IGDB collection all called "Mario" become `RomM: [Mario] (<device>)`,
-  `RomM: [Mario (Franchise)] (<device>)` and `RomM: [Mario (IGDB Collection)] (<device>)` — three Steam collections.
-  Collections that end up with the same Steam name still merge: two of the same name **and** type, and also a
-  hand-picked collection named, say, "Mario (Smart)" with a smart collection called "Mario".
+  franchise and an IGDB collection all called "Mario" become `Mario`, `Mario (Franchise)` and `Mario (IGDB Collection)`
+  — three Steam collections. Collections that end up with the same Steam name still merge: two of the same name **and**
+  type, and also a hand-picked collection named, say, "Mario (Smart)" with a smart collection called "Mario".
 
 The setting applies on the **next normal sync** — no Force Full Sync is needed. After flipping it, run a sync: Tender
 creates the Steam collections under their new names and, at the end of a sync that finishes in full, removes the
 old-named ones.
 
 If you had the setting on with an earlier version, your hand-picked collections were named with `(Standard)` in Steam,
-such as `RomM: [Kids (Standard)] (<device>)`. They are now named without it, as `RomM: [Kids] (<device>)`: the first
-sync that finishes in full creates the new ones and removes the `(Standard)` ones. A sync that stops early (cancelled,
-paused or interrupted) can create new ones without removing the old ones, so you may see both for a while. They are new
-Steam collections, holding the games the sync puts in them.
+such as `Kids (Standard)`. They are now named without it, as `Kids`: the first sync that finishes in full creates the
+new ones and removes the `(Standard)` ones. A sync that stops early (cancelled, paused or interrupted) can create new
+ones without removing the old ones, so you may see both for a while. They are new Steam collections, holding the games
+the sync puts in them.
 
 ## Artwork
 

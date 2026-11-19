@@ -103,6 +103,21 @@ def _is_app_id_list(value: object) -> TypeGuard[list[int]]:
     return isinstance(value, list) and all(type(item) is int and item > 0 for item in value)
 
 
+_STEAM_COLLECTION_KINDS = frozenset({"platform", "collection", "synced"})
+
+
+def _is_steam_collection_record_list(value: object) -> TypeGuard[list[dict[str, str]]]:
+    return isinstance(value, list) and all(
+        isinstance(item, dict)
+        and set(item) == {"id", "kind", "key"}
+        and isinstance(item["id"], str)
+        and item["id"] != ""
+        and item["kind"] in _STEAM_COLLECTION_KINDS
+        and isinstance(item["key"], str)
+        for item in value
+    )
+
+
 def _header_refusal_message(refusal: HeaderRefusal) -> str:
     """Word a refusal for the user. A template with no ``{name}`` ignores the name."""
     return _HEADER_REFUSAL_MESSAGES[refusal.problem].format(name=refusal.name)
@@ -264,6 +279,9 @@ class SettingsService:
             "skip_preview": self._settings.get("skip_preview", False),
             "steam_library_hidden": self._settings.get("steam_library_hidden", False),
             "steam_hidden_by_tender": list(self._settings.get("steam_hidden_by_tender", [])),
+            "steam_collections_by_tender": [
+                dict(record) for record in self._settings.get("steam_collections_by_tender", [])
+            ],
             EDEN_APPIMAGE_SETTING: self._settings.get(EDEN_APPIMAGE_SETTING, ""),
             "romm_custom_header_names": [
                 h.name for h in stored_custom_headers(self._settings.get("romm_custom_headers"))
@@ -485,6 +503,23 @@ class SettingsService:
             raise Refused("invalid_value", "Invalid library hiding state")
         self._settings["steam_library_hidden"] = enabled
         self._settings["steam_hidden_by_tender"] = list(hidden_by_tender)
+        self._settings_persister.save_settings()
+        return {"success": True}
+
+    # ── Steam collections Tender made ───────────────────────────────────
+
+    def save_steam_collections(self, records: object) -> dict[str, Any]:
+        """Persist the Steam collections Tender made, as ``{id, kind, key}`` records.
+
+        The list is the whole of what Tender recognises as its own collections
+        and is replaced as a whole. ``kind`` is ``platform``, ``collection`` or
+        ``synced``; ``key`` is the name the sync filed the collection under. A
+        value of any other shape is refused with ``invalid_value`` and nothing
+        is written.
+        """
+        if not _is_steam_collection_record_list(records):
+            raise Refused("invalid_value", "Invalid Steam collection records")
+        self._settings["steam_collections_by_tender"] = [dict(record) for record in records]
         self._settings_persister.save_settings()
         return {"success": True}
 

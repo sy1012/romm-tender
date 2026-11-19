@@ -122,11 +122,12 @@ originates from a remote client.
 
 ## What Tender Does
 
-### Machine-Scoped Collections
+### Collections are each device's own
 
-Collections are named with the machine hostname, e.g. `"RomM: Nintendo 64 (steamdeck)"`. Since Steam Cloud syncs
-collections across devices, this prevents collection name collisions between machines. Each machine's collections are
-clearly attributed.
+Collections are named plainly, e.g. `"Nintendo 64"`, and each device's Tender knows its own by the ids it recorded.
+Steam Cloud carries collections across devices, so another device's collection of the same name reaches this one; Tender
+leaves it alone there and files no games into it
+([Steam shortcuts](steam-non-steam-shortcuts.md#collection-management)).
 
 ### What We Tried and Removed
 

@@ -146,6 +146,7 @@ class TestSettingsSchema:
     def test_synced_games_are_not_hidden_by_default(self):
         assert DEFAULT_SETTINGS["steam_library_hidden"] is False
         assert DEFAULT_SETTINGS["steam_hidden_by_tender"] == []
+        assert DEFAULT_SETTINGS["steam_collections_by_tender"] == []
 
     def test_a_settings_file_without_the_qam_entry_position_reads_as_above_decky(self, adapter):
         settings_path = os.path.join(adapter._settings_dir, "settings.json")

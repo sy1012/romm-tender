@@ -394,6 +394,7 @@ class TestGetSettings:
                 "skip_preview": True,
                 "steam_library_hidden": True,
                 "steam_hidden_by_tender": [101, 102],
+                "steam_collections_by_tender": [{"id": "uc-1", "kind": "platform", "key": "Game Boy"}],
             }
         )
         result = service.get_settings()
@@ -411,6 +412,7 @@ class TestGetSettings:
         assert result["skip_preview"] is True
         assert result["steam_library_hidden"] is True
         assert result["steam_hidden_by_tender"] == [101, 102]
+        assert result["steam_collections_by_tender"] == [{"id": "uc-1", "kind": "platform", "key": "Game Boy"}]
 
     def test_never_returns_credentials_or_token(self, service, settings):
         settings["romm_api_token"] = "rmm_secret"
@@ -465,6 +467,7 @@ class TestGetSettings:
         assert result["romm_custom_header_names"] == []
         assert result["steam_library_hidden"] is False
         assert result["steam_hidden_by_tender"] == []
+        assert result["steam_collections_by_tender"] == []
 
     def test_reports_custom_header_names_and_never_a_value(self, service, settings):
         """Same rule as the token and the SteamGridDB key: a stored value can be replaced, not read back."""
@@ -1199,6 +1202,47 @@ class TestSaveSteamLibraryHiding:
         assert refused.value.reason == "invalid_value"
         assert "steam_library_hidden" not in settings
         assert "steam_hidden_by_tender" not in settings
+        settings_persister.save_settings.assert_not_called()
+
+
+class TestSaveSteamCollections:
+    def test_the_records_replace_the_stored_list(self, service, settings, settings_persister):
+        settings["steam_collections_by_tender"] = [{"id": "uc-old", "kind": "synced", "key": ""}]
+        records = [
+            {"id": "uc-1", "kind": "platform", "key": "Game Boy Advance"},
+            {"id": "uc-2", "kind": "collection", "key": "Favourites"},
+            {"id": "uc-3", "kind": "synced", "key": ""},
+        ]
+        result = service.save_steam_collections(records)
+        assert result == {"success": True}
+        assert settings["steam_collections_by_tender"] == records
+        settings_persister.save_settings.assert_called_once_with()
+
+    def test_an_empty_list_forgets_every_collection(self, service, settings):
+        settings["steam_collections_by_tender"] = [{"id": "uc-1", "kind": "platform", "key": "N64"}]
+        service.save_steam_collections([])
+        assert settings["steam_collections_by_tender"] == []
+
+    @pytest.mark.parametrize(
+        "records",
+        [
+            None,
+            "uc-1",
+            [None],
+            ["uc-1"],
+            [{"id": "uc-1", "kind": "platform"}],
+            [{"id": "uc-1", "kind": "platform", "key": "N64", "extra": 1}],
+            [{"id": "", "kind": "platform", "key": "N64"}],
+            [{"id": 7, "kind": "platform", "key": "N64"}],
+            [{"id": "uc-1", "kind": "tag", "key": "N64"}],
+            [{"id": "uc-1", "kind": "platform", "key": None}],
+        ],
+    )
+    def test_anything_else_is_refused_without_writing(self, service, settings, settings_persister, records):
+        with pytest.raises(Refused) as refused:
+            service.save_steam_collections(records)
+        assert refused.value.reason == "invalid_value"
+        assert "steam_collections_by_tender" not in settings
         settings_persister.save_settings.assert_not_called()
 
 

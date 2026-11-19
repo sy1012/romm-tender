@@ -107,6 +107,9 @@ _MIGRATION_RULE_WHITELIST: set[str] = {
     # Hiding synced games — a settings.json-only write; the Steam side is the
     # panel's, applied before the call.
     "save_steam_library_hiding",
+    # The Steam collections Tender made — a settings.json-only write; the Steam
+    # side is the panel's.
+    "save_steam_collections",
     # The Eden AppImage named — a settings.json-only write; the next reading of
     # the emulator sources takes it.
     "save_eden_appimage",
