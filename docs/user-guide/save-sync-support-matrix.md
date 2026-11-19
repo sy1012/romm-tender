@@ -118,8 +118,8 @@ save as a folder of its own, named after the game (`BASLUS-20152…`). Tender re
 (`.iso`, `.bin`, `.img` or `.mdf`; a `.chd` or `.cso` is not read) and carries the card folders that game's saves are
 named by to RomM as one `<game>.zip`, each folder at the top, the way Argosy lays them out. A game PCSX2 files under
 another serial — a second disc saving as the first, say — is followed as PCSX2's own game list says. A card file, two
-folder cards in different slots, or a game whose saves PCSX2 looks for under several serials is not synced. This has not
-yet been observed on a device.
+folder cards in different slots, or a game whose saves PCSX2 looks for under several serials is not synced. Upload and
+restore have both been observed on a Steam Deck.
 
 **PS3 syncs on RPCS3 (Standalone)**, the same way: Tender reads the game's title ID (`BLUS30443`, say) — from a folder
 dump's `PS3_GAME/PARAM.SFO`, a PSN package's header or an `.iso` — and carries the folders in RPCS3's `savedata` whose
@@ -217,7 +217,7 @@ states still work locally). See the full table for specifics.
     | `neogeocdjp` | ❌ | Shared save (the core has a per-content mode) |
     | `psp` | ✅ | PPSSPP (Standalone): the game's save folders (named by its ID) as one zip — `.iso` only |
     | `wiiu` | ✅ | Cemu (Standalone): the title's save folder, as one zip — `.wua` and folder dumps |
-    | `ps2` | ✅ | PCSX2 (Standalone) with a folder memory card: the game's save folders on the card, as one zip — `.iso`/`.bin`/`.img`/`.mdf`; a file card is shared and not synced; not yet observed on a device |
+    | `ps2` | ✅ | PCSX2 (Standalone) with a folder memory card: the game's save folders on the card, as one zip — `.iso`/`.bin`/`.img`/`.mdf`; a file card is shared and not synced |
     | `ps3` | ✅ | RPCS3 (Standalone): the game's save folders (named by its title ID) as one zip |
     | `pv1000` | ❌ | Saves are stored separately by the emulator (MAME) |
     | `scummvm` | ❌ | Not synced |
